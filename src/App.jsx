@@ -260,6 +260,21 @@ function App() {
                   </div>
                 </div>
 
+                <div style={{ 
+                  backgroundColor: '#eef2ff', 
+                  color: '#4f46e5', 
+                  padding: '0.75rem 1rem', 
+                  borderRadius: '0.5rem', 
+                  marginBottom: '1.5rem', 
+                  fontSize: '0.875rem', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  border: '1px solid #c7d2fe'
+                }}>
+                  <Activity size={16} /> <strong>Tip:</strong> You can drag and drop order cards to move them to the next stage. Click any card to manage its fulfillment checklist!
+                </div>
+
                 <div className="board-columns">
                   {processes.map((process, pIndex) => (
                     <React.Fragment key={process.id}>
