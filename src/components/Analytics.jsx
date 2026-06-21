@@ -215,15 +215,17 @@ export default function Analytics({ session }) {
               <div style={{ backgroundColor: '#f5f3ff', padding: '1rem', borderRadius: '0.75rem', color: '#8b5cf6' }}>
                 <Activity size={32} />
               </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>Total Inventory Value</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Total Inventory Value</div>
+                  {metrics.lowStockItems > 0 && (
+                    <div style={{ backgroundColor: '#fee2e2', color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 10px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                      {metrics.lowStockItems} Low Stock!
+                    </div>
+                  )}
+                </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-main)' }}>${metrics.inventoryValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
               </div>
-              {metrics.lowStockItems > 0 && (
-                <div style={{ position: 'absolute', top: '1rem', right: '1rem', backgroundColor: '#fee2e2', color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '12px' }}>
-                  {metrics.lowStockItems} Low Stock!
-                </div>
-              )}
             </div>
           </div>
 
