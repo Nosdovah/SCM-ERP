@@ -15,11 +15,13 @@ CREATE TABLE IF NOT EXISTS public.orders (
     assignee TEXT NOT NULL,
     "checklistState" JSONB NOT NULL DEFAULT '{}'::jsonb,
     company_name TEXT NOT NULL DEFAULT 'DEFAULT',
+    quantity INTEGER DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2.1 Safely add company_name if the orders table already existed before this update
+-- 2.1 Safely add columns if the orders table already existed before this update
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS company_name TEXT NOT NULL DEFAULT 'DEFAULT';
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
 
 -- 3. Vendors / Suppliers
 CREATE TABLE IF NOT EXISTS public.suppliers (
@@ -37,8 +39,14 @@ CREATE TABLE IF NOT EXISTS public.items (
     category TEXT,
     supplier_id UUID REFERENCES public.suppliers(id) ON DELETE SET NULL,
     company_name TEXT NOT NULL,
+    unit_price NUMERIC DEFAULT 0.00,
+    stock_on_hand INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- 4.1 Safely add columns to items if table already existed
+ALTER TABLE public.items ADD COLUMN IF NOT EXISTS unit_price NUMERIC DEFAULT 0.00;
+ALTER TABLE public.items ADD COLUMN IF NOT EXISTS stock_on_hand INTEGER DEFAULT 0;
 
 -- 5. Audit Trails (History Logs)
 CREATE TABLE IF NOT EXISTS public.order_history (
@@ -52,12 +60,23 @@ CREATE TABLE IF NOT EXISTS public.order_history (
 );
 
 
+-- 6. Team & Role Management
+CREATE TABLE IF NOT EXISTS public.company_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_name TEXT NOT NULL,
+    user_email TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'Viewer',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(company_name, user_email)
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_users ENABLE ROW LEVEL SECURITY;
 
 
 -- Create development policies 
@@ -77,6 +96,9 @@ CREATE POLICY "Enable full access for items" ON public.items FOR ALL USING (true
 
 DROP POLICY IF EXISTS "Enable full access for order_history" ON public.order_history;
 CREATE POLICY "Enable full access for order_history" ON public.order_history FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Enable full access for company_users" ON public.company_users;
+CREATE POLICY "Enable full access for company_users" ON public.company_users FOR ALL USING (true) WITH CHECK (true);
 
 
 -- Enable Realtime Broadcasts

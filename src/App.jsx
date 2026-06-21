@@ -79,7 +79,7 @@ function App() {
 
   // New Order State
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
-  const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium' });
+  const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium', quantity: 1 });
 
   // Fetch master items when modal opens
   useEffect(() => {
@@ -173,7 +173,29 @@ function App() {
       
       if (supabase) {
         supabase.from('orders').update({ stage: stageId }).eq('id', draggedTask.id).then(({ error }) => {
-          if (error) console.error("Update failed", error);
+          if (error) {
+            console.error("Update failed", error);
+            alert("Failed to update stage in database: " + error.message);
+          } else {
+            // Inventory Management: Auto-increment stock if order reaches warehouse / delivery completion
+            if (stageId === 'wh_inbound' || stageId === 'tpp_delivery') {
+              supabase.from('items')
+                .select('id, stock_on_hand')
+                .eq('name', draggedTask.title)
+                .eq('company_name', userCompany)
+                .single()
+                .then(({ data, error: fetchErr }) => {
+                  if (data && !fetchErr) {
+                    const newStock = (data.stock_on_hand || 0) + (draggedTask.quantity || 1);
+                    supabase.from('items').update({ stock_on_hand: newStock }).eq('id', data.id).then(({ error: updateErr }) => {
+                       if (!updateErr) {
+                         console.log(`Inventory auto-incremented for ${draggedTask.title}. New stock: ${newStock}`);
+                       }
+                    });
+                  }
+                });
+            }
+          }
         });
         
         const stageName = processes.flatMap(p => p.stages).find(s => s.id === stageId)?.title || stageId;
@@ -207,13 +229,14 @@ function App() {
       priority: newOrderForm.priority,
       assignee: newOrderForm.assignee || 'Unassigned',
       checklistState: {},
-      company_name: userCompany
+      company_name: userCompany,
+      quantity: newOrderForm.quantity || 1
     };
     
     // Optimistic UI update
     setTasks([newTask, ...tasks]);
     setShowNewOrderModal(false);
-    setNewOrderForm({ title: '', assignee: '', priority: 'Medium' });
+    setNewOrderForm({ title: '', assignee: '', priority: 'Medium', quantity: 1 });
 
     if (supabase) {
       try {
@@ -367,7 +390,7 @@ function App() {
         {/* Content Area */}
         <div className="content-area">
           {currentView === 'help' ? <HelpDictionary /> :
-           currentView === 'settings' ? <Settings /> :
+           currentView === 'settings' ? <Settings session={session} /> :
            currentView === 'analytics' ? <Analytics session={session} /> :
            currentView === 'master_data' ? <MasterData session={session} /> :
            (

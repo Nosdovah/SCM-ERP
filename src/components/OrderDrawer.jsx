@@ -8,6 +8,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
   const [formData, setFormData] = useState({});
   const [fileUploads, setFileUploads] = useState({});
   const [historyLogs, setHistoryLogs] = useState([]);
+  const [itemDetails, setItemDetails] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -22,7 +23,18 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
           setHistoryLogs(data);
         }
       };
+      const fetchItemDetails = async () => {
+        const { data, error } = await supabase
+          .from('items')
+          .select('*, suppliers(name)')
+          .eq('name', selectedOrder.title)
+          .single();
+        if (!error && data) {
+          setItemDetails(data);
+        }
+      };
       fetchHistory();
+      fetchItemDetails();
     }
   }, [selectedOrder]);
 
@@ -59,6 +71,91 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
     setIsUploading(false);
   };
 
+  const generatePO = () => {
+    if (!itemDetails) {
+      alert("Item details not found. Make sure this item exists in Master Data.");
+      return;
+    }
+    const poWindow = window.open('', '_blank');
+    const totalCost = (selectedOrder.quantity || 1) * (itemDetails.unit_price || 0);
+    
+    poWindow.document.write(`
+      <html>
+        <head>
+          <title>Purchase Order - ${selectedOrder.id}</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+            .title { font-size: 28px; font-weight: 800; color: #4338ca; }
+            .details { display: flex; justify-content: space-between; margin-bottom: 40px; }
+            .box { padding: 20px; background: #f8fafc; border-radius: 8px; width: 45%; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+            th { background-color: #f1f5f9; font-weight: 600; }
+            .total { text-align: right; font-size: 20px; font-weight: bold; margin-top: 20px; }
+            @media print { button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">PURCHASE ORDER</div>
+            <div style="text-align: right;">
+              <div><strong>PO Number:</strong> ${selectedOrder.id}</div>
+              <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+            </div>
+          </div>
+          
+          <div class="details">
+            <div class="box">
+              <strong>BILL TO:</strong><br/>
+              ${selectedOrder.company_name}<br/>
+              Supply Chain Department
+            </div>
+            <div class="box">
+              <strong>VENDOR:</strong><br/>
+              ${itemDetails.suppliers ? itemDetails.suppliers.name : 'Unknown Vendor'}<br/>
+              Supplier ID: ${itemDetails.supplier_id}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Line Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${itemDetails.sku}</td>
+                <td>${selectedOrder.title}</td>
+                <td>${selectedOrder.quantity || 1}</td>
+                <td>$${parseFloat(itemDetails.unit_price || 0).toFixed(2)}</td>
+                <td>$${totalCost.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="total">
+            Total Amount: $${totalCost.toFixed(2)}
+          </div>
+          
+          <div style="margin-top: 50px; text-align: center; color: #64748b; font-size: 14px;">
+            This is a computer generated document. No signature is required.
+          </div>
+          
+          <div style="margin-top: 30px; text-align: center;">
+            <button onclick="window.print()" style="padding: 10px 20px; background: #4338ca; color: white; border: none; border-radius: 4px; cursor: pointer;">Print PDF</button>
+          </div>
+        </body>
+      </html>
+    `);
+    poWindow.document.close();
+  };
+
   if (!selectedOrder) return null;
 
   return (
@@ -76,10 +173,14 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
           <div className="drawer-section">
             <h4>General Info</h4>
             <div style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>{selectedOrder.title}</div>
-            <div style={{ display: 'flex', gap: '2rem', fontSize: '0.875rem' }}>
+            <div style={{ display: 'flex', gap: '2rem', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
               <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Assignee</div><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><User size={16} /> {selectedOrder.assignee}</div></div>
               <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Priority</div><div>{selectedOrder.priority}</div></div>
+              <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Quantity</div><div style={{ fontWeight: '600' }}>{selectedOrder.quantity || 1} Units</div></div>
             </div>
+            <button onClick={generatePO} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content' }}>
+              <Clock size={16} /> Generate PO Document
+            </button>
           </div>
           <div className="drawer-section">
             <h4>100% Clarified Order Checklist (Supply CLM)</h4>

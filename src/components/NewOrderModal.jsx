@@ -29,9 +29,15 @@ export default function NewOrderModal({
                 {masterItems.map(item => <option key={item} value={item}>{item}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label>Assignee Name</label>
-              <input required type="text" placeholder="e.g. Jane Doe" value={newOrderForm.assignee} onChange={e => setNewOrderForm({...newOrderForm, assignee: e.target.value})} />
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>Assignee Name</label>
+                <input required type="text" placeholder="e.g. Jane Doe" value={newOrderForm.assignee} onChange={e => setNewOrderForm({...newOrderForm, assignee: e.target.value})} />
+              </div>
+              <div className="form-group" style={{ flex: '0 0 100px' }}>
+                <label>Quantity</label>
+                <input required type="number" min="1" value={newOrderForm.quantity} onChange={e => setNewOrderForm({...newOrderForm, quantity: parseInt(e.target.value) || 1})} />
+              </div>
             </div>
             <div className="form-group">
               <label>Priority</label>

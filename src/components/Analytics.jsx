@@ -8,7 +8,10 @@ export default function Analytics({ session }) {
   const [metrics, setMetrics] = useState({
     avgLeadTimes: {},
     totalOrders: 0,
-    bottleneckStage: null
+    bottleneckStage: null,
+    inventoryValue: 0,
+    activeCapEx: 0,
+    lowStockItems: 0
   });
 
   const userCompany = session?.user?.user_metadata?.company_name || 'DEFAULT';
@@ -19,7 +22,11 @@ export default function Analytics({ session }) {
     const fetchAnalyticsData = async () => {
       setLoading(true);
       
-      const [{ data: historyData, error: historyError }, { data: activeOrdersData, error: ordersError }] = await Promise.all([
+      const [
+        { data: historyData, error: historyError }, 
+        { data: activeOrdersData, error: ordersError },
+        { data: itemsData, error: itemsError }
+      ] = await Promise.all([
         supabase
           .from('order_history')
           .select('*')
@@ -27,12 +34,16 @@ export default function Analytics({ session }) {
           .order('created_at', { ascending: true }),
         supabase
           .from('orders')
-          .select('id')
+          .select('id, title, quantity')
+          .eq('company_name', userCompany),
+        supabase
+          .from('items')
+          .select('name, unit_price, stock_on_hand')
           .eq('company_name', userCompany)
       ]);
 
-      if (historyError || !historyData || ordersError || !activeOrdersData) {
-        console.error('Error fetching analytics data', historyError || ordersError);
+      if (historyError || ordersError || itemsError) {
+        console.error('Error fetching analytics data', historyError || ordersError || itemsError);
         setLoading(false);
         return;
       }
@@ -97,10 +108,36 @@ export default function Analytics({ session }) {
         }
       });
 
+      // Financial Analytics
+      let inventoryValue = 0;
+      let activeCapEx = 0;
+      let lowStockItems = 0;
+
+      const itemsMap = {};
+      if (itemsData) {
+        itemsData.forEach(item => {
+          itemsMap[item.name] = item;
+          inventoryValue += (item.stock_on_hand || 0) * (item.unit_price || 0);
+          if (item.stock_on_hand < 5) lowStockItems++; // Simple low stock threshold
+        });
+      }
+
+      if (activeOrdersData) {
+        activeOrdersData.forEach(order => {
+          const item = itemsMap[order.title];
+          if (item) {
+            activeCapEx += (order.quantity || 1) * (item.unit_price || 0);
+          }
+        });
+      }
+
       setMetrics({
         avgLeadTimes,
         totalOrders: totalCount,
-        bottleneckStage
+        bottleneckStage,
+        inventoryValue,
+        activeCapEx,
+        lowStockItems
       });
       setLoading(false);
     };
@@ -162,6 +199,31 @@ export default function Analytics({ session }) {
                   {metrics.bottleneckStage ? getStageTitle(metrics.bottleneckStage) : 'Insufficient Data'}
                 </div>
               </div>
+            </div>
+
+            <div className="portlet" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ backgroundColor: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', color: '#3b82f6' }}>
+                <Activity size={32} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>Capital Exp. (Active Orders)</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-main)' }}>${metrics.activeCapEx.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+              </div>
+            </div>
+
+            <div className="portlet" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', position: 'relative' }}>
+              <div style={{ backgroundColor: '#f5f3ff', padding: '1rem', borderRadius: '0.75rem', color: '#8b5cf6' }}>
+                <Activity size={32} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>Total Inventory Value</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-main)' }}>${metrics.inventoryValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+              </div>
+              {metrics.lowStockItems > 0 && (
+                <div style={{ position: 'absolute', top: '1rem', right: '1rem', backgroundColor: '#fee2e2', color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '12px' }}>
+                  {metrics.lowStockItems} Low Stock!
+                </div>
+              )}
             </div>
           </div>
 
