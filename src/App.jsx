@@ -1,220 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingCart, Settings, Bell, Search, User, Filter, Plus, ChevronRight, Activity, X, CheckSquare, BookOpen, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Settings as SettingsIcon, Bell, Search, User, Filter, Plus, ChevronRight, Activity, X, CheckSquare, BookOpen, LogOut } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import './index.css';
-
-const processes = [
-  {
-    id: 'proc-1',
-    title: 'Process 1: Ordering Preparation / Planning',
-    stages: [
-      { id: 'cpo_esta', title: 'CPO/ESTA', subtitle: 'Planning/Sales', system: 'boq', systemLabel: 'BOQ/PO', color: '#8b5cf6' },
-      { id: 'vc_wbs', title: 'VC & WBS Ordering', subtitle: 'PFA/PP', system: 'sap', systemLabel: 'SAP', color: '#3b82f6' },
-      { id: 'review_stock', title: 'Review Stock', subtitle: 'MP', system: 'sap', systemLabel: 'SAP', color: '#0ea5e9' },
-      { id: 'premium_proposal', title: 'BoQ & Premium Proposal', subtitle: 'Solution & Eng.', system: 'premium', systemLabel: 'Premium Proposal', color: '#10b981' },
-    ]
-  },
-  {
-    id: 'proc-2',
-    title: 'Process 2: Material Delivery',
-    stages: [
-      { id: 'release_inquiry', title: 'Release Inquiry', subtitle: 'EPC', system: 'premium', systemLabel: 'SAP - Premium', color: '#f59e0b' },
-      { id: 'po_creation', title: 'PO Creation', subtitle: 'EPC', system: 'sap', systemLabel: 'SAP', color: '#f97316' },
-      { id: 'hub_activities', title: 'Hub Activities (EAB)', subtitle: 'ESH NJ', system: 'sap', systemLabel: 'Hub', color: '#ef4444' },
-      { id: 'material_calloff', title: 'Material Call-off', subtitle: 'EPC/SLDM', system: 'sap', systemLabel: 'SAP', color: '#dc2626' },
-    ]
-  },
-  {
-    id: 'proc-3',
-    title: 'Process 3: Custom Clearance',
-    stages: [
-      { id: 'pre_alert_docs', title: 'Pre-Alert & Docs', subtitle: 'Supply/SLDM', system: 'customs', systemLabel: 'Documentation', color: '#8b5cf6' },
-      { id: 'custom_declaration', title: 'Custom Declaration', subtitle: 'Broker/LSP', system: 'customs', systemLabel: 'Brokerage', color: '#3b82f6' },
-      { id: 'custom_payment', title: 'Duty & Payment', subtitle: 'Customs/Bank', system: 'customs', systemLabel: 'Payment', color: '#f59e0b' },
-      { id: 'release_delivery', title: 'Release & Delivery', subtitle: 'LSP', system: 'sap', systemLabel: 'Logistics', color: '#10b981' },
-    ]
-  },
-  {
-    id: 'proc-4',
-    title: 'Process 4: WH Management & Last Mile',
-    stages: [
-      { id: 'wh_inbound', title: 'Inbound & GR', subtitle: 'LSP/SLDM', system: 'sap', systemLabel: 'SAP IM/WMS', color: '#8b5cf6' },
-      { id: 'wh_inventory', title: 'Warehouse & Inventory', subtitle: 'SLDM/DWM', system: 'sap', systemLabel: 'SAP IM/WMS', color: '#3b82f6' },
-      { id: 'wh_outbound', title: 'Outbound & Last Mile', subtitle: 'LSP/EPC', system: 'sap', systemLabel: 'SAP IM/WMS', color: '#10b981' }
-    ]
-  },
-  {
-    id: 'proc-5',
-    title: 'Process 5: EID Last Mile',
-    stages: [
-      { id: 'eid_planning', title: 'MR Validation', subtitle: 'IM/EPC', system: 'sap', systemLabel: 'SAP', color: '#8b5cf6' },
-      { id: 'eid_obd', title: 'OBD Creation', subtitle: 'EPC', system: 'sap', systemLabel: 'SAP', color: '#3b82f6' },
-      { id: 'eid_delivery', title: 'Pick, Pack & Deliver', subtitle: 'WH', system: 'sap', systemLabel: 'WMS', color: '#10b981' }
-    ]
-  },
-  {
-    id: 'proc-6',
-    title: 'Process 6: Local 3PP Flow',
-    stages: [
-      { id: 'tpp_request', title: 'Request & Validate', subtitle: 'Supply Local', system: 'boq', systemLabel: 'Sourcing', color: '#f59e0b' },
-      { id: 'tpp_po', title: 'Create/Change PO', subtitle: 'Supply Local & EPC', system: 'sap', systemLabel: 'SAP', color: '#ef4444' },
-      { id: 'tpp_delivery', title: 'Delivery & GR Posting', subtitle: 'Supply Local', system: 'sap', systemLabel: 'SAP', color: '#dc2626' }
-    ]
-  }
-];
-
-const clarificationChecklist = [
-  { id: 'chk_1', text: 'Verify 100% clarified order & provide feedback to ASR/Core-3+' },
-  { id: 'chk_2', text: 'Request/Check Value Contract, FAS, ESTA#/PO# & NN/WBS for Ordering' },
-  { id: 'chk_3', text: 'Update Order Plan, Partner/Customer info in PP' },
-  { id: 'chk_4', text: 'Checking with solution for type site availability in Premium Proposal' },
-  { id: 'chk_5', text: 'NIF file preparation' },
-  { id: 'chk_6', text: 'Checking existing available stock to decide partially or fully order' },
-  { id: 'chk_7', text: 'Perform Material Borrow or Transfer for available stock' },
-  { id: 'chk_8', text: 'Request and assess RO Plan for Batching order' },
-  { id: 'chk_9', text: 'Request/Create Premium Proposal Ordering (Mapping SKU & Qty)' },
-  { id: 'chk_10', text: 'Checking the Premium proposal ordering (Clarified Order)' },
-  { id: 'chk_11', text: 'Request PR/PO Creation to ROD for Import material' },
-  { id: 'chk_12', text: 'Escalation to PFM or Solution Architect if Order failed to create' },
-  { id: 'cc_1', text: 'Received Pre alert' },
-  { id: 'cc_2', text: 'Review shipping documents' },
-  { id: 'cc_3', text: 'Send shipping document to customs brokerage, coordinating and monitoring' },
-  { id: 'cc_4', text: 'Custom declaration verifications' },
-  { id: 'cc_5', text: 'Verify the HC code in the import declaration draft and confirm to custom broker' },
-  { id: 'cc_6', text: 'Coordinate with solutions to collect and share product catalogue/brochure to custom broker' },
-  { id: 'cc_7', text: 'Physical visit in customs' },
-  { id: 'cc_8', text: 'Responsible for custom duty and payment process' },
-  { id: 'cc_9', text: 'Import permit' },
-  { id: 'cc_10', text: 'Ensure to comply local laws and regulations' },
-  { id: 'cc_11', text: 'Arrange delivery from custom to local project WH' },
-  { id: 'wh_1', text: 'Follow up, GR/GI on time' },
-  { id: 'wh_2', text: 'Warehouse Priorities Picking & Outbound Activity' },
-  { id: 'wh_3', text: 'Domestic Transport Priority, Delivery & Approval' },
-  { id: 'wh_4', text: 'Operational Escalation' },
-  { id: 'wh_5', text: 'Invoicing/LSP billing' },
-  { id: 'wh_6', text: 'Sox Controls Monthly, Quarterly & Annually' },
-  { id: 'wh_7', text: 'Scrap list proposal based on TG5 Settlement document, follow up, approval and execute' },
-  { id: 'wh_8', text: 'Open box inspection' },
-  { id: 'wh_9', text: 'Conduct monthly KPI meeting - Governance meeting (Performance Analysis)' },
-  { id: 'wh_10', text: 'Create inbound orders for customer owned inventory' },
-  { id: 'wh_11', text: 'Managing GR/IR issues included aged invoices and parked invoices' },
-  { id: 'wh_12', text: 'Create and Update Supply Chain Cost Last mile' },
-  { id: 'inv_1', text: 'Update FG report daily and monitor to make sure WM perform GR and GI in timely manner' },
-  { id: 'inv_2', text: 'Provide stock report to stakeholder' },
-  { id: 'inv_3', text: 'Create inventory dismantle report material belong to customer' },
-  { id: 'inv_4', text: 'Monitor and control stock to maintain FG level and also Aging material' },
-  { id: 'inv_5', text: 'Inter-warehouse transfer and WBS to WBS transfer to manage stock' },
-  { id: 'inv_6', text: 'Secure effective inventory management, including reconciliation of stock, physical stock take, scrapping and initiation and follow up of return flows.' },
-  { id: 'inv_7', text: 'Manage inventory level, control and monitoring GR Inbound Shipment' },
-  { id: 'inv_8', text: 'Unreserved material from network due to wrong assignment or change request' },
-  { id: 'inv_9', text: 'Arrange delivery material for excess from PO, Dismantle material, transfer order (STO) to customer warehouse' },
-  { id: 'inv_10', text: 'To manage customer specific requirements' },
-  { id: 'acc_1', text: 'Weekly System Reconciliation' },
-  { id: 'acc_2', text: 'Monthly Cycle Count' },
-  { id: 'acc_3', text: 'Yearly Stock Take' },
-  { id: 'acc_4', text: 'Stock Adjustment / Scrap' },
-  { id: 'lsp_1', text: 'Warehouse capacity setup and control' },
-  { id: 'lsp_2', text: 'Conduct monthly governance meeting' },
-  { id: 'lsp_3', text: 'Follow-up escalation for warehouse operational issue' },
-  { id: 'lsp_4', text: 'Vendor RFP Support – Sourcing' },
-  { id: 'lsp_5', text: 'Drive operational LSP development' },
-  { id: 'post_1', text: 'Check EAB HW PO compare with PP Ordering' },
-  { id: 'post_2', text: 'Follow-up with EAB ODM/EAB Supplier for RFS dates' },
-  { id: 'post_3', text: 'Prepare report order and delivery plan (RFS, ETA) tracking reporting to CPM/stakeholders.' },
-  { id: 'post_4', text: 'Handle pre-escalation and assist formal escalation to improve dates' },
-  { id: 'post_5', text: 'Prepare Air exemption approval for speed-up delivery' },
-  { id: 'post_6', text: 'Send Call off instruction to EPC according to Project Plan' },
-  { id: 'post_7', text: 'Check against One Report whether everything is called off' },
-  { id: 'post_8', text: 'Checking document AWB and record delivery plan' },
-  { id: 'post_9', text: 'Follow up with DSP for update ETA and or deviation during shipment' },
-  { id: 'post_10', text: 'Inform detail material arrival to stakeholder' },
-  { id: 'post_11', text: 'Provide copy customer PO and material detail sheet to customs officer when requested' },
-  { id: 'post_12', text: 'Monitor custom clearance process' },
-  { id: 'oth_1', text: 'Coordinate with Finance for NS target achievements' },
-  { id: 'oth_2', text: 'Support Acceptance manager for Invoice submitted (WIP, NS, and Invoice)' },
-  { id: 'oth_3', text: 'Report cost utilize from EAB HW, SW, Warehouse and Delivery to TPM' },
-  { id: 'oth_4', text: 'Clean up plan cost and any pending transaction in network before TG5' },
-  { id: 'oth_5', text: 'Create form TG5 Project Settlement of Excess Materials, sanity network, clean up remaining stock' },
-  { id: 'oth_6', text: 'Prepare Scrap list proposal based on TG5 Settlement document or quarterly review Ericsson owned material and circulate for approval' },
-  { id: 'oth_7', text: 'Request to Return Logistic management to register Scrap material to Product Take Back Management' },
-  { id: 'oth_8', text: 'Prepare and follow up Supplier statement letter of project closure signed' },
-  { id: 'oth_9', text: 'Arrange delivery material to customer warehouse (dismantle or new material assign for customer warehouse)' },
-  { id: 'tpp_1', text: 'Vendor development, capacity and capability build' },
-  { id: 'tpp_2', text: 'Forecast and shared with Suppliers and Local sourcing' },
-  { id: 'tpp_3', text: 'Initiate request for ordering' },
-  { id: 'tpp_4', text: 'Validate request/100% clarified order' },
-  { id: 'tpp_5', text: 'Request to EPC to execute order' },
-  { id: 'tpp_6', text: 'Validate & ordering for PO-PR, GR/IR balance, PO closure' },
-  { id: 'tpp_7', text: 'Follow up delivery to project WH' },
-  { id: 'tpp_8', text: 'Manage escalation' },
-  { id: 'tpp_9', text: 'Manage share of business' },
-  { id: 'eid_1', text: 'Release WBS/NN and send to IM' },
-  { id: 'eid_2', text: 'PP Upload in DPM' },
-  { id: 'eid_3', text: 'Create MR and submit to BAM' },
-  { id: 'eid_4', text: 'MR auto transfer to PDB & Data validation' },
-  { id: 'eid_5', text: 'Direct/Indirect OBD creation based on WBS evaluation' },
-  { id: 'eid_6', text: 'WBS Reservation & Transfer stock (MB1B/CN22)' },
-  { id: 'eid_7', text: 'Send OBD daily report' },
-  { id: 'eid_8', text: 'Prepare materials, Pick/pack and PGI by VL02N' },
-  { id: 'eid_9', text: 'GI in WMS and Deliver to site' }
-];
-
-const initialTasks = [
-  { id: 'ORD-1001', title: 'Telecom Site 4A Upgrades', stage: 'cpo_esta', system: 'boq', priority: 'High', assignee: 'John D.', checklistState: {} },
-  { id: 'ORD-1002', title: 'Radio Network Expansion Project', stage: 'vc_wbs', system: 'sap', priority: 'Medium', assignee: 'Sarah K.', checklistState: { chk_1: true, chk_2: true } },
-  { id: 'ORD-1003', title: 'Fiber Optic Cable Batch A', stage: 'review_stock', system: 'sap', priority: 'High', assignee: 'Mike T.', checklistState: { chk_1: true, chk_2: true, chk_3: true, chk_6: true } },
-  { id: 'ORD-1004', title: 'Server Racks Distribution', stage: 'premium_proposal', system: 'premium', priority: 'Low', assignee: 'Anna W.', checklistState: { chk_1: true, chk_2: true, chk_3: true, chk_4: true, chk_5: true } },
-  { id: 'ORD-1005', title: 'Backup Generators Setup', stage: 'release_inquiry', system: 'premium', priority: 'Medium', assignee: 'David L.', checklistState: Object.fromEntries(clarificationChecklist.map(c => [c.id, true])) },
-  { id: 'ORD-1006', title: 'Cooling Systems Q3', stage: 'po_creation', system: 'sap', priority: 'High', assignee: 'Lisa M.', checklistState: Object.fromEntries(clarificationChecklist.map(c => [c.id, true])) },
-  { id: 'ORD-1007', title: 'Network Switches Delivery', stage: 'material_calloff', system: 'sap', priority: 'Medium', assignee: 'Tom B.', checklistState: Object.fromEntries(clarificationChecklist.map(c => [c.id, true])) },
-];
-
-const dictionaryTerms = [
-  { term: "CPO / ESTA", desc: "Customer Purchase Order / Early Start Technical Approval. The initial request or commercial approval triggering the planning phase." },
-  { term: "VC", desc: "Value Contract. The commercial agreement framework in SAP detailing prices and terms." },
-  { term: "WBS", desc: "Work Breakdown Structure. Used in SAP to allocate budgets and track costs for specific project segments." },
-  { term: "NW", desc: "Network. References the SAP Network number used for project scheduling and execution." },
-  { term: "BoQ", desc: "Bill of Quantities. The detailed list of materials, hardware, and services needed for a site." },
-  { term: "PP", desc: "Premium Proposal. An advanced system/step where the exact material mapping and site requirements are finalized." },
-  { term: "RO", desc: "Rollout Order. The operational plan dictating when and where sites are built." },
-  { term: "OCL", desc: "Order Checklist. The verification document ensuring all prerequisites are met before PO creation." },
-  { term: "EPC", desc: "Equipment Procurement & Construction. The team responsible for releasing inquiries and creating Purchase Orders." },
-  { term: "SLDM", desc: "Supply Logistics Delivery Management. The team managing the actual material flow, warehousing, and delivery call-offs." }
-];
-
-const stageRequirements = {
-  'cpo_esta': [],
-  'vc_wbs': ['chk_1'],
-  'review_stock': ['chk_2', 'chk_3'],
-  'premium_proposal': ['chk_4', 'chk_5', 'chk_6'],
-  'release_inquiry': ['chk_8', 'chk_9', 'chk_10'],
-  'po_creation': ['chk_11'],
-  'hub_activities': ['chk_12'],
-  'material_calloff': [],
-  'pre_alert_docs': [],
-  'custom_declaration': ['cc_1', 'cc_2', 'cc_9'],
-  'custom_payment': ['cc_3', 'cc_4', 'cc_5', 'cc_6'],
-  'release_delivery': ['cc_7', 'cc_8', 'cc_10'],
-  'wh_inbound': ['cc_11'],
-  'wh_inventory': ['wh_1', 'inv_7'],
-  'wh_outbound': ['wh_2', 'inv_4', 'acc_1'],
-  'eid_planning': ['eid_1', 'eid_2', 'eid_3'],
-  'eid_obd': ['eid_4', 'eid_5', 'eid_6'],
-  'eid_delivery': ['eid_7', 'eid_8', 'eid_9'],
-  'tpp_request': ['tpp_1', 'tpp_2', 'tpp_3', 'tpp_4'],
-  'tpp_po': ['tpp_5', 'tpp_6'],
-  'tpp_delivery': ['tpp_7', 'tpp_8', 'tpp_9']
-};
+import { processes, clarificationChecklist, initialTasks, stageRequirements } from './data/constants';
+import Auth from './components/Auth';
+import Settings from './components/Settings';
+import HelpDictionary from './components/HelpDictionary';
+import Sidebar from './components/Sidebar';
+import TopNav from './components/TopNav';
+import OrderDrawer from './components/OrderDrawer';
 
 function App() {
   const [session, setSession] = useState(null);
-  const [isLoginMode, setIsLoginMode] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState(null);
-
-  const [currentView, setCurrentView] = useState('board'); // 'board' | 'help'
+  
+  const [currentView, setCurrentView] = useState('board'); // 'board' | 'help' | 'settings'
   const [tasks, setTasks] = useState(initialTasks);
 
   useEffect(() => {
@@ -273,59 +72,12 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('All');
 
-  const handleAuth = async (e) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError(null);
-    let error;
-    if (isLoginMode) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      error = signInError;
-    } else {
-      const { error: signUpError } = await supabase.auth.signUp({ email, password });
-      error = signUpError;
-      if (!error) {
-        alert('Success! Check your email for a confirmation link or sign in if no confirmation is required.');
-      }
-    }
-    if (error) setAuthError(error.message);
-    setAuthLoading(false);
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
   if (!session) {
-    return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-header">
-            <Activity size={48} className="icon" />
-            <h2>MOAI Admin</h2>
-            <p>{isLoginMode ? 'Sign in to access the dashboard' : 'Create an admin account'}</p>
-          </div>
-          <form className="auth-form" onSubmit={handleAuth}>
-            {authError && <div className="auth-error">{authError}</div>}
-            <div className="auth-input-group">
-              <label>Email Address</label>
-              <input type="email" required className="auth-input" placeholder="admin@example.com" value={email} onChange={e => setEmail(e.target.value)} />
-            </div>
-            <div className="auth-input-group">
-              <label>Password</label>
-              <input type="password" required className="auth-input" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
-            </div>
-            <button type="submit" className="auth-btn" disabled={authLoading}>
-              {authLoading ? 'Loading...' : (isLoginMode ? 'Sign In' : 'Sign Up')}
-            </button>
-            <div className="auth-toggle">
-              {isLoginMode ? "Don't have an account? " : "Already have an account? "}
-              <span onClick={() => setIsLoginMode(!isLoginMode)}>{isLoginMode ? 'Sign Up' : 'Sign In'}</span>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+    return <Auth />;
   }
 
   const handleDragStart = (task) => setDraggedTask(task);
@@ -427,22 +179,7 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <Activity className="icon" size={28} />
-          <span>MOAI ERP</span>
-        </div>
-        <nav className="sidebar-nav">
-          <a href="#" className={`nav-item ${currentView === 'board' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentView('board'); }}>
-            <ShoppingCart size={20} /> Procurement Flow
-          </a>
-          <a href="#" className={`nav-item ${currentView === 'help' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentView('help'); }}>
-            <BookOpen size={20} /> Dictionary & Help
-          </a>
-          <a href="#" className="nav-item"><Settings size={20} /> Settings</a>
-        </nav>
-      </aside>
+      <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
 
       {/* Main Content */}
       <main className="main-content">
@@ -470,17 +207,7 @@ function App() {
             </ul>
           </div>
         )}
-        {/* Top Navigation */}
-        <header className="top-nav">
-          <div className="page-title">{currentView === 'board' ? 'Procurement & Material Delivery' : 'System Help & Terminology'}</div>
-          <div className="user-profile">
-            <Bell size={20} className="text-muted" style={{cursor: 'pointer'}} />
-            <div className="avatar"><User size={20} /></div>
-            <button onClick={handleLogout} className="btn" style={{border: '1px solid var(--border-color)', marginLeft: '1rem', backgroundColor: 'transparent', color: 'var(--text-main)'}}>
-              <LogOut size={16} /> Logout
-            </button>
-          </div>
-        </header>
+        <TopNav currentView={currentView} setCurrentView={setCurrentView} handleLogout={handleLogout} />
 
         {/* Content Area */}
         <div className="content-area">
@@ -611,96 +338,18 @@ function App() {
             </>
           )}
 
-          {currentView === 'help' && (
-            <div className="help-page animate-fade-in">
-              <h2>ERP Dictionary & Terminology</h2>
-              <p style={{marginBottom: '2rem', color: 'var(--text-muted)'}}>
-                Use this guide to understand the various acronyms and systems utilized within the MOAI Supply & Procurement flow.
-              </p>
-              {dictionaryTerms.map((item, idx) => (
-                <div className="term-card" key={idx}>
-                  <div className="term-title">{item.term}</div>
-                  <div className="term-desc">{item.desc}</div>
-                </div>
-              ))}
-            </div>
-          )}
+          {currentView === 'help' && <HelpDictionary />}
+
+          {currentView === 'settings' && <Settings />}
 
         </div>
 
         {/* Drawer for Order Details */}
-        {selectedOrder && <div className="drawer-overlay" onClick={() => setSelectedOrder(null)}></div>}
-        {selectedOrder && (
-          <div className="drawer">
-            <div className="drawer-header">
-              <div>
-                <h3>{selectedOrder.id}</h3>
-                <span style={{fontSize: '0.875rem', color: 'var(--text-muted)'}}>Order Details</span>
-              </div>
-              <button className="close-btn" onClick={() => setSelectedOrder(null)}><X size={24} /></button>
-            </div>
-            <div className="drawer-content">
-              <div className="drawer-section">
-                <h4>General Info</h4>
-                <div style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>{selectedOrder.title}</div>
-                <div style={{ display: 'flex', gap: '2rem', fontSize: '0.875rem' }}>
-                  <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Assignee</div><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><User size={16} /> {selectedOrder.assignee}</div></div>
-                  <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Priority</div><div>{selectedOrder.priority}</div></div>
-                </div>
-              </div>
-              <div className="drawer-section">
-                <h4>100% Clarified Order Checklist (Supply CLM)</h4>
-                {(() => {
-                  const checkedCount = clarificationChecklist.filter(c => selectedOrder.checklistState[c.id]).length;
-                  const totalCount = clarificationChecklist.length;
-                  const progressPct = Math.round((checkedCount / totalCount) * 100);
-                  return (
-                    <div style={{ marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-main)' }}>
-                        <span>Fulfillment Progress</span>
-                        <span style={{ color: progressPct === 100 ? '#10b981' : 'var(--accent-color)' }}>{checkedCount} / {totalCount} ({progressPct}%)</span>
-                      </div>
-                      <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ width: `${progressPct}%`, height: '100%', backgroundColor: progressPct === 100 ? '#10b981' : 'var(--accent-color)', transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
-                      </div>
-                    </div>
-                  );
-                })()}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {[
-                    { title: 'Process 1: Ordering Preparation', items: clarificationChecklist.filter(c => c.id.startsWith('chk_') && parseInt(c.id.split('_')[1]) <= 7) },
-                    { title: 'Process 2: Material Delivery', items: clarificationChecklist.filter(c => c.id.startsWith('chk_') && parseInt(c.id.split('_')[1]) >= 8) },
-                    { title: 'Process 3: Custom Clearance', items: clarificationChecklist.filter(c => c.id.startsWith('cc_')) },
-                    { title: 'Process 4: WH Management', items: clarificationChecklist.filter(c => c.id.startsWith('wh_') || c.id.startsWith('inv_') || c.id.startsWith('acc_')) },
-                    { title: 'Process 5: EID Last Mile', items: clarificationChecklist.filter(c => c.id.startsWith('eid_')) },
-                    { title: 'Process 6: Local 3PP Flow', items: clarificationChecklist.filter(c => c.id.startsWith('tpp_')) },
-                    { title: 'Local LSP & Governance', items: clarificationChecklist.filter(c => c.id.startsWith('lsp_')) },
-                    { title: 'Post Ordering / Call off', items: clarificationChecklist.filter(c => c.id.startsWith('post_')) },
-                    { title: 'Other Operational Tasks', items: clarificationChecklist.filter(c => c.id.startsWith('oth_')) }
-                  ].map((group, gIdx) => (
-                    <div key={gIdx}>
-                      <h5 style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem' }}>{group.title}</h5>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        {group.items.map(item => {
-                          const isChecked = !!selectedOrder.checklistState[item.id];
-                          return (
-                            <div key={item.id} className="checklist-item" onClick={() => toggleChecklistItem(selectedOrder.id, item.id)}>
-                              <input type="checkbox" className="checklist-checkbox" checked={isChecked} readOnly />
-                              <div className={`checklist-text ${isChecked ? 'done' : ''}`}>{item.text}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="drawer-footer">
-              <button className="btn btn-primary" onClick={() => setSelectedOrder(null)}>Save & Close</button>
-            </div>
-          </div>
-        )}
+        <OrderDrawer 
+          selectedOrder={selectedOrder} 
+          setSelectedOrder={setSelectedOrder} 
+          toggleChecklistItem={toggleChecklistItem} 
+        />
 
         {/* Modal for New Order */}
         {showNewOrderModal && (

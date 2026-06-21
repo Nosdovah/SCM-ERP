@@ -1,15 +1,15 @@
-# MOAI Procurement ERP
+# MOAI Supply Chain ERP
 
-A modernized, real-time Kanban dashboard designed for managing Supply Chain and Procurement operations. MOAI ERP creates a strict separation between **Ordering Preparation** and **Material Delivery**, enforcing stringent compliance logic via a dynamic "100% Clarified Order Checklist".
+A modernized, real-time Kanban dashboard designed for managing End-to-End Supply Chain and Logistics operations. MOAI ERP creates a strict separation between **Ordering Preparation** and **Material Delivery**, enforcing stringent compliance logic via a dynamic "100% Clarified Order Checklist".
 
 ## ✨ Key Features
 
 - **Secure Admin Authentication**: Built-in login and sign-up flow using Supabase Auth to restrict dashboard access.
-- **Triple-Process Kanban Flow**: Distinct phase gates separating Planning/Sales, Material Delivery (EPC/Hub), and **Custom Clearance** (Brokerage/Logistics).
+- **Six-Process Kanban Architecture**: Comprehensive workflow spanning Ordering Preparation, Material Delivery, Custom Clearance, WH Management, EID Last Mile, and Local 3PP Flow.
 - **Strict Validation Gates**: Users are prevented from dragging tasks into later stages unless specific checklist prerequisites have been met.
 - **Live Fulfillment Progress**: A dynamic, interactive side-drawer panel tracking the completion percentage of each order's checklist.
 - **Real-Time Data Sync**: Powered by Supabase WebSockets, board updates (drag & drop, checklists, new orders) sync instantly across all clients without requiring a page refresh.
-- **Built-in System Dictionary**: A dedicated help and documentation center translating common ERP and procurement terminology (e.g., CPO, ESTA, WBS, BoQ).
+- **Built-in System Dictionary**: A dedicated help and documentation center translating common ERP and supply chain terminology (e.g., CPO, ESTA, WBS, BoQ).
 
 ## 🛠️ Tech Stack
 
@@ -70,3 +70,6 @@ Example built-in prerequisites:
 - **Move to Custom Declaration**: Requires Pre-alert receipt, shipping documents review, and an import permit.
 - **Move to Duty & Payment**: Requires custom declaration verification, HC code checks, and broker coordination.
 - **Move to Release & Delivery**: Requires physical customs visit, duty payment, and local law compliance.
+- **Process 4 (WH Management)**: Requires warehouse capacity setups, inventory reconciliations, and outbound prioritization.
+- **Process 5 (EID Last Mile)**: Requires MR transfers, OBD creations, and dispatch coordination.
+- **Process 6 (Local 3PP Flow)**: Requires Sourcing & Local Supply validations and PO/GR closures.
