@@ -215,7 +215,10 @@ function App() {
 
     if (supabase) {
       supabase.from('orders').insert([newTask]).then(({ error }) => {
-        if (error) console.error("Insert failed", error);
+        if (error) {
+          console.error("Insert failed", error);
+          alert(`Database Insert Failed: ${error.message || JSON.stringify(error)}`);
+        }
       });
       logAudit(newId, 'Created Order', { title: newTask.title, assignee: newTask.assignee });
     }
