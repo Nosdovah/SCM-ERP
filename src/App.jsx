@@ -120,6 +120,15 @@ function App() {
 
   const handleCreateOrder = (e) => {
     e.preventDefault();
+    
+    // Redundancy check
+    const isDuplicate = tasks.some(t => t.title.trim().toLowerCase() === newOrderForm.title.trim().toLowerCase());
+    if (isDuplicate) {
+      if (!window.confirm(`Warning: An order titled "${newOrderForm.title}" already exists. Are you sure you want to create a duplicate?`)) {
+        return; // Stop creation if user cancels
+      }
+    }
+
     const newId = `ORD-${Math.floor(Math.random() * 9000) + 1000}`;
     const newTask = {
       id: newId,
