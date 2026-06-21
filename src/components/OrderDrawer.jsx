@@ -10,8 +10,6 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
   const [historyLogs, setHistoryLogs] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  if (!selectedOrder) return null;
-
   useEffect(() => {
     if (selectedOrder && supabase) {
       const fetchHistory = async () => {
@@ -60,6 +58,8 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
     setFileUploads({});
     setIsUploading(false);
   };
+
+  if (!selectedOrder) return null;
 
   return (
     <>
