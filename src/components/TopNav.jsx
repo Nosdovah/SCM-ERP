@@ -75,11 +75,16 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
 
         {/* Notification Dropdown */}
         {showNotifications && (
-          <div style={{ position: 'absolute', top: '100%', right: '150px', width: '300px', backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)', zIndex: 100, marginTop: '0.5rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              Notifications
-              <span style={{ fontSize: '0.75rem', color: 'var(--accent-color)', cursor: 'pointer' }}>Mark all as read</span>
-            </div>
+          <>
+            <div 
+              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 90 }} 
+              onClick={() => setShowNotifications(false)}
+            />
+            <div style={{ position: 'absolute', top: '100%', right: '150px', width: '300px', backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)', zIndex: 100, marginTop: '0.5rem', overflow: 'hidden' }}>
+              <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-main)' }}>
+                Notifications
+                <span onClick={() => setShowNotifications(false)} style={{ fontSize: '0.75rem', color: 'var(--accent-color)', cursor: 'pointer', fontWeight: '500' }}>Mark all as read</span>
+              </div>
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {notifications.length === 0 ? (
                 <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>No notifications yet</div>
@@ -103,7 +108,8 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
                 })
               )}
             </div>
-          </div>
+            </div>
+          </>
         )}
 
         {/* User Info */}
