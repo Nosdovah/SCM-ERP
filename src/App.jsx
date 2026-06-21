@@ -140,18 +140,33 @@ function App() {
     }
   };
 
-  const toggleChecklistItem = (orderId, itemId) => {
+  const toggleChecklistItem = (orderId, itemId, formData = null) => {
     let updatedTask = null;
     setTasks(tasks.map(t => {
       if (t.id === orderId) {
-        updatedTask = { ...t, checklistState: { ...t.checklistState, [itemId]: !t.checklistState[itemId] } };
+        let newState;
+        if (formData) {
+          newState = { completed: true, data: formData };
+        } else {
+          // simple toggle logic
+          const isCurrentlyChecked = !!t.checklistState[itemId];
+          newState = !isCurrentlyChecked;
+        }
+        updatedTask = { ...t, checklistState: { ...t.checklistState, [itemId]: newState } };
         return updatedTask;
       }
       return t;
     }));
     
     if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder(prev => ({ ...prev, checklistState: { ...prev.checklistState, [itemId]: !prev.checklistState[itemId] } }));
+      let newState;
+      if (formData) {
+        newState = { completed: true, data: formData };
+      } else {
+        const isCurrentlyChecked = !!selectedOrder.checklistState[itemId];
+        newState = !isCurrentlyChecked;
+      }
+      setSelectedOrder(prev => ({ ...prev, checklistState: { ...prev.checklistState, [itemId]: newState } }));
     }
 
     if (supabase && updatedTask) {

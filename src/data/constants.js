@@ -60,8 +60,26 @@ export const processes = [
 
 export const clarificationChecklist = [
   { id: 'chk_1', text: 'Verify 100% clarified order & provide feedback to ASR/Core-3+' },
-  { id: 'chk_2', text: 'Request/Check Value Contract, FAS, ESTA#/PO# & NN/WBS for Ordering' },
-  { id: 'chk_3', text: 'Update Order Plan, Partner/Customer info in PP' },
+  { 
+    id: 'chk_2', 
+    text: 'Request/Check Value Contract, FAS, ESTA#/PO# & NN/WBS for Ordering',
+    requiresInput: true,
+    fields: [
+      { name: 'vc_number', label: 'Value Contract (VC)', type: 'text', placeholder: 'e.g. VC-100293' },
+      { name: 'wbs_code', label: 'WBS Code', type: 'text', placeholder: 'e.g. WBS-XYZ-99' },
+      { name: 'esta_po', label: 'ESTA / PO Number', type: 'text', placeholder: 'e.g. PO-5001' }
+    ]
+  },
+  { 
+    id: 'chk_3', 
+    text: 'Update Order Plan, Partner/Customer info in PP',
+    requiresInput: true,
+    fields: [
+      { name: 'partner_name', label: 'Partner Name', type: 'text', placeholder: 'e.g. Acme Corp' },
+      { name: 'customer_contact', label: 'Customer Contact', type: 'text', placeholder: 'e.g. john@acme.com' },
+      { name: 'planned_date', label: 'Planned Date', type: 'date' }
+    ]
+  },
   { id: 'chk_4', text: 'Checking with solution for type site availability in Premium Proposal' },
   { id: 'chk_5', text: 'NIF file preparation' },
   { id: 'chk_6', text: 'Checking existing available stock to decide partially or fully order' },
@@ -79,7 +97,15 @@ export const clarificationChecklist = [
   { id: 'cc_6', text: 'Coordinate with solutions to collect and share product catalogue/brochure to custom broker' },
   { id: 'cc_7', text: 'Physical visit in customs' },
   { id: 'cc_8', text: 'Responsible for custom duty and payment process' },
-  { id: 'cc_9', text: 'Import permit' },
+  { 
+    id: 'cc_9', 
+    text: 'Import permit',
+    requiresInput: true,
+    fields: [
+      { name: 'permit_number', label: 'Permit Number', type: 'text', placeholder: 'e.g. IMP-2023-441' },
+      { name: 'permit_expiry', label: 'Permit Expiry Date', type: 'date' }
+    ]
+  },
   { id: 'cc_10', text: 'Ensure to comply local laws and regulations' },
   { id: 'cc_11', text: 'Arrange delivery from custom to local project WH' },
   { id: 'wh_1', text: 'Follow up, GR/GI on time' },
@@ -120,7 +146,15 @@ export const clarificationChecklist = [
   { id: 'post_5', text: 'Prepare Air exemption approval for speed-up delivery' },
   { id: 'post_6', text: 'Send Call off instruction to EPC according to Project Plan' },
   { id: 'post_7', text: 'Check against One Report whether everything is called off' },
-  { id: 'post_8', text: 'Checking document AWB and record delivery plan' },
+  { 
+    id: 'post_8', 
+    text: 'Checking document AWB and record delivery plan',
+    requiresInput: true,
+    fields: [
+      { name: 'awb_number', label: 'Air Waybill (AWB) Number', type: 'text', placeholder: 'e.g. AWB-889922' },
+      { name: 'eta_date', label: 'Estimated Time of Arrival (ETA)', type: 'date' }
+    ]
+  },
   { id: 'post_9', text: 'Follow up with DSP for update ETA and or deviation during shipment' },
   { id: 'post_10', text: 'Inform detail material arrival to stakeholder' },
   { id: 'post_11', text: 'Provide copy customer PO and material detail sheet to customs officer when requested' },
@@ -147,7 +181,15 @@ export const clarificationChecklist = [
   { id: 'eid_2', text: 'PP Upload in DPM' },
   { id: 'eid_3', text: 'Create MR and submit to BAM' },
   { id: 'eid_4', text: 'MR auto transfer to PDB & Data validation' },
-  { id: 'eid_5', text: 'Direct/Indirect OBD creation based on WBS evaluation' },
+  { 
+    id: 'eid_5', 
+    text: 'Direct/Indirect OBD creation based on WBS evaluation',
+    requiresInput: true,
+    fields: [
+      { name: 'obd_number', label: 'Outbound Delivery (OBD) Number', type: 'text', placeholder: 'e.g. OBD-77382' },
+      { name: 'courier_name', label: 'Courier Service', type: 'text', placeholder: 'e.g. DHL Express' }
+    ]
+  },
   { id: 'eid_6', text: 'WBS Reservation & Transfer stock (MB1B/CN22)' },
   { id: 'eid_7', text: 'Send OBD daily report' },
   { id: 'eid_8', text: 'Prepare materials, Pick/pack and PGI by VL02N' },
