@@ -51,7 +51,7 @@ export default function KanbanBoard({
                     <div className="column-body">
                       {stageTasks.map(task => {
                         const sysInfo = getSystemLabel(stage.id);
-                        const checkedCount = clarificationChecklist.filter(c => task.checklistState[c.id]).length;
+                        const checkedCount = clarificationChecklist.filter(c => task.checklistState && task.checklistState[c.id]).length;
                         const totalCount = clarificationChecklist.length;
                         
                         return (
