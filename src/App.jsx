@@ -47,7 +47,10 @@ function App() {
       .channel('public:orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setTasks(prev => [...prev, payload.new]);
+          setTasks(prev => {
+            if (prev.find(t => t.id === payload.new.id)) return prev;
+            return [...prev, payload.new];
+          });
         } else if (payload.eventType === 'UPDATE') {
           setTasks(prev => prev.map(t => t.id === payload.new.id ? payload.new : t));
         } else if (payload.eventType === 'DELETE') {
