@@ -107,15 +107,34 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
         )}
 
         {/* User Info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '1rem', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.65rem', backgroundColor: 'var(--accent-color)', padding: '2px 6px', borderRadius: '4px', color: 'white', fontWeight: 'bold' }}>{userRole}</span>
-              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'white' }}>{userCompany}</span>
+              <span style={{ fontSize: '0.65rem', backgroundColor: 'rgba(255, 255, 255, 0.15)', border: '1px solid rgba(255,255,255,0.3)', padding: '2px 8px', borderRadius: '12px', color: 'white', fontWeight: '600', letterSpacing: '0.05em' }}>{userRole.toUpperCase()}</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: 'white', letterSpacing: '0.02em' }}>{userCompany}</span>
             </div>
-            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>{session?.user?.email || 'admin@example.com'}</span>
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.65)' }}>{session?.user?.email || 'admin@example.com'}</span>
           </div>
-          <div className="avatar" style={{cursor: 'pointer'}} onClick={() => setCurrentView('settings')} title="Profile Settings"><User size={20} /></div>
+          <div 
+            style={{ 
+              cursor: 'pointer', 
+              width: '38px', 
+              height: '38px', 
+              borderRadius: '50%', 
+              backgroundColor: 'rgba(255,255,255,0.1)', 
+              border: '2px solid rgba(255,255,255,0.4)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              transition: 'all 0.2s ease'
+            }} 
+            onClick={() => setCurrentView('settings')} 
+            title="Profile Settings"
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.8)' }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)' }}
+          >
+            <User size={20} color="white" />
+          </div>
         </div>
 
         <button onClick={handleLogout} className="btn" style={{border: '1px solid rgba(255,255,255,0.3)', marginLeft: '1rem', backgroundColor: 'transparent', color: 'white'}}>
