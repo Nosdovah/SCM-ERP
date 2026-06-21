@@ -4,7 +4,8 @@ A modernized, real-time Kanban dashboard designed for managing Supply Chain and 
 
 ## ✨ Key Features
 
-- **Dual-Process Kanban Flow**: Distinct phase gates separating Planning/Sales from EPC and Hub Activities.
+- **Secure Admin Authentication**: Built-in login and sign-up flow using Supabase Auth to restrict dashboard access.
+- **Triple-Process Kanban Flow**: Distinct phase gates separating Planning/Sales, Material Delivery (EPC/Hub), and **Custom Clearance** (Brokerage/Logistics).
 - **Strict Validation Gates**: Users are prevented from dragging tasks into later stages unless specific checklist prerequisites have been met.
 - **Live Fulfillment Progress**: A dynamic, interactive side-drawer panel tracking the completion percentage of each order's checklist.
 - **Real-Time Data Sync**: Powered by Supabase WebSockets, board updates (drag & drop, checklists, new orders) sync instantly across all clients without requiring a page refresh.
@@ -66,3 +67,6 @@ Example built-in prerequisites:
 - **Move to Review Stock**: Requires "Value Contract & WBS validation" to be checked.
 - **Move to BoQ & Premium Proposal**: Requires solution checking, NIF file preparation, and stock evaluation.
 - **Move to Process 2 (Release Inquiry)**: Requires completed Premium Proposals and operational RO planning.
+- **Move to Custom Declaration**: Requires Pre-alert receipt, shipping documents review, and an import permit.
+- **Move to Duty & Payment**: Requires custom declaration verification, HC code checks, and broker coordination.
+- **Move to Release & Delivery**: Requires physical customs visit, duty payment, and local law compliance.
