@@ -9,6 +9,7 @@ import HelpDictionary from './components/HelpDictionary';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 import OrderDrawer from './components/OrderDrawer';
+import TutorialModal from './components/TutorialModal';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -179,6 +180,7 @@ function App() {
 
   return (
     <div className="app-container">
+      <TutorialModal />
       <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
 
       {/* Main Content */}
