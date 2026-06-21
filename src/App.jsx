@@ -50,10 +50,6 @@ function App() {
 
     fetchTasks();
 
-    // Fetch master items for new order modal
-    supabase.from('items').select('name').eq('company_name', userCompany).then(({ data }) => {
-      if (data) setMasterItems(data.map(d => d.name));
-    });
 
     const channel = supabase
       .channel('public:orders')
@@ -84,6 +80,15 @@ function App() {
   // New Order State
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
   const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium' });
+
+  // Fetch master items when modal opens
+  useEffect(() => {
+    if (showNewOrderModal && supabase) {
+      supabase.from('items').select('name').eq('company_name', userCompany).then(({ data }) => {
+        if (data) setMasterItems(data.map(d => d.name));
+      });
+    }
+  }, [showNewOrderModal, userCompany]);
 
   // Filter State
   const [searchQuery, setSearchQuery] = useState('');
