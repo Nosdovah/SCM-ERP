@@ -63,7 +63,15 @@ export default function MasterData({ session }) {
   };
 
   const handleDeleteItem = async (id) => {
-    if (!window.confirm('Delete this item?')) return;
+    const itemToDelete = items.find(i => i.id === id);
+    if (!itemToDelete) return;
+    
+    if (!window.confirm(`Delete this item? WARNING: This will also permanently delete ALL existing orders associated with "${itemToDelete.name}"!`)) return;
+    
+    // First, cascade delete any orders associated with this item's name
+    await supabase.from('orders').delete().eq('title', itemToDelete.name).eq('company_name', userCompany);
+    
+    // Then delete the item
     const { error } = await supabase.from('items').delete().eq('id', id);
     if (!error) setItems(items.filter(i => i.id !== id));
   };
