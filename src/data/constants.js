@@ -103,7 +103,8 @@ export const clarificationChecklist = [
     requiresInput: true,
     fields: [
       { name: 'permit_number', label: 'Permit Number', type: 'text', placeholder: 'e.g. IMP-2023-441' },
-      { name: 'permit_expiry', label: 'Permit Expiry Date', type: 'date' }
+      { name: 'permit_expiry', label: 'Permit Expiry Date', type: 'date' },
+      { name: 'document_url', label: 'Upload Import Permit (PDF/Image)', type: 'file' }
     ]
   },
   { id: 'cc_10', text: 'Ensure to comply local laws and regulations' },
@@ -152,7 +153,8 @@ export const clarificationChecklist = [
     requiresInput: true,
     fields: [
       { name: 'awb_number', label: 'Air Waybill (AWB) Number', type: 'text', placeholder: 'e.g. AWB-889922' },
-      { name: 'eta_date', label: 'Estimated Time of Arrival (ETA)', type: 'date' }
+      { name: 'eta_date', label: 'Estimated Time of Arrival (ETA)', type: 'date' },
+      { name: 'document_url', label: 'Upload AWB Document (PDF/Image)', type: 'file' }
     ]
   },
   { id: 'post_9', text: 'Follow up with DSP for update ETA and or deviation during shipment' },

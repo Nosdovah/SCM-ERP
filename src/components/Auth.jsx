@@ -9,6 +9,7 @@ export default function Auth() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [company, setCompany] = useState('');
+  const [role, setRole] = useState('Admin');
   const [existingCompanies, setExistingCompanies] = useState([]);
 
   React.useEffect(() => {
@@ -51,7 +52,8 @@ export default function Auth() {
         password,
         options: {
           data: {
-            company_name: companyNameStr
+            company_name: companyNameStr,
+            role: role
           }
         }
       });
@@ -105,6 +107,19 @@ export default function Auth() {
               <datalist id="companies-list">
                 {existingCompanies.map((c, idx) => <option key={idx} value={c} />)}
               </datalist>
+            </div>
+          )}
+          {authMode === 'signup' && (
+            <div className="auth-input-group">
+              <label>Role</label>
+              <select className="auth-input" value={role} onChange={e => setRole(e.target.value)} required>
+                <option value="Admin">Admin (Full Access)</option>
+                <option value="Procurement">Procurement</option>
+                <option value="Customs">Customs</option>
+                <option value="Warehouse">Warehouse</option>
+                <option value="Logistics">Logistics</option>
+                <option value="Viewer">Viewer (Read Only)</option>
+              </select>
             </div>
           )}
           {authMode !== 'forgot_password' && (

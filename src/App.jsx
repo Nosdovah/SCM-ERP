@@ -10,13 +10,20 @@ import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 import OrderDrawer from './components/OrderDrawer';
 import TutorialModal from './components/TutorialModal';
+import Analytics from './components/Analytics';
+import MasterData from './components/MasterData';
+import KanbanBoard from './components/KanbanBoard';
+import DashboardMetrics from './components/DashboardMetrics';
+import NewOrderModal from './components/NewOrderModal';
 
 function App() {
   const [session, setSession] = useState(null);
   
-  const [currentView, setCurrentView] = useState('board'); // 'board' | 'help' | 'settings'
+  const [currentView, setCurrentView] = useState('board'); // 'board' | 'help' | 'settings' | 'analytics' | 'master_data'
   const [tasks, setTasks] = useState(initialTasks.map(t => ({ ...t, company_name: 'DEFAULT' })));
-  const userCompany = session?.user?.user_metadata?.company_name || localStorage.getItem('moai_mock_session_company') || 'DEFAULT';
+  const [masterItems, setMasterItems] = useState([]);
+  const userCompany = session?.user?.user_metadata?.company_name || 'NOT ASSIGNED';
+  const userRole = session?.user?.user_metadata?.role || 'Admin';
 
   useEffect(() => {
     if (!supabase) return;
@@ -38,10 +45,15 @@ function App() {
     const fetchTasks = async () => {
       const { data, error } = await supabase.from('orders').select('*').eq('company_name', userCompany);
       if (error) console.error('Error fetching data:', error);
-      else if (data && data.length > 0) setTasks(data);
+      else if (data) setTasks(data);
     };
 
     fetchTasks();
+
+    // Fetch master items for new order modal
+    supabase.from('items').select('name').eq('company_name', userCompany).then(({ data }) => {
+      if (data) setMasterItems(data.map(d => d.name));
+    });
 
     const channel = supabase
       .channel('public:orders')
@@ -85,11 +97,53 @@ function App() {
     return <Auth />;
   }
 
+  const logAudit = async (orderId, action, details = {}) => {
+    if (!supabase) return;
+    const userEmail = session?.user?.email || 'Unknown User';
+    const logEntry = {
+      order_id: orderId,
+      user_email: userEmail,
+      action: action,
+      details: details,
+      company_name: userCompany
+    };
+    supabase.from('order_history').insert([logEntry]).then(({ error }) => {
+      if (error) console.error("Audit log failed", error);
+    });
+  };
+
   const handleDragStart = (task) => setDraggedTask(task);
   const handleDragOver = (e) => e.preventDefault();
 
   const handleDrop = (stageId) => {
     if (draggedTask && draggedTask.stage !== stageId) {
+      if (userRole === 'Viewer') {
+        alert('RBAC Error: Viewers cannot modify tasks.');
+        setDraggedTask(null);
+        return;
+      }
+
+      // Check process-level permissions
+      const targetProcess = processes.find(p => p.stages.some(s => s.id === stageId));
+      if (targetProcess && userRole !== 'Admin') {
+        if (targetProcess.id === 'proc-1' && userRole !== 'Procurement') {
+          alert('RBAC Error: Only Procurement or Admin can manage Ordering Preparation.');
+          setDraggedTask(null); return;
+        }
+        if (targetProcess.id === 'proc-3' && userRole !== 'Customs') {
+          alert('RBAC Error: Only Customs or Admin can manage Custom Clearance.');
+          setDraggedTask(null); return;
+        }
+        if (targetProcess.id === 'proc-4' && userRole !== 'Warehouse') {
+          alert('RBAC Error: Only Warehouse or Admin can manage WH Management.');
+          setDraggedTask(null); return;
+        }
+        if (targetProcess.id === 'proc-5' && userRole !== 'Logistics') {
+          alert('RBAC Error: Only Logistics or Admin can manage Last Mile Delivery.');
+          setDraggedTask(null); return;
+        }
+      }
+
       const reqs = stageRequirements[stageId];
       if (reqs && reqs.length > 0) {
         const missing = reqs.filter(r => !draggedTask.checklistState[r]);
@@ -116,6 +170,9 @@ function App() {
         supabase.from('orders').update({ stage: stageId }).eq('id', draggedTask.id).then(({ error }) => {
           if (error) console.error("Update failed", error);
         });
+        
+        const stageName = processes.flatMap(p => p.stages).find(s => s.id === stageId)?.title || stageId;
+        logAudit(draggedTask.id, 'Moved Stage', { to: stageName, stageId: stageId });
       }
     }
     setDraggedTask(null);
@@ -123,6 +180,10 @@ function App() {
 
   const handleCreateOrder = (e) => {
     e.preventDefault();
+    if (userRole === 'Viewer') {
+      alert('RBAC Error: Viewers cannot create orders.');
+      return;
+    }
     
     // Redundancy check
     const isDuplicate = tasks.some(t => t.title.trim().toLowerCase() === newOrderForm.title.trim().toLowerCase());
@@ -151,10 +212,15 @@ function App() {
       supabase.from('orders').insert([newTask]).then(({ error }) => {
         if (error) console.error("Insert failed", error);
       });
+      logAudit(newId, 'Created Order', { title: newTask.title, assignee: newTask.assignee });
     }
   };
 
   const handleDeleteOrder = (orderId) => {
+    if (userRole !== 'Admin') {
+      alert('RBAC Error: Only Admins can delete orders.');
+      return;
+    }
     if (!window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
     
     setTasks(tasks.filter(t => t.id !== orderId));
@@ -166,10 +232,16 @@ function App() {
       supabase.from('orders').delete().eq('id', orderId).then(({ error }) => {
         if (error) console.error("Delete failed", error);
       });
+      logAudit(orderId, 'Deleted Order');
     }
   };
 
   const toggleChecklistItem = (orderId, itemId, formData = null) => {
+    if (userRole === 'Viewer') {
+      alert('RBAC Error: Viewers cannot modify checklists.');
+      return;
+    }
+    
     let updatedTask = null;
     setTasks(tasks.map(t => {
       if (t.id === orderId) {
@@ -202,6 +274,10 @@ function App() {
       supabase.from('orders').update({ checklistState: updatedTask.checklistState }).eq('id', orderId).then(({ error }) => {
         if (error) console.error("Checklist update failed", error);
       });
+      
+      const itemText = clarificationChecklist.find(c => c.id === itemId)?.text || itemId;
+      const status = formData ? 'Completed with Data' : 'Toggled';
+      logAudit(orderId, 'Updated Checklist', { item: itemText, status: status, data: formData });
     }
   };
 
@@ -260,23 +336,13 @@ function App() {
 
         {/* Content Area */}
         <div className="content-area">
-          
-          {currentView === 'board' && (
+          {currentView === 'help' ? <HelpDictionary /> :
+           currentView === 'settings' ? <Settings /> :
+           currentView === 'analytics' ? <Analytics session={session} /> :
+           currentView === 'master_data' ? <MasterData session={session} /> :
+           (
             <>
-              <div className="metrics-grid">
-                <div className="metric-card animate-fade-in" style={{animationDelay: '0.1s'}}>
-                  <div className="metric-title">Active Orders <Activity size={16} /></div>
-                  <div className="metric-value">{companyTasks.length}</div>
-                </div>
-                <div className="metric-card animate-fade-in" style={{animationDelay: '0.2s'}}>
-                  <div className="metric-title">Planning Phase <Search size={16} /></div>
-                  <div className="metric-value">{companyTasks.filter(t => ['cpo_esta','vc_wbs','review_stock','premium_proposal'].includes(t.stage)).length}</div>
-                </div>
-                <div className="metric-card animate-fade-in" style={{animationDelay: '0.3s'}}>
-                  <div className="metric-title">Delivery Phase <ShoppingCart size={16} /></div>
-                  <div className="metric-value">{companyTasks.filter(t => ['release_inquiry','po_creation','hub_activities','material_calloff'].includes(t.stage)).length}</div>
-                </div>
-              </div>
+              <DashboardMetrics companyTasks={companyTasks} />
 
               <div className="board-container">
                 <div className="board-header">
@@ -322,90 +388,18 @@ function App() {
                   <Activity size={16} /> <strong>Tip:</strong> You can drag and drop order cards to move them to the next stage. Click any card to manage its fulfillment checklist!
                 </div>
 
-                <div className="board-columns">
-                  {processes.map((process, pIndex) => (
-                    <React.Fragment key={process.id}>
-                      {pIndex > 0 && (
-                        <div style={{ display: 'flex', alignItems: 'center', color: 'var(--border-color)', margin: '0 2.5rem', marginTop: '2rem' }}>
-                          <ChevronRight size={64} />
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{
-                          fontSize: '1.5rem', 
-                          fontWeight: '700', 
-                          color: 'var(--primary-color)',
-                          paddingLeft: '1rem',
-                          borderLeft: '6px solid var(--accent-color)'
-                        }}>
-                          {process.title}
-                        </div>
-                        <div style={{ display: 'flex', gap: '1.5rem', flex: 1 }}>
-                          {process.stages.map((stage, sIndex) => {
-                            const stageTasks = filteredTasks.filter(t => t.stage === stage.id);
-                            return (
-                              <div 
-                                key={stage.id} 
-                                className="board-column animate-fade-in"
-                                style={{animationDelay: `${(pIndex * 4 + sIndex) * 0.05}s`}}
-                                onDragOver={handleDragOver}
-                                onDrop={() => handleDrop(stage.id)}
-                              >
-                                <div className="column-header" style={{'--col-color': stage.color}}>
-                                  <div className="column-title">
-                                    {stage.title}
-                                    <span className="column-subtitle">{stage.subtitle}</span>
-                                  </div>
-                                  <div className="column-badge">{stageTasks.length}</div>
-                                </div>
-                                <div className="column-body">
-                                  {stageTasks.map(task => {
-                                    const sysInfo = getSystemLabel(stage.id);
-                                    const checkedCount = clarificationChecklist.filter(c => task.checklistState[c.id]).length;
-                                    const totalCount = clarificationChecklist.length;
-                                    
-                                    return (
-                                      <div 
-                                        key={task.id} 
-                                        className="task-card"
-                                        draggable
-                                        onDragStart={() => handleDragStart(task)}
-                                        onClick={() => setSelectedOrder(task)}
-                                      >
-                                        <div className="task-id">{task.id}</div>
-                                        <div className="task-title">{task.title}</div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                          <CheckSquare size={12} />
-                                          <span>{checkedCount}/{totalCount} Clarified</span>
-                                        </div>
-                                        <div className="task-meta">
-                                          <span className={`task-system sys-${sysInfo.type}`}>
-                                            {sysInfo.label}
-                                          </span>
-                                          <div className="task-assignee">
-                                            <User size={12} /> {task.assignee}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </React.Fragment>
-                  ))}
-                </div>
+                <KanbanBoard 
+                  processes={processes}
+                  filteredTasks={filteredTasks}
+                  handleDragOver={handleDragOver}
+                  handleDrop={handleDrop}
+                  handleDragStart={handleDragStart}
+                  setSelectedOrder={setSelectedOrder}
+                  getSystemLabel={getSystemLabel}
+                />
               </div>
             </>
           )}
-
-          {currentView === 'help' && <HelpDictionary />}
-
-          {currentView === 'settings' && <Settings />}
-
         </div>
 
         {/* Drawer for Order Details */}
@@ -417,35 +411,14 @@ function App() {
         />
 
         {/* Modal for New Order */}
-        {showNewOrderModal && (
-          <div className="modal-overlay" onClick={() => setShowNewOrderModal(false)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
-              <h3>Create New Order</h3>
-              <form onSubmit={handleCreateOrder}>
-                <div className="form-group">
-                  <label>Order Title / Description</label>
-                  <input required type="text" placeholder="e.g. Fiber Optic Cable Batch B" value={newOrderForm.title} onChange={e => setNewOrderForm({...newOrderForm, title: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Assignee Name</label>
-                  <input required type="text" placeholder="e.g. Jane Doe" value={newOrderForm.assignee} onChange={e => setNewOrderForm({...newOrderForm, assignee: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Priority</label>
-                  <select value={newOrderForm.priority} onChange={e => setNewOrderForm({...newOrderForm, priority: e.target.value})}>
-                    <option>Low</option>
-                    <option>Medium</option>
-                    <option>High</option>
-                  </select>
-                </div>
-                <div className="modal-actions">
-                  <button type="button" className="btn" style={{border: '1px solid var(--border-color)'}} onClick={() => setShowNewOrderModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary">Create Order</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <NewOrderModal 
+          showNewOrderModal={showNewOrderModal}
+          setShowNewOrderModal={setShowNewOrderModal}
+          newOrderForm={newOrderForm}
+          setNewOrderForm={setNewOrderForm}
+          handleCreateOrder={handleCreateOrder}
+          masterItems={masterItems}
+        />
       </main>
       </div>
     </div>

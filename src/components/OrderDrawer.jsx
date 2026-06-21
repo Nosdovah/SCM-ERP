@@ -1,22 +1,64 @@
-import React, { useState } from 'react';
-import { X, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, User, Clock } from 'lucide-react';
 import { clarificationChecklist } from '../data/constants';
+import { supabase } from '../supabaseClient';
 
 export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChecklistItem, handleDeleteOrder }) {
   const [activeFormId, setActiveFormId] = useState(null);
   const [formData, setFormData] = useState({});
+  const [fileUploads, setFileUploads] = useState({});
+  const [historyLogs, setHistoryLogs] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   if (!selectedOrder) return null;
+
+  useEffect(() => {
+    if (selectedOrder && supabase) {
+      const fetchHistory = async () => {
+        const { data, error } = await supabase
+          .from('order_history')
+          .select('*')
+          .eq('order_id', selectedOrder.id)
+          .order('created_at', { ascending: false });
+        if (!error && data) {
+          setHistoryLogs(data);
+        }
+      };
+      fetchHistory();
+    }
+  }, [selectedOrder]);
 
   const handleFormChange = (fieldName, value) => {
     setFormData(prev => ({ ...prev, [fieldName]: value }));
   };
 
-  const handleFormSubmit = (e, itemId) => {
+  const handleFormSubmit = async (e, itemId) => {
     e.preventDefault();
-    toggleChecklistItem(selectedOrder.id, itemId, formData);
+    setIsUploading(true);
+
+    let finalFormData = { ...formData };
+    
+    // Process file uploads if any
+    if (Object.keys(fileUploads).length > 0) {
+      for (const [fieldName, file] of Object.entries(fileUploads)) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${selectedOrder.id}-${itemId}-${Date.now()}.${fileExt}`;
+        const { data, error } = await supabase.storage.from('documents').upload(fileName, file);
+        if (!error && data) {
+          const { data: publicUrlData } = supabase.storage.from('documents').getPublicUrl(fileName);
+          finalFormData[fieldName] = publicUrlData.publicUrl;
+        } else {
+          console.error("Upload error", error);
+          alert("Failed to upload document. Please ensure the Supabase 'documents' bucket exists and has correct permissions.");
+        }
+      }
+    }
+
+    toggleChecklistItem(selectedOrder.id, itemId, finalFormData);
     setActiveFormId(null);
     setFormData({});
+    setFileUploads({});
+    setIsUploading(false);
   };
 
   return (
@@ -96,31 +138,47 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                                 {item.fields.map(field => (
                                   <div key={field.name} style={{ marginBottom: '0.75rem' }}>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-main)' }}>{field.label}</label>
-                                    <input 
-                                      type={field.type} 
-                                      required 
-                                      placeholder={field.placeholder} 
-                                      value={formData[field.name] || ''}
-                                      onChange={e => handleFormChange(field.name, e.target.value)}
-                                      style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.875rem', outline: 'none' }}
-                                    />
+                                    {field.type === 'file' ? (
+                                      <input 
+                                        type="file" 
+                                        accept="image/*,.pdf"
+                                        onChange={e => setFileUploads(prev => ({ ...prev, [field.name]: e.target.files[0] }))}
+                                        style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.875rem', outline: 'none' }}
+                                      />
+                                    ) : (
+                                      <input 
+                                        type={field.type} 
+                                        required 
+                                        placeholder={field.placeholder} 
+                                        value={formData[field.name] || ''}
+                                        onChange={e => handleFormChange(field.name, e.target.value)}
+                                        style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.875rem', outline: 'none' }}
+                                      />
+                                    )}
                                   </div>
                                 ))}
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-                                  <button type="button" onClick={() => setActiveFormId(null)} style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '0.375rem', cursor: 'pointer' }}>Cancel</button>
-                                  <button type="submit" style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer' }}>Save & Verify</button>
+                                  <button type="button" onClick={() => setActiveFormId(null)} style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '0.375rem', cursor: 'pointer' }} disabled={isUploading}>Cancel</button>
+                                  <button type="submit" style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer' }} disabled={isUploading}>
+                                    {isUploading ? 'Uploading & Verifying...' : 'Save & Verify'}
+                                  </button>
                                 </div>
                               </form>
                             )}
 
                             {isChecked && itemData && (
                               <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: '0.375rem', fontSize: '0.8rem' }}>
-                                {Object.entries(itemData).map(([key, val]) => (
-                                  <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.25rem' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>{item.fields.find(f => f.name === key)?.label || key}:</span>
-                                    <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>{val}</span>
-                                  </div>
-                                ))}
+                                {Object.entries(itemData).map(([key, val]) => {
+                                  const isLink = val && typeof val === 'string' && val.startsWith('http');
+                                  return (
+                                    <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.25rem' }}>
+                                      <span style={{ color: 'var(--text-muted)' }}>{item.fields.find(f => f.name === key)?.label || key}:</span>
+                                      <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>
+                                        {isLink ? <a href={val} target="_blank" rel="noreferrer" style={{ color: 'var(--primary-color)', textDecoration: 'underline' }}>View Document</a> : val}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
@@ -138,6 +196,33 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="drawer-section" style={{ marginTop: '2rem' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock size={16} /> Audit Trail & History</h4>
+            {historyLogs.length === 0 ? (
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '0.5rem' }}>No history recorded yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
+                {historyLogs.map(log => (
+                  <div key={log.id} style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem' }}>
+                    <div style={{ minWidth: '40px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '500', paddingTop: '2px' }}>
+                      {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br/>
+                      {new Date(log.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </div>
+                    <div style={{ flex: 1, backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                      <div style={{ fontWeight: '600', color: 'var(--primary-color)', marginBottom: '0.25rem' }}>{log.action}</div>
+                      <div style={{ color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                        {log.details && log.details.to ? `Moved to ${log.details.to}` : ''}
+                        {log.details && log.details.item ? `Checked: ${log.details.item}` : ''}
+                        {log.details && log.details.title ? `Created: ${log.details.title}` : ''}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>By: {log.user_email}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <div className="drawer-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -10,7 +10,8 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
   ];
 
   const unreadCount = notifications.filter(n => n.unread).length;
-  const userCompany = session?.user?.user_metadata?.company_name || localStorage.getItem('moai_mock_session_company') || 'Admin';
+  const userCompany = session?.user?.user_metadata?.company_name || 'NOT ASSIGNED';
+  const userRole = session?.user?.user_metadata?.role || 'Admin';
 
   return (
     <header className="top-nav">
@@ -48,7 +49,10 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
         {/* User Info */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '1rem', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'white' }}>{userCompany}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.65rem', backgroundColor: 'var(--accent-color)', padding: '2px 6px', borderRadius: '4px', color: 'white', fontWeight: 'bold' }}>{userRole}</span>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'white' }}>{userCompany}</span>
+            </div>
             <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>{session?.user?.email || 'admin@example.com'}</span>
           </div>
           <div className="avatar" style={{cursor: 'pointer'}} onClick={() => setCurrentView('settings')} title="Profile Settings"><User size={20} /></div>
