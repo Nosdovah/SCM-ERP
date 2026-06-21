@@ -18,8 +18,8 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
       <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
         
         {/* Notification Bell */}
-        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setShowNotifications(!showNotifications)}>
-          <Bell size={20} className="text-muted" />
+        <div style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => setShowNotifications(!showNotifications)}>
+          <Bell size={20} color="white" />
           {unreadCount > 0 && (
             <span style={{ position: 'absolute', top: '-4px', right: '-4px', backgroundColor: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {unreadCount}
@@ -46,15 +46,15 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
         )}
 
         {/* User Info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '1rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '1rem', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-main)' }}>{userCompany}</span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{session?.user?.email || 'admin@example.com'}</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'white' }}>{userCompany}</span>
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>{session?.user?.email || 'admin@example.com'}</span>
           </div>
           <div className="avatar" style={{cursor: 'pointer'}} onClick={() => setCurrentView('settings')} title="Profile Settings"><User size={20} /></div>
         </div>
 
-        <button onClick={handleLogout} className="btn" style={{border: '1px solid var(--border-color)', marginLeft: '1rem', backgroundColor: 'transparent', color: 'var(--text-main)'}}>
+        <button onClick={handleLogout} className="btn" style={{border: '1px solid rgba(255,255,255,0.3)', marginLeft: '1rem', backgroundColor: 'transparent', color: 'white'}}>
           <LogOut size={16} /> Logout
         </button>
       </div>
