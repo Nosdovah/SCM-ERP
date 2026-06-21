@@ -183,7 +183,7 @@ function App() {
     setDraggedTask(null);
   };
 
-  const handleCreateOrder = (e) => {
+  const handleCreateOrder = async (e) => {
     e.preventDefault();
     if (userRole === 'Viewer') {
       alert('RBAC Error: Viewers cannot create orders.');
@@ -209,38 +209,60 @@ function App() {
       checklistState: {},
       company_name: userCompany
     };
+    
+    // Optimistic UI update
     setTasks([newTask, ...tasks]);
     setShowNewOrderModal(false);
     setNewOrderForm({ title: '', assignee: '', priority: 'Medium' });
 
     if (supabase) {
-      supabase.from('orders').insert([newTask]).then(({ error }) => {
+      try {
+        const { error } = await supabase.from('orders').insert([newTask]);
         if (error) {
           console.error("Insert failed", error);
-          alert(`Database Insert Failed: ${error.message || JSON.stringify(error)}`);
+          alert(`DATABASE ERROR: Failed to save the new order. Your database schema might be out of date. Details: ${error.message}`);
+          // Revert optimistic update
+          setTasks(prev => prev.filter(t => t.id !== newId));
+        } else {
+          logAudit(newId, 'Created Order', { title: newTask.title, assignee: newTask.assignee });
         }
-      });
-      logAudit(newId, 'Created Order', { title: newTask.title, assignee: newTask.assignee });
+      } catch (err) {
+        alert("Unexpected error: " + err.message);
+      }
     }
   };
 
-  const handleDeleteOrder = (orderId) => {
+  const handleDeleteOrder = async (orderId) => {
     if (userRole !== 'Admin') {
       alert('RBAC Error: Only Admins can delete orders.');
       return;
     }
     if (!window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
     
+    const taskToDelete = tasks.find(t => t.id === orderId);
+    
+    // Optimistic UI update
     setTasks(tasks.filter(t => t.id !== orderId));
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder(null);
     }
 
     if (supabase) {
-      supabase.from('orders').delete().eq('id', orderId).then(({ error }) => {
-        if (error) console.error("Delete failed", error);
-      });
-      logAudit(orderId, 'Deleted Order');
+      try {
+        const { error } = await supabase.from('orders').delete().eq('id', orderId);
+        if (error) {
+          console.error("Delete failed", error);
+          alert(`DATABASE ERROR: Failed to delete order. Details: ${error.message}`);
+          // Revert optimistic update
+          if (taskToDelete) setTasks(prev => [...prev, taskToDelete]);
+        } else {
+          // Also explicitly delete history to clear analytics
+          await supabase.from('order_history').delete().eq('order_id', orderId);
+          logAudit(orderId, 'Deleted Order');
+        }
+      } catch (err) {
+        alert("Unexpected error: " + err.message);
+      }
     }
   };
 
