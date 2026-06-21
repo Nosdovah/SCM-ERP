@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS public.items (
     sku TEXT NOT NULL,
     name TEXT NOT NULL,
     category TEXT,
+    supplier_id UUID REFERENCES public.suppliers(id) ON DELETE SET NULL,
     company_name TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

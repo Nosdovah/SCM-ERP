@@ -9,7 +9,7 @@ export default function MasterData({ session }) {
   const [loading, setLoading] = useState(true);
 
   // Forms
-  const [newItemForm, setNewItemForm] = useState({ sku: '', name: '', category: '' });
+  const [newItemForm, setNewItemForm] = useState({ sku: '', name: '', category: '', supplier_id: '' });
   const [newSupplierForm, setNewSupplierForm] = useState({ name: '' });
 
   const userCompany = session?.user?.user_metadata?.company_name || 'DEFAULT';
@@ -21,12 +21,13 @@ export default function MasterData({ session }) {
 
   const fetchData = async () => {
     setLoading(true);
+    // Always fetch suppliers so the dropdown is populated
+    const { data: supData } = await supabase.from('suppliers').select('*').eq('company_name', userCompany).order('created_at', { ascending: false });
+    if (supData) setSuppliers(supData);
+
     if (activeTab === 'items') {
-      const { data } = await supabase.from('items').select('*').eq('company_name', userCompany).order('created_at', { ascending: false });
-      if (data) setItems(data);
-    } else {
-      const { data } = await supabase.from('suppliers').select('*').eq('company_name', userCompany).order('created_at', { ascending: false });
-      if (data) setSuppliers(data);
+      const { data: itemData } = await supabase.from('items').select('*, suppliers(name)').eq('company_name', userCompany).order('created_at', { ascending: false });
+      if (itemData) setItems(itemData);
     }
     setLoading(false);
   };
@@ -35,11 +36,17 @@ export default function MasterData({ session }) {
     e.preventDefault();
     if (!supabase) return;
     
+    // Ensure supplier is selected
+    if (!newItemForm.supplier_id) {
+      alert("Please select a Supplier/Vendor for this item.");
+      return;
+    }
+
     const entry = { ...newItemForm, company_name: userCompany };
-    const { data, error } = await supabase.from('items').insert([entry]).select();
+    const { data, error } = await supabase.from('items').insert([entry]).select('*, suppliers(name)');
     if (!error && data) {
       setItems([data[0], ...items]);
-      setNewItemForm({ sku: '', name: '', category: '' });
+      setNewItemForm({ sku: '', name: '', category: '', supplier_id: '' });
     }
   };
 
@@ -119,6 +126,13 @@ export default function MasterData({ session }) {
                   <option value="Power">Power</option>
                 </select>
               </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>Supplier / Vendor</label>
+                <select required value={newItemForm.supplier_id} onChange={e => setNewItemForm({...newItemForm, supplier_id: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }}>
+                  <option value="">Select Supplier</option>
+                  {suppliers.map(sup => <option key={sup.id} value={sup.id}>{sup.name}</option>)}
+                </select>
+              </div>
               <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Create Item</button>
             </form>
           ) : (
@@ -146,6 +160,7 @@ export default function MasterData({ session }) {
                         <th style={{ padding: '0.75rem', fontWeight: '600' }}>SKU</th>
                         <th style={{ padding: '0.75rem', fontWeight: '600' }}>Item Name</th>
                         <th style={{ padding: '0.75rem', fontWeight: '600' }}>Category</th>
+                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>Supplier</th>
                       </>
                     ) : (
                       <th style={{ padding: '0.75rem', fontWeight: '600' }}>Supplier Name</th>
@@ -162,6 +177,9 @@ export default function MasterData({ session }) {
                           <td style={{ padding: '0.75rem' }}>{row.name}</td>
                           <td style={{ padding: '0.75rem' }}>
                             {row.category && <span style={{ backgroundColor: '#e2e8f0', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>{row.category}</span>}
+                          </td>
+                          <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
+                            {row.suppliers ? row.suppliers.name : 'Unknown'}
                           </td>
                         </>
                       ) : (
