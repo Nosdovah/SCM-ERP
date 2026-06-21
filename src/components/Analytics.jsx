@@ -19,24 +19,34 @@ export default function Analytics({ session }) {
     const fetchAnalyticsData = async () => {
       setLoading(true);
       
-      const { data: historyData, error } = await supabase
-        .from('order_history')
-        .select('*')
-        .eq('company_name', userCompany)
-        .order('created_at', { ascending: true });
+      const [{ data: historyData, error: historyError }, { data: activeOrdersData, error: ordersError }] = await Promise.all([
+        supabase
+          .from('order_history')
+          .select('*')
+          .eq('company_name', userCompany)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('orders')
+          .select('id')
+          .eq('company_name', userCompany)
+      ]);
 
-      if (error || !historyData) {
-        console.error('Error fetching history', error);
+      if (historyError || !historyData || ordersError || !activeOrdersData) {
+        console.error('Error fetching analytics data', historyError || ordersError);
         setLoading(false);
         return;
       }
+
+      // Filter history logs to ONLY include orders that currently exist
+      const activeOrderIds = new Set(activeOrdersData.map(o => o.id));
+      const filteredHistory = historyData.filter(log => activeOrderIds.has(log.order_id));
 
       // Calculate Lead Times
       const stageTimes = {}; // { stageId: [durationMs, durationMs, ...] }
       
       // Group by order
       const orders = {};
-      historyData.forEach(log => {
+      filteredHistory.forEach(log => {
         if (!orders[log.order_id]) orders[log.order_id] = [];
         orders[log.order_id].push(log);
       });
