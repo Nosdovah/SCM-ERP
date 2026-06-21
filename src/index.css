@@ -499,6 +499,7 @@ body {
 .sys-sap { background-color: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
 .sys-premium { background-color: #fce7f3; color: #9d174d; border: 1px solid #fbcfe8; }
 .sys-boq { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.sys-customs { background-color: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
 /* Modals & Helpers */
 .modal-overlay {
   position: fixed;

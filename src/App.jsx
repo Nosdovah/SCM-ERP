@@ -23,6 +23,16 @@ const processes = [
       { id: 'hub_activities', title: 'Hub Activities (EAB)', subtitle: 'ESH NJ', system: 'sap', systemLabel: 'Hub', color: '#ef4444' },
       { id: 'material_calloff', title: 'Material Call-off', subtitle: 'EPC/SLDM', system: 'sap', systemLabel: 'SAP', color: '#dc2626' },
     ]
+  },
+  {
+    id: 'proc-3',
+    title: 'Process 3: Custom Clearance',
+    stages: [
+      { id: 'pre_alert_docs', title: 'Pre-Alert & Docs', subtitle: 'Supply/SLDM', system: 'customs', systemLabel: 'Documentation', color: '#8b5cf6' },
+      { id: 'custom_declaration', title: 'Custom Declaration', subtitle: 'Broker/LSP', system: 'customs', systemLabel: 'Brokerage', color: '#3b82f6' },
+      { id: 'custom_payment', title: 'Duty & Payment', subtitle: 'Customs/Bank', system: 'customs', systemLabel: 'Payment', color: '#f59e0b' },
+      { id: 'release_delivery', title: 'Release & Delivery', subtitle: 'LSP', system: 'sap', systemLabel: 'Logistics', color: '#10b981' },
+    ]
   }
 ];
 
@@ -38,7 +48,18 @@ const clarificationChecklist = [
   { id: 'chk_9', text: 'Request/Create Premium Proposal Ordering (Mapping SKU & Qty)' },
   { id: 'chk_10', text: 'Checking the Premium proposal ordering (Clarified Order)' },
   { id: 'chk_11', text: 'Request PR/PO Creation to ROD for Import material' },
-  { id: 'chk_12', text: 'Escalation to PFM or Solution Architect if Order failed to create' }
+  { id: 'chk_12', text: 'Escalation to PFM or Solution Architect if Order failed to create' },
+  { id: 'cc_1', text: 'Received Pre alert' },
+  { id: 'cc_2', text: 'Review shipping documents' },
+  { id: 'cc_3', text: 'Send shipping document to customs brokerage, coordinating and monitoring' },
+  { id: 'cc_4', text: 'Custom declaration verifications' },
+  { id: 'cc_5', text: 'Verify the HC code in the import declaration draft and confirm to custom broker' },
+  { id: 'cc_6', text: 'Coordinate with solutions to collect and share product catalogue/brochure to custom broker' },
+  { id: 'cc_7', text: 'Physical visit in customs' },
+  { id: 'cc_8', text: 'Responsible for custom duty and payment process' },
+  { id: 'cc_9', text: 'Import permit' },
+  { id: 'cc_10', text: 'Ensure to comply local laws and regulations' },
+  { id: 'cc_11', text: 'Arrange delivery from custom to local project WH' }
 ];
 
 const initialTasks = [
@@ -72,7 +93,11 @@ const stageRequirements = {
   'release_inquiry': ['chk_8', 'chk_9', 'chk_10'],
   'po_creation': ['chk_11'],
   'hub_activities': ['chk_12'],
-  'material_calloff': []
+  'material_calloff': [],
+  'pre_alert_docs': [],
+  'custom_declaration': ['cc_1', 'cc_2', 'cc_9'],
+  'custom_payment': ['cc_3', 'cc_4', 'cc_5', 'cc_6'],
+  'release_delivery': ['cc_7', 'cc_8', 'cc_10']
 };
 
 function App() {
