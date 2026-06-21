@@ -1,15 +1,17 @@
 # MOAI Supply Chain ERP
 
-A modernized, real-time Kanban dashboard designed for managing End-to-End Supply Chain and Logistics operations. MOAI ERP creates a strict separation between **Ordering Preparation** and **Material Delivery**, enforcing stringent compliance logic via a dynamic "100% Clarified Order Checklist".
+A modernized, real-time Kanban dashboard designed for managing End-to-End Supply Chain and Logistics operations. MOAI ERP creates a strict separation between **Ordering Preparation**, **Material Delivery**, and subsequent logistical operations, enforcing stringent compliance logic via a dynamic "100% Clarified Order Checklist".
 
 ## ✨ Key Features
 
-- **Secure Admin Authentication**: Built-in login and sign-up flow using Supabase Auth to restrict dashboard access.
+- **Secure Authentication & Account Management**: Built-in login, sign-up, and forgot password flow using Supabase Auth. Users can also manage their profile settings (email and password updates) directly from the dashboard.
 - **Six-Process Kanban Architecture**: Comprehensive workflow spanning Ordering Preparation, Material Delivery, Custom Clearance, WH Management, EID Last Mile, and Local 3PP Flow.
 - **Strict Validation Gates**: Users are prevented from dragging tasks into later stages unless specific checklist prerequisites have been met.
-- **Live Fulfillment Progress**: A dynamic, interactive side-drawer panel tracking the completion percentage of each order's checklist.
+- **Live Fulfillment Progress**: A dynamic, interactive side-drawer panel tracking the completion percentage of each order's checklist, categorized sequentially by operational workflow.
 - **Real-Time Data Sync**: Powered by Supabase WebSockets, board updates (drag & drop, checklists, new orders) sync instantly across all clients without requiring a page refresh.
-- **Built-in System Dictionary**: A dedicated help and documentation center translating common ERP and supply chain terminology (e.g., CPO, ESTA, WBS, BoQ).
+- **Interactive User Onboarding**: A built-in, first-time user tutorial modal and visual UI hints to guide new users on how to utilize the drag-and-drop mechanics and checklist system.
+- **Built-in System Dictionary**: A dedicated help and documentation center translating common ERP and supply chain terminology (e.g., CPO, ESTA, WBS, BoQ), perfectly grouped by the process they belong to.
+- **Modular Codebase Architecture**: Clean, scalable React component structure separating concerns (Auth, Sidebar, TopNav, Settings, KanbanBoard, Drawer).
 
 ## 🛠️ Tech Stack
 
