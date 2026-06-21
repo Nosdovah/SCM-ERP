@@ -135,7 +135,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                             
                             {isExpanded && !isChecked && (
                               <form onSubmit={(e) => handleFormSubmit(e, item.id)} style={{ marginTop: '1rem', borderTop: '1px dashed var(--border-color)', paddingTop: '1rem' }}>
-                                {item.fields.map(field => (
+                                {(item.fields || []).map(field => (
                                   <div key={field.name} style={{ marginBottom: '0.75rem' }}>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-main)' }}>{field.label}</label>
                                     {field.type === 'file' ? (
@@ -168,11 +168,11 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
 
                             {isChecked && itemData && (
                               <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: '0.375rem', fontSize: '0.8rem' }}>
-                                {Object.entries(itemData).map(([key, val]) => {
+                                {Object.entries(itemData || {}).map(([key, val]) => {
                                   const isLink = val && typeof val === 'string' && val.startsWith('http');
                                   return (
                                     <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.25rem' }}>
-                                      <span style={{ color: 'var(--text-muted)' }}>{item.fields.find(f => f.name === key)?.label || key}:</span>
+                                      <span style={{ color: 'var(--text-muted)' }}>{(item.fields || []).find(f => f.name === key)?.label || key}:</span>
                                       <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>
                                         {isLink ? <a href={val} target="_blank" rel="noreferrer" style={{ color: 'var(--primary-color)', textDecoration: 'underline' }}>View Document</a> : val}
                                       </span>
@@ -207,8 +207,8 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                 {historyLogs.map(log => (
                   <div key={log.id} style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem' }}>
                     <div style={{ minWidth: '40px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '500', paddingTop: '2px' }}>
-                      {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br/>
-                      {new Date(log.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      {log.created_at ? new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}<br/>
+                      {log.created_at ? new Date(log.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''}
                     </div>
                     <div style={{ flex: 1, backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                       <div style={{ fontWeight: '600', color: 'var(--primary-color)', marginBottom: '0.25rem' }}>{log.action}</div>
