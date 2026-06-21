@@ -40,7 +40,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase || userCompany === 'NOT ASSIGNED') return;
 
     const fetchTasks = async () => {
       const { data, error } = await supabase.from('orders').select('*').eq('company_name', userCompany);
@@ -70,7 +70,7 @@ function App() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userCompany]);
   const [draggedTask, setDraggedTask] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
