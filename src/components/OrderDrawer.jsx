@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, User } from 'lucide-react';
 import { clarificationChecklist } from '../data/constants';
 
-export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChecklistItem }) {
+export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChecklistItem, handleDeleteOrder }) {
   const [activeFormId, setActiveFormId] = useState(null);
   const [formData, setFormData] = useState({});
 
@@ -140,7 +140,8 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
             </div>
           </div>
         </div>
-        <div className="drawer-footer">
+        <div className="drawer-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button className="btn" style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' }} onClick={() => handleDeleteOrder(selectedOrder.id)}>Delete Order</button>
           <button className="btn btn-primary" onClick={() => setSelectedOrder(null)}>Save & Close</button>
         </div>
       </div>

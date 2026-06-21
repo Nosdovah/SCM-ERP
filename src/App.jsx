@@ -142,6 +142,21 @@ function App() {
     }
   };
 
+  const handleDeleteOrder = (orderId) => {
+    if (!window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
+    
+    setTasks(tasks.filter(t => t.id !== orderId));
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder(null);
+    }
+
+    if (supabase) {
+      supabase.from('orders').delete().eq('id', orderId).then(({ error }) => {
+        if (error) console.error("Delete failed", error);
+      });
+    }
+  };
+
   const toggleChecklistItem = (orderId, itemId, formData = null) => {
     let updatedTask = null;
     setTasks(tasks.map(t => {
@@ -384,6 +399,7 @@ function App() {
           selectedOrder={selectedOrder} 
           setSelectedOrder={setSelectedOrder} 
           toggleChecklistItem={toggleChecklistItem} 
+          handleDeleteOrder={handleDeleteOrder}
         />
 
         {/* Modal for New Order */}
