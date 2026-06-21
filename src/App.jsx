@@ -207,7 +207,7 @@ function App() {
             </ul>
           </div>
         )}
-        <TopNav currentView={currentView} setCurrentView={setCurrentView} handleLogout={handleLogout} />
+        <TopNav currentView={currentView} setCurrentView={setCurrentView} handleLogout={handleLogout} session={session} />
 
         {/* Content Area */}
         <div className="content-area">
