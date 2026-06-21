@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingCart, Settings, Bell, Search, User, Filter, Plus, ChevronRight, Activity, X, CheckSquare, BookOpen } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Settings, Bell, Search, User, Filter, Plus, ChevronRight, Activity, X, CheckSquare, BookOpen, LogOut } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import './index.css';
 
@@ -76,8 +76,29 @@ const stageRequirements = {
 };
 
 function App() {
+  const [session, setSession] = useState(null);
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState(null);
+
   const [currentView, setCurrentView] = useState('board'); // 'board' | 'help'
   const [tasks, setTasks] = useState(initialTasks);
+
+  useEffect(() => {
+    if (!supabase) return;
+    
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -120,6 +141,61 @@ function App() {
   // Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('All');
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError(null);
+    let error;
+    if (isLoginMode) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      error = signInError;
+    } else {
+      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      error = signUpError;
+      if (!error) {
+        alert('Success! Check your email for a confirmation link or sign in if no confirmation is required.');
+      }
+    }
+    if (error) setAuthError(error.message);
+    setAuthLoading(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  if (!session) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-header">
+            <Activity size={48} className="icon" />
+            <h2>MOAI Admin</h2>
+            <p>{isLoginMode ? 'Sign in to access the dashboard' : 'Create an admin account'}</p>
+          </div>
+          <form className="auth-form" onSubmit={handleAuth}>
+            {authError && <div className="auth-error">{authError}</div>}
+            <div className="auth-input-group">
+              <label>Email Address</label>
+              <input type="email" required className="auth-input" placeholder="admin@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+            </div>
+            <div className="auth-input-group">
+              <label>Password</label>
+              <input type="password" required className="auth-input" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+            </div>
+            <button type="submit" className="auth-btn" disabled={authLoading}>
+              {authLoading ? 'Loading...' : (isLoginMode ? 'Sign In' : 'Sign Up')}
+            </button>
+            <div className="auth-toggle">
+              {isLoginMode ? "Don't have an account? " : "Already have an account? "}
+              <span onClick={() => setIsLoginMode(!isLoginMode)}>{isLoginMode ? 'Sign Up' : 'Sign In'}</span>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   const handleDragStart = (task) => setDraggedTask(task);
   const handleDragOver = (e) => e.preventDefault();
@@ -269,6 +345,9 @@ function App() {
           <div className="user-profile">
             <Bell size={20} className="text-muted" style={{cursor: 'pointer'}} />
             <div className="avatar"><User size={20} /></div>
+            <button onClick={handleLogout} className="btn" style={{border: '1px solid var(--border-color)', marginLeft: '1rem', backgroundColor: 'transparent', color: 'var(--text-main)'}}>
+              <LogOut size={16} /> Logout
+            </button>
           </div>
         </header>
 
