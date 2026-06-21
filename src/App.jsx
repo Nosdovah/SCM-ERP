@@ -226,10 +226,13 @@ function App() {
   return (
     <div className="app-container">
       <TutorialModal />
-      <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
+      <TopNav currentView={currentView} setCurrentView={setCurrentView} handleLogout={handleLogout} session={session} />
+      
+      <div className="app-body">
+        <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
 
-      {/* Main Content */}
-      <main className="main-content">
+        {/* Main Content */}
+        <main className="main-content">
         {warningMsg && (
           <div style={{
             position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
@@ -254,7 +257,6 @@ function App() {
             </ul>
           </div>
         )}
-        <TopNav currentView={currentView} setCurrentView={setCurrentView} handleLogout={handleLogout} session={session} />
 
         {/* Content Area */}
         <div className="content-area">
@@ -444,8 +446,9 @@ function App() {
             </div>
           </div>
         )}
-
+        </div>
       </main>
+      </div>
     </div>
   );
 }
