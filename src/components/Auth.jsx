@@ -8,6 +8,17 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState(null);
+  const [company, setCompany] = useState('');
+  const [existingCompanies, setExistingCompanies] = useState([]);
+
+  React.useEffect(() => {
+    if (authMode === 'signup' && supabase) {
+      // Fetch existing companies to populate datalist
+      supabase.from('companies').select('name').then(({ data }) => {
+        if (data) setExistingCompanies(data.map(c => c.name));
+      });
+    }
+  }, [authMode]);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -18,10 +29,38 @@ export default function Auth() {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       error = signInError;
     } else if (authMode === 'signup') {
-      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      if (!company.trim()) {
+        setAuthError("Company name is required");
+        setAuthLoading(false);
+        return;
+      }
+      
+      let companyNameStr = company.trim().toUpperCase();
+
+      if (supabase) {
+        // Ensure company exists in public.companies
+        const { data: existing } = await supabase.from('companies').select('id, name').ilike('name', companyNameStr).maybeSingle();
+        if (!existing) {
+          await supabase.from('companies').insert([{ name: companyNameStr }]);
+        }
+      }
+
+      // We store the company_name in the user's auth metadata so we can filter their Kanban boards
+      const { error: signUpError } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: {
+            company_name: companyNameStr
+          }
+        }
+      });
       error = signUpError;
       if (!error) {
         alert('Success! Check your email for a confirmation link or sign in if no confirmation is required.');
+      } else {
+        // Offline fallback login for demo purposes if Supabase fails
+        localStorage.setItem('moai_mock_session_company', companyNameStr);
       }
     } else if (authMode === 'forgot_password') {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
@@ -51,6 +90,23 @@ export default function Auth() {
             <label>Email Address</label>
             <input type="email" required className="auth-input" placeholder="admin@example.com" value={email} onChange={e => setEmail(e.target.value)} />
           </div>
+          {authMode === 'signup' && (
+            <div className="auth-input-group">
+              <label>Company Name</label>
+              <input 
+                type="text" 
+                required 
+                list="companies-list"
+                className="auth-input" 
+                placeholder="e.g. NVIDIA" 
+                value={company} 
+                onChange={e => setCompany(e.target.value)} 
+              />
+              <datalist id="companies-list">
+                {existingCompanies.map((c, idx) => <option key={idx} value={c} />)}
+              </datalist>
+            </div>
+          )}
           {authMode !== 'forgot_password' && (
             <div className="auth-input-group">
               <label>Password</label>

@@ -198,12 +198,95 @@ export const clarificationChecklist = [
 
 export const initialTasks = [
   { id: 'ORD-1001', title: 'Telecom Site 4A Upgrades', stage: 'cpo_esta', system: 'boq', priority: 'High', assignee: 'John D.', checklistState: {} },
-  { id: 'ORD-1002', title: 'Radio Network Expansion Project', stage: 'vc_wbs', system: 'sap', priority: 'Medium', assignee: 'Sarah K.', checklistState: { chk_1: true, chk_2: true } },
-  { id: 'ORD-1003', title: 'Fiber Optic Cable Batch A', stage: 'review_stock', system: 'sap', priority: 'High', assignee: 'Mike T.', checklistState: { chk_1: true, chk_2: true, chk_3: true, chk_6: true } },
-  { id: 'ORD-1004', title: 'Server Racks Distribution', stage: 'premium_proposal', system: 'premium', priority: 'Low', assignee: 'Anna W.', checklistState: { chk_1: true, chk_2: true, chk_3: true, chk_4: true, chk_5: true } },
-  { id: 'ORD-1005', title: 'Backup Generators Setup', stage: 'release_inquiry', system: 'premium', priority: 'Medium', assignee: 'David L.', checklistState: Object.fromEntries(clarificationChecklist.map(c => [c.id, true])) },
-  { id: 'ORD-1006', title: 'Cooling Systems Q3', stage: 'po_creation', system: 'sap', priority: 'High', assignee: 'Lisa M.', checklistState: Object.fromEntries(clarificationChecklist.map(c => [c.id, true])) },
-  { id: 'ORD-1007', title: 'Network Switches Delivery', stage: 'material_calloff', system: 'sap', priority: 'Medium', assignee: 'Tom B.', checklistState: Object.fromEntries(clarificationChecklist.map(c => [c.id, true])) },
+  { 
+    id: 'ORD-1002', 
+    title: 'Radio Network Expansion Project', 
+    stage: 'vc_wbs', 
+    system: 'sap', 
+    priority: 'Medium', 
+    assignee: 'Sarah K.', 
+    checklistState: { 
+      chk_1: true, 
+      chk_2: { completed: true, data: { vc_number: 'VC-882199', wbs_code: 'WBS-NW-772', esta_po: 'PO-5512' } } 
+    } 
+  },
+  { 
+    id: 'ORD-1003', 
+    title: 'Fiber Optic Cable Batch A', 
+    stage: 'review_stock', 
+    system: 'sap', 
+    priority: 'High', 
+    assignee: 'Mike T.', 
+    checklistState: { 
+      chk_1: true, 
+      chk_2: { completed: true, data: { vc_number: 'VC-100455', wbs_code: 'WBS-NW-110', esta_po: 'PO-9922' } }, 
+      chk_3: { completed: true, data: { partner_name: 'Acme Logistics', customer_contact: 'support@acme.com', planned_date: '2024-01-15' } }, 
+      chk_6: true 
+    } 
+  },
+  { 
+    id: 'ORD-1004', 
+    title: 'Server Racks Distribution', 
+    stage: 'premium_proposal', 
+    system: 'premium', 
+    priority: 'Low', 
+    assignee: 'Anna W.', 
+    checklistState: { 
+      chk_1: true, 
+      chk_2: { completed: true, data: { vc_number: 'VC-990234', wbs_code: 'WBS-NW-330', esta_po: 'PO-1134' } }, 
+      chk_3: { completed: true, data: { partner_name: 'TechFlow Corp', customer_contact: 'admin@techflow.com', planned_date: '2024-02-10' } }, 
+      chk_4: true, 
+      chk_5: true 
+    } 
+  },
+  { 
+    id: 'ORD-1005', 
+    title: 'Backup Generators Setup', 
+    stage: 'release_inquiry', 
+    system: 'premium', 
+    priority: 'Medium', 
+    assignee: 'David L.', 
+    checklistState: Object.fromEntries(clarificationChecklist.map(c => {
+      if (c.id === 'chk_2') return [c.id, { completed: true, data: { vc_number: 'VC-8899', wbs_code: 'WBS-01', esta_po: 'PO-111' } }];
+      if (c.id === 'chk_3') return [c.id, { completed: true, data: { partner_name: 'GenSys', customer_contact: 'bob@gensys.com', planned_date: '2024-03-01' } }];
+      if (c.id === 'cc_9') return [c.id, { completed: true, data: { permit_number: 'IMP-2024-001', permit_expiry: '2025-01-01' } }];
+      if (c.id === 'eid_5') return [c.id, { completed: true, data: { obd_number: 'OBD-500', courier_name: 'FedEx' } }];
+      if (c.id === 'post_8') return [c.id, { completed: true, data: { awb_number: 'AWB-100', eta_date: '2024-03-10' } }];
+      return [c.id, true];
+    })) 
+  },
+  { 
+    id: 'ORD-1006', 
+    title: 'Cooling Systems Q3', 
+    stage: 'po_creation', 
+    system: 'sap', 
+    priority: 'High', 
+    assignee: 'Lisa M.', 
+    checklistState: Object.fromEntries(clarificationChecklist.map(c => {
+      if (c.id === 'chk_2') return [c.id, { completed: true, data: { vc_number: 'VC-5544', wbs_code: 'WBS-88', esta_po: 'PO-332' } }];
+      if (c.id === 'chk_3') return [c.id, { completed: true, data: { partner_name: 'CoolTech', customer_contact: 'sarah@cooltech.com', planned_date: '2024-04-15' } }];
+      if (c.id === 'cc_9') return [c.id, { completed: true, data: { permit_number: 'IMP-2024-998', permit_expiry: '2024-12-31' } }];
+      if (c.id === 'eid_5') return [c.id, { completed: true, data: { obd_number: 'OBD-802', courier_name: 'DHL' } }];
+      if (c.id === 'post_8') return [c.id, { completed: true, data: { awb_number: 'AWB-205', eta_date: '2024-04-20' } }];
+      return [c.id, true];
+    })) 
+  },
+  { 
+    id: 'ORD-1007', 
+    title: 'Network Switches Delivery', 
+    stage: 'material_calloff', 
+    system: 'sap', 
+    priority: 'Medium', 
+    assignee: 'Tom B.', 
+    checklistState: Object.fromEntries(clarificationChecklist.map(c => {
+      if (c.id === 'chk_2') return [c.id, { completed: true, data: { vc_number: 'VC-1111', wbs_code: 'WBS-99', esta_po: 'PO-999' } }];
+      if (c.id === 'chk_3') return [c.id, { completed: true, data: { partner_name: 'NetSwitch Corp', customer_contact: 'contact@netswitch.com', planned_date: '2024-05-10' } }];
+      if (c.id === 'cc_9') return [c.id, { completed: true, data: { permit_number: 'IMP-2024-112', permit_expiry: '2025-05-10' } }];
+      if (c.id === 'eid_5') return [c.id, { completed: true, data: { obd_number: 'OBD-900', courier_name: 'UPS' } }];
+      if (c.id === 'post_8') return [c.id, { completed: true, data: { awb_number: 'AWB-303', eta_date: '2024-05-15' } }];
+      return [c.id, true];
+    })) 
+  },
 ];
 
 export const dictionaryTerms = [

@@ -15,7 +15,8 @@ function App() {
   const [session, setSession] = useState(null);
   
   const [currentView, setCurrentView] = useState('board'); // 'board' | 'help' | 'settings'
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState(initialTasks.map(t => ({ ...t, company_name: 'DEFAULT' })));
+  const userCompany = session?.user?.user_metadata?.company_name || localStorage.getItem('moai_mock_session_company') || 'DEFAULT';
 
   useEffect(() => {
     if (!supabase) return;
@@ -35,7 +36,7 @@ function App() {
     if (!supabase) return;
 
     const fetchTasks = async () => {
-      const { data, error } = await supabase.from('orders').select('*');
+      const { data, error } = await supabase.from('orders').select('*').eq('company_name', userCompany);
       if (error) console.error('Error fetching data:', error);
       else if (data && data.length > 0) setTasks(data);
     };
@@ -127,7 +128,8 @@ function App() {
       system: 'boq',
       priority: newOrderForm.priority,
       assignee: newOrderForm.assignee || 'Unassigned',
-      checklistState: {}
+      checklistState: {},
+      company_name: userCompany
     };
     setTasks([newTask, ...tasks]);
     setShowNewOrderModal(false);
@@ -185,7 +187,8 @@ function App() {
   };
 
   // Apply filters
-  const filteredTasks = tasks.filter(t => {
+  const companyTasks = tasks.filter(t => !t.company_name || t.company_name === userCompany);
+  const filteredTasks = companyTasks.filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           t.assignee.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           t.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -234,15 +237,15 @@ function App() {
               <div className="metrics-grid">
                 <div className="metric-card animate-fade-in" style={{animationDelay: '0.1s'}}>
                   <div className="metric-title">Active Orders <Activity size={16} /></div>
-                  <div className="metric-value">{tasks.length}</div>
+                  <div className="metric-value">{companyTasks.length}</div>
                 </div>
                 <div className="metric-card animate-fade-in" style={{animationDelay: '0.2s'}}>
                   <div className="metric-title">Planning Phase <Search size={16} /></div>
-                  <div className="metric-value">{tasks.filter(t => ['cpo_esta','vc_wbs','review_stock','premium_proposal'].includes(t.stage)).length}</div>
+                  <div className="metric-value">{companyTasks.filter(t => ['cpo_esta','vc_wbs','review_stock','premium_proposal'].includes(t.stage)).length}</div>
                 </div>
                 <div className="metric-card animate-fade-in" style={{animationDelay: '0.3s'}}>
                   <div className="metric-title">Delivery Phase <ShoppingCart size={16} /></div>
-                  <div className="metric-value">{tasks.filter(t => ['release_inquiry','po_creation','hub_activities','material_calloff'].includes(t.stage)).length}</div>
+                  <div className="metric-value">{companyTasks.filter(t => ['release_inquiry','po_creation','hub_activities','material_calloff'].includes(t.stage)).length}</div>
                 </div>
               </div>
 
