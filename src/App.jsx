@@ -33,6 +33,33 @@ const processes = [
       { id: 'custom_payment', title: 'Duty & Payment', subtitle: 'Customs/Bank', system: 'customs', systemLabel: 'Payment', color: '#f59e0b' },
       { id: 'release_delivery', title: 'Release & Delivery', subtitle: 'LSP', system: 'sap', systemLabel: 'Logistics', color: '#10b981' },
     ]
+  },
+  {
+    id: 'proc-4',
+    title: 'Process 4: WH Management & Last Mile',
+    stages: [
+      { id: 'wh_inbound', title: 'Inbound & GR', subtitle: 'LSP/SLDM', system: 'sap', systemLabel: 'SAP IM/WMS', color: '#8b5cf6' },
+      { id: 'wh_inventory', title: 'Warehouse & Inventory', subtitle: 'SLDM/DWM', system: 'sap', systemLabel: 'SAP IM/WMS', color: '#3b82f6' },
+      { id: 'wh_outbound', title: 'Outbound & Last Mile', subtitle: 'LSP/EPC', system: 'sap', systemLabel: 'SAP IM/WMS', color: '#10b981' }
+    ]
+  },
+  {
+    id: 'proc-5',
+    title: 'Process 5: EID Last Mile',
+    stages: [
+      { id: 'eid_planning', title: 'MR Validation', subtitle: 'IM/EPC', system: 'sap', systemLabel: 'SAP', color: '#8b5cf6' },
+      { id: 'eid_obd', title: 'OBD Creation', subtitle: 'EPC', system: 'sap', systemLabel: 'SAP', color: '#3b82f6' },
+      { id: 'eid_delivery', title: 'Pick, Pack & Deliver', subtitle: 'WH', system: 'sap', systemLabel: 'WMS', color: '#10b981' }
+    ]
+  },
+  {
+    id: 'proc-6',
+    title: 'Process 6: Local 3PP Flow',
+    stages: [
+      { id: 'tpp_request', title: 'Request & Validate', subtitle: 'Supply Local', system: 'boq', systemLabel: 'Sourcing', color: '#f59e0b' },
+      { id: 'tpp_po', title: 'Create/Change PO', subtitle: 'Supply Local & EPC', system: 'sap', systemLabel: 'SAP', color: '#ef4444' },
+      { id: 'tpp_delivery', title: 'Delivery & GR Posting', subtitle: 'Supply Local', system: 'sap', systemLabel: 'SAP', color: '#dc2626' }
+    ]
   }
 ];
 
@@ -59,7 +86,77 @@ const clarificationChecklist = [
   { id: 'cc_8', text: 'Responsible for custom duty and payment process' },
   { id: 'cc_9', text: 'Import permit' },
   { id: 'cc_10', text: 'Ensure to comply local laws and regulations' },
-  { id: 'cc_11', text: 'Arrange delivery from custom to local project WH' }
+  { id: 'cc_11', text: 'Arrange delivery from custom to local project WH' },
+  { id: 'wh_1', text: 'Follow up, GR/GI on time' },
+  { id: 'wh_2', text: 'Warehouse Priorities Picking & Outbound Activity' },
+  { id: 'wh_3', text: 'Domestic Transport Priority, Delivery & Approval' },
+  { id: 'wh_4', text: 'Operational Escalation' },
+  { id: 'wh_5', text: 'Invoicing/LSP billing' },
+  { id: 'wh_6', text: 'Sox Controls Monthly, Quarterly & Annually' },
+  { id: 'wh_7', text: 'Scrap list proposal based on TG5 Settlement document, follow up, approval and execute' },
+  { id: 'wh_8', text: 'Open box inspection' },
+  { id: 'wh_9', text: 'Conduct monthly KPI meeting - Governance meeting (Performance Analysis)' },
+  { id: 'wh_10', text: 'Create inbound orders for customer owned inventory' },
+  { id: 'wh_11', text: 'Managing GR/IR issues included aged invoices and parked invoices' },
+  { id: 'wh_12', text: 'Create and Update Supply Chain Cost Last mile' },
+  { id: 'inv_1', text: 'Update FG report daily and monitor to make sure WM perform GR and GI in timely manner' },
+  { id: 'inv_2', text: 'Provide stock report to stakeholder' },
+  { id: 'inv_3', text: 'Create inventory dismantle report material belong to customer' },
+  { id: 'inv_4', text: 'Monitor and control stock to maintain FG level and also Aging material' },
+  { id: 'inv_5', text: 'Inter-warehouse transfer and WBS to WBS transfer to manage stock' },
+  { id: 'inv_6', text: 'Secure effective inventory management, including reconciliation of stock, physical stock take, scrapping and initiation and follow up of return flows.' },
+  { id: 'inv_7', text: 'Manage inventory level, control and monitoring GR Inbound Shipment' },
+  { id: 'inv_8', text: 'Unreserved material from network due to wrong assignment or change request' },
+  { id: 'inv_9', text: 'Arrange delivery material for excess from PO, Dismantle material, transfer order (STO) to customer warehouse' },
+  { id: 'inv_10', text: 'To manage customer specific requirements' },
+  { id: 'acc_1', text: 'Weekly System Reconciliation' },
+  { id: 'acc_2', text: 'Monthly Cycle Count' },
+  { id: 'acc_3', text: 'Yearly Stock Take' },
+  { id: 'acc_4', text: 'Stock Adjustment / Scrap' },
+  { id: 'lsp_1', text: 'Warehouse capacity setup and control' },
+  { id: 'lsp_2', text: 'Conduct monthly governance meeting' },
+  { id: 'lsp_3', text: 'Follow-up escalation for warehouse operational issue' },
+  { id: 'lsp_4', text: 'Vendor RFP Support – Sourcing' },
+  { id: 'lsp_5', text: 'Drive operational LSP development' },
+  { id: 'post_1', text: 'Check EAB HW PO compare with PP Ordering' },
+  { id: 'post_2', text: 'Follow-up with EAB ODM/EAB Supplier for RFS dates' },
+  { id: 'post_3', text: 'Prepare report order and delivery plan (RFS, ETA) tracking reporting to CPM/stakeholders.' },
+  { id: 'post_4', text: 'Handle pre-escalation and assist formal escalation to improve dates' },
+  { id: 'post_5', text: 'Prepare Air exemption approval for speed-up delivery' },
+  { id: 'post_6', text: 'Send Call off instruction to EPC according to Project Plan' },
+  { id: 'post_7', text: 'Check against One Report whether everything is called off' },
+  { id: 'post_8', text: 'Checking document AWB and record delivery plan' },
+  { id: 'post_9', text: 'Follow up with DSP for update ETA and or deviation during shipment' },
+  { id: 'post_10', text: 'Inform detail material arrival to stakeholder' },
+  { id: 'post_11', text: 'Provide copy customer PO and material detail sheet to customs officer when requested' },
+  { id: 'post_12', text: 'Monitor custom clearance process' },
+  { id: 'oth_1', text: 'Coordinate with Finance for NS target achievements' },
+  { id: 'oth_2', text: 'Support Acceptance manager for Invoice submitted (WIP, NS, and Invoice)' },
+  { id: 'oth_3', text: 'Report cost utilize from EAB HW, SW, Warehouse and Delivery to TPM' },
+  { id: 'oth_4', text: 'Clean up plan cost and any pending transaction in network before TG5' },
+  { id: 'oth_5', text: 'Create form TG5 Project Settlement of Excess Materials, sanity network, clean up remaining stock' },
+  { id: 'oth_6', text: 'Prepare Scrap list proposal based on TG5 Settlement document or quarterly review Ericsson owned material and circulate for approval' },
+  { id: 'oth_7', text: 'Request to Return Logistic management to register Scrap material to Product Take Back Management' },
+  { id: 'oth_8', text: 'Prepare and follow up Supplier statement letter of project closure signed' },
+  { id: 'oth_9', text: 'Arrange delivery material to customer warehouse (dismantle or new material assign for customer warehouse)' },
+  { id: 'tpp_1', text: 'Vendor development, capacity and capability build' },
+  { id: 'tpp_2', text: 'Forecast and shared with Suppliers and Local sourcing' },
+  { id: 'tpp_3', text: 'Initiate request for ordering' },
+  { id: 'tpp_4', text: 'Validate request/100% clarified order' },
+  { id: 'tpp_5', text: 'Request to EPC to execute order' },
+  { id: 'tpp_6', text: 'Validate & ordering for PO-PR, GR/IR balance, PO closure' },
+  { id: 'tpp_7', text: 'Follow up delivery to project WH' },
+  { id: 'tpp_8', text: 'Manage escalation' },
+  { id: 'tpp_9', text: 'Manage share of business' },
+  { id: 'eid_1', text: 'Release WBS/NN and send to IM' },
+  { id: 'eid_2', text: 'PP Upload in DPM' },
+  { id: 'eid_3', text: 'Create MR and submit to BAM' },
+  { id: 'eid_4', text: 'MR auto transfer to PDB & Data validation' },
+  { id: 'eid_5', text: 'Direct/Indirect OBD creation based on WBS evaluation' },
+  { id: 'eid_6', text: 'WBS Reservation & Transfer stock (MB1B/CN22)' },
+  { id: 'eid_7', text: 'Send OBD daily report' },
+  { id: 'eid_8', text: 'Prepare materials, Pick/pack and PGI by VL02N' },
+  { id: 'eid_9', text: 'GI in WMS and Deliver to site' }
 ];
 
 const initialTasks = [
@@ -97,7 +194,16 @@ const stageRequirements = {
   'pre_alert_docs': [],
   'custom_declaration': ['cc_1', 'cc_2', 'cc_9'],
   'custom_payment': ['cc_3', 'cc_4', 'cc_5', 'cc_6'],
-  'release_delivery': ['cc_7', 'cc_8', 'cc_10']
+  'release_delivery': ['cc_7', 'cc_8', 'cc_10'],
+  'wh_inbound': ['cc_11'],
+  'wh_inventory': ['wh_1', 'inv_7'],
+  'wh_outbound': ['wh_2', 'inv_4', 'acc_1'],
+  'eid_planning': ['eid_1', 'eid_2', 'eid_3'],
+  'eid_obd': ['eid_4', 'eid_5', 'eid_6'],
+  'eid_delivery': ['eid_7', 'eid_8', 'eid_9'],
+  'tpp_request': ['tpp_1', 'tpp_2', 'tpp_3', 'tpp_4'],
+  'tpp_po': ['tpp_5', 'tpp_6'],
+  'tpp_delivery': ['tpp_7', 'tpp_8', 'tpp_9']
 };
 
 function App() {
@@ -560,16 +666,33 @@ function App() {
                     </div>
                   );
                 })()}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {clarificationChecklist.map(item => {
-                    const isChecked = !!selectedOrder.checklistState[item.id];
-                    return (
-                      <div key={item.id} className="checklist-item" onClick={() => toggleChecklistItem(selectedOrder.id, item.id)}>
-                        <input type="checkbox" className="checklist-checkbox" checked={isChecked} readOnly />
-                        <div className={`checklist-text ${isChecked ? 'done' : ''}`}>{item.text}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  {[
+                    { title: 'Process 1: Ordering Preparation', items: clarificationChecklist.filter(c => c.id.startsWith('chk_') && parseInt(c.id.split('_')[1]) <= 7) },
+                    { title: 'Process 2: Material Delivery', items: clarificationChecklist.filter(c => c.id.startsWith('chk_') && parseInt(c.id.split('_')[1]) >= 8) },
+                    { title: 'Process 3: Custom Clearance', items: clarificationChecklist.filter(c => c.id.startsWith('cc_')) },
+                    { title: 'Process 4: WH Management', items: clarificationChecklist.filter(c => c.id.startsWith('wh_') || c.id.startsWith('inv_') || c.id.startsWith('acc_')) },
+                    { title: 'Process 5: EID Last Mile', items: clarificationChecklist.filter(c => c.id.startsWith('eid_')) },
+                    { title: 'Process 6: Local 3PP Flow', items: clarificationChecklist.filter(c => c.id.startsWith('tpp_')) },
+                    { title: 'Local LSP & Governance', items: clarificationChecklist.filter(c => c.id.startsWith('lsp_')) },
+                    { title: 'Post Ordering / Call off', items: clarificationChecklist.filter(c => c.id.startsWith('post_')) },
+                    { title: 'Other Operational Tasks', items: clarificationChecklist.filter(c => c.id.startsWith('oth_')) }
+                  ].map((group, gIdx) => (
+                    <div key={gIdx}>
+                      <h5 style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem' }}>{group.title}</h5>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {group.items.map(item => {
+                          const isChecked = !!selectedOrder.checklistState[item.id];
+                          return (
+                            <div key={item.id} className="checklist-item" onClick={() => toggleChecklistItem(selectedOrder.id, item.id)}>
+                              <input type="checkbox" className="checklist-checkbox" checked={isChecked} readOnly />
+                              <div className={`checklist-text ${isChecked ? 'done' : ''}`}>{item.text}</div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
