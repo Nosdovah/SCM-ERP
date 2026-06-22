@@ -195,330 +195,330 @@ export const clarificationChecklist = [
   { id: 'eid_6', text: 'WBS Reservation & Transfer stock (MB1B/CN22)' },
   { id: 'eid_7', text: 'Send OBD daily report' },
   { id: 'eid_9', text: 'GI in WMS and Deliver to site' },
-// Process 2 Documents
-  { id: 'doc_2_a', text: 'Delivery Order (DO) / Surat Pengantar Pengiriman', requiresInput: true, fields: [
-    { name: 'supplier_name', label: 'Kode/Nama Pemasok', type: 'text' },
-    { name: 'customer_name', label: 'Kode/Nama Pelanggan', type: 'text' },
-    { name: 'delivery_address', label: 'Alamat Tujuan', type: 'text' },
-    { name: 'so_po_number', label: 'Nomor SO/PO', type: 'text' },
-    { name: 'origin_warehouse', label: 'Kode Gudang Asal', type: 'text' },
-    { name: 'courier_name', label: 'Nama Kurir/Ekspedisi', type: 'text' },
-    { name: 'vehicle_number', label: 'Plat Nomor Kendaraan', type: 'text' },
-    { name: 'seq_number', label: 'Nomor Urut', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang / SKU', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang', type: 'text' },
-    { name: 'unit', label: 'Satuan Ukuran', type: 'text' },
-    { name: 'quantity', label: 'Jumlah Dikirim', type: 'number' },
-    { name: 'notes', label: 'Keterangan Tambahan', type: 'text' },
-    { name: 'sender_signature', label: 'Tanda Tangan Pengirim', type: 'text' },
-    { name: 'receiver_signature', label: 'Tanda Tangan Penerima', type: 'text' },
-    { name: 'delivery_terms', label: 'Syarat Pengiriman', type: 'text' },
-    { name: 'document_url', label: 'Upload DO Document', type: 'file' }
+  // Process 2 Documents
+  { id: 'doc_2_a', textEN: 'Delivery Order (DO)', textID: 'Surat Pengantar Pengiriman (DO)', requiresInput: true, fields: [
+    { name: 'supplier_name', labelEN: 'Supplier Code/Name', labelID: 'Kode/Nama Pemasok', type: 'text' },
+    { name: 'customer_name', labelEN: 'Customer Code/Name', labelID: 'Kode/Nama Pelanggan', type: 'text' },
+    { name: 'delivery_address', labelEN: 'Delivery Address', labelID: 'Alamat Tujuan', type: 'text' },
+    { name: 'so_po_number', labelEN: 'SO/PO Number', labelID: 'Nomor SO/PO', type: 'text' },
+    { name: 'origin_warehouse', labelEN: 'Origin Warehouse', labelID: 'Kode Gudang Asal', type: 'text' },
+    { name: 'courier_name', labelEN: 'Courier/Expedition', labelID: 'Nama Kurir/Ekspedisi', type: 'text' },
+    { name: 'vehicle_number', labelEN: 'Vehicle License Plate', labelID: 'Plat Nomor Kendaraan', type: 'text' },
+    { name: 'seq_number', labelEN: 'Sequence Number', labelID: 'Nomor Urut', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code / SKU', labelID: 'Kode Barang / SKU', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name', labelID: 'Nama Barang', type: 'text' },
+    { name: 'unit', labelEN: 'Unit of Measure', labelID: 'Satuan Ukuran', type: 'text' },
+    { name: 'quantity', labelEN: 'Quantity Delivered', labelID: 'Jumlah Dikirim', type: 'number' },
+    { name: 'notes', labelEN: 'Additional Notes', labelID: 'Keterangan Tambahan', type: 'text' },
+    { name: 'sender_signature', labelEN: 'Sender Signature', labelID: 'Tanda Tangan Pengirim', type: 'text' },
+    { name: 'receiver_signature', labelEN: 'Receiver Signature', labelID: 'Tanda Tangan Penerima', type: 'text' },
+    { name: 'delivery_terms', labelEN: 'Delivery Terms', labelID: 'Syarat Pengiriman', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload DO Document', labelID: 'Unggah Dokumen DO', type: 'file' }
   ] },
-  { id: 'doc_2_b', text: 'Packing List (Daftar Isi Kemasan)', requiresInput: true, fields: [
-    { name: 'packing_list_no', label: 'Nomor Packing List', type: 'text' },
-    { name: 'do_ref', label: 'Nomor DO Referensi', type: 'text' },
-    { name: 'po_ref', label: 'Nomor PO Referensi', type: 'text' },
-    { name: 'creation_date', label: 'Tanggal Pembuatan', type: 'date' },
-    { name: 'sender_receiver', label: 'Pengirim & Penerima', type: 'text' },
-    { name: 'total_packages', label: 'Total Jumlah Kemasan', type: 'number' },
-    { name: 'weight_bruto_neto', label: 'Berat Kotor & Bersih', type: 'text' },
-    { name: 'dimensions', label: 'Dimensi Total (PxLxT)', type: 'text' },
-    { name: 'package_no', label: 'Nomor Kemasan/Kardus', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang', type: 'text' },
-    { name: 'qty_per_package', label: 'Jumlah per Kemasan', type: 'number' },
-    { name: 'unit', label: 'Satuan', type: 'text' },
-    { name: 'weight_per_package', label: 'Berat per Kemasan', type: 'text' },
-    { name: 'handling_notes', label: 'Keterangan Penanganan', type: 'text' },
-    { name: 'packer_signature', label: 'Tanda Tangan Pengepak', type: 'text' },
-    { name: 'document_url', label: 'Upload Packing List', type: 'file' }
+  { id: 'doc_2_b', textEN: 'Packing List', textID: 'Daftar Isi Kemasan (Packing List)', requiresInput: true, fields: [
+    { name: 'packing_list_no', labelEN: 'Packing List Number', labelID: 'Nomor Packing List', type: 'text' },
+    { name: 'do_ref', labelEN: 'Reference DO Number', labelID: 'Nomor DO Referensi', type: 'text' },
+    { name: 'po_ref', labelEN: 'Reference PO Number', labelID: 'Nomor PO Referensi', type: 'text' },
+    { name: 'creation_date', labelEN: 'Creation Date', labelID: 'Tanggal Pembuatan', type: 'date' },
+    { name: 'sender_receiver', labelEN: 'Sender & Receiver', labelID: 'Pengirim & Penerima', type: 'text' },
+    { name: 'total_packages', labelEN: 'Total Packages', labelID: 'Total Jumlah Kemasan', type: 'number' },
+    { name: 'weight_bruto_neto', labelEN: 'Gross/Net Weight', labelID: 'Berat Kotor & Bersih', type: 'text' },
+    { name: 'dimensions', labelEN: 'Dimensions (LxWxH)', labelID: 'Dimensi Total (PxLxT)', type: 'text' },
+    { name: 'package_no', labelEN: 'Package Number', labelID: 'Nomor Kemasan/Kardus', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code', labelID: 'Kode Barang', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name', labelID: 'Nama Barang', type: 'text' },
+    { name: 'qty_per_package', labelEN: 'Qty Per Package', labelID: 'Jumlah per Kemasan', type: 'number' },
+    { name: 'unit', labelEN: 'Unit', labelID: 'Satuan', type: 'text' },
+    { name: 'weight_per_package', labelEN: 'Weight Per Package', labelID: 'Berat per Kemasan', type: 'text' },
+    { name: 'handling_notes', labelEN: 'Handling Notes', labelID: 'Keterangan Penanganan', type: 'text' },
+    { name: 'packer_signature', labelEN: 'Packer Signature', labelID: 'Tanda Tangan Pengepak', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Packing List', labelID: 'Unggah Packing List', type: 'file' }
   ] },
-  { id: 'doc_2_c', text: 'Invoice / Faktur Penjualan', requiresInput: true, fields: [
-    { name: 'invoice_no', label: 'Nomor Urut / Invoice', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang & Spesifikasi', type: 'text' },
-    { name: 'quantity', label: 'Jumlah', type: 'number' },
-    { name: 'unit', label: 'Satuan', type: 'text' },
-    { name: 'unit_price', label: 'Harga Satuan', type: 'number' },
-    { name: 'discount', label: 'Diskon', type: 'number' },
-    { name: 'total_per_item', label: 'Nilai Total per Barang', type: 'number' },
-    { name: 'subtotal', label: 'Subtotal Nilai Barang', type: 'number' },
-    { name: 'extra_discount', label: 'Potongan Tambahan', type: 'number' },
-    { name: 'extra_fees', label: 'Biaya Tambahan', type: 'number' },
-    { name: 'tax', label: 'Pajak (PPN/PPh)', type: 'number' },
-    { name: 'total_amount', label: 'Total Tagihan Akhir', type: 'number' },
-    { name: 'amount_in_words', label: 'Terbilang', type: 'text' },
-    { name: 'document_url', label: 'Upload Invoice', type: 'file' }
+  { id: 'doc_2_c', textEN: 'Invoice', textID: 'Faktur Penjualan (Invoice)', requiresInput: true, fields: [
+    { name: 'invoice_no', labelEN: 'Invoice Number', labelID: 'Nomor Invoice', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code', labelID: 'Kode Barang', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name & Specs', labelID: 'Nama Barang & Spesifikasi', type: 'text' },
+    { name: 'quantity', labelEN: 'Quantity', labelID: 'Jumlah', type: 'number' },
+    { name: 'unit', labelEN: 'Unit', labelID: 'Satuan', type: 'text' },
+    { name: 'unit_price', labelEN: 'Unit Price', labelID: 'Harga Satuan', type: 'number' },
+    { name: 'discount', labelEN: 'Discount', labelID: 'Diskon', type: 'number' },
+    { name: 'total_per_item', labelEN: 'Total per Item', labelID: 'Nilai Total per Barang', type: 'number' },
+    { name: 'subtotal', labelEN: 'Subtotal', labelID: 'Subtotal Nilai Barang', type: 'number' },
+    { name: 'extra_discount', labelEN: 'Extra Discount', labelID: 'Potongan Tambahan', type: 'number' },
+    { name: 'extra_fees', labelEN: 'Additional Fees', labelID: 'Biaya Tambahan', type: 'number' },
+    { name: 'tax', labelEN: 'Tax', labelID: 'Pajak (PPN/PPh)', type: 'number' },
+    { name: 'total_amount', labelEN: 'Total Amount', labelID: 'Total Tagihan Akhir', type: 'number' },
+    { name: 'amount_in_words', labelEN: 'Amount in Words', labelID: 'Terbilang', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Invoice', labelID: 'Unggah Invoice', type: 'file' }
   ] },
-  { id: 'doc_2_d', text: 'Proof of Delivery (POD)', requiresInput: true, fields: [
-    { name: 'item_details', label: 'Rincian Barang Dikirim', type: 'text' },
-    { name: 'item_condition', label: 'Kondisi Barang Diterima', type: 'text' },
-    { name: 'qty_received', label: 'Jumlah Diterima', type: 'number' },
-    { name: 'notes', label: 'Catatan/Keluhan', type: 'text' },
-    { name: 'receiver_signature', label: 'Tanda Tangan Penerima', type: 'text' },
-    { name: 'receiver_name', label: 'Nama & Jabatan Penerima', type: 'text' },
-    { name: 'gps_location', label: 'Lokasi Koordinat GPS', type: 'text' },
-    { name: 'document_url', label: 'Upload POD & Foto Bukti', type: 'file' }
+  { id: 'doc_2_d', textEN: 'Proof of Delivery (POD)', textID: 'Bukti Serah Terima Barang (POD)', requiresInput: true, fields: [
+    { name: 'item_details', labelEN: 'Delivered Items Details', labelID: 'Rincian Barang Dikirim', type: 'text' },
+    { name: 'item_condition', labelEN: 'Received Condition', labelID: 'Kondisi Barang Diterima', type: 'text' },
+    { name: 'qty_received', labelEN: 'Received Quantity', labelID: 'Jumlah Diterima', type: 'number' },
+    { name: 'notes', labelEN: 'Notes/Complaints', labelID: 'Catatan/Keluhan', type: 'text' },
+    { name: 'receiver_signature', labelEN: 'Receiver Signature', labelID: 'Tanda Tangan Penerima', type: 'text' },
+    { name: 'receiver_name', labelEN: 'Receiver Name & Title', labelID: 'Nama & Jabatan Penerima', type: 'text' },
+    { name: 'gps_location', labelEN: 'GPS Coordinates', labelID: 'Lokasi Koordinat GPS', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload POD Document', labelID: 'Unggah Bukti POD', type: 'file' }
   ] },
-  { id: 'doc_2_e', text: 'Surat Muatan / Bill of Lading', requiresInput: true, fields: [
-    { name: 'vehicle_type', label: 'Jenis Kendaraan', type: 'text' },
-    { name: 'vehicle_number', label: 'Plat Nomor', type: 'text' },
-    { name: 'driver_info', label: 'Nama & Identitas Pengemudi', type: 'text' },
-    { name: 'route', label: 'Rute (Dari - Ke)', type: 'text' },
-    { name: 'eta', label: 'Estimasi Waktu Tempuh', type: 'text' },
-    { name: 'cargo_details', label: 'Isi Muatan & Berat', type: 'text' },
-    { name: 'document_url', label: 'Upload BOL / Surat Jalan', type: 'file' }
+  { id: 'doc_2_e', textEN: 'Bill of Lading', textID: 'Surat Muatan / Bill of Lading', requiresInput: true, fields: [
+    { name: 'vehicle_type', labelEN: 'Vehicle Type', labelID: 'Jenis Kendaraan', type: 'text' },
+    { name: 'vehicle_number', labelEN: 'License Plate', labelID: 'Plat Nomor', type: 'text' },
+    { name: 'driver_info', labelEN: 'Driver Identity', labelID: 'Nama & Identitas Pengemudi', type: 'text' },
+    { name: 'route', labelEN: 'Route (From - To)', labelID: 'Rute (Dari - Ke)', type: 'text' },
+    { name: 'eta', labelEN: 'Estimated Time of Arrival', labelID: 'Estimasi Waktu Tempuh', type: 'text' },
+    { name: 'cargo_details', labelEN: 'Cargo Details & Weight', labelID: 'Isi Muatan & Berat', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload BOL / Waybill', labelID: 'Unggah BOL/Surat Jalan', type: 'file' }
   ] },
 
   // Process 4 Documents
-  { id: 'doc_4_a', text: 'Good Receipts Notes (GRN)', requiresInput: true, fields: [
-    { name: 'grn_no', label: 'Nomor Urut', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang / SKU', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang & Spesifikasi', type: 'text' },
-    { name: 'unit', label: 'Satuan', type: 'text' },
-    { name: 'qty_diff', label: 'Jumlah Dikirim vs Diterima', type: 'text' },
-    { name: 'condition', label: 'Kondisi Barang', type: 'text' },
-    { name: 'batch_no', label: 'Nomor Batch / Seri', type: 'text' },
-    { name: 'location', label: 'Lokasi Penempatan Awal', type: 'text' },
-    { name: 'document_url', label: 'Upload GRN', type: 'file' }
+  { id: 'doc_4_a', textEN: 'Good Receipts Notes (GRN)', textID: 'Bukti Penerimaan Barang (GRN)', requiresInput: true, fields: [
+    { name: 'grn_no', labelEN: 'Sequence Number', labelID: 'Nomor Urut', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code / SKU', labelID: 'Kode Barang / SKU', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name & Specs', labelID: 'Nama Barang & Spesifikasi', type: 'text' },
+    { name: 'unit', labelEN: 'Unit', labelID: 'Satuan', type: 'text' },
+    { name: 'qty_diff', labelEN: 'Delivered vs Received Qty', labelID: 'Jumlah Dikirim vs Diterima', type: 'text' },
+    { name: 'condition', labelEN: 'Condition', labelID: 'Kondisi Barang', type: 'text' },
+    { name: 'batch_no', labelEN: 'Batch / Serial Number', labelID: 'Nomor Batch / Seri', type: 'text' },
+    { name: 'location', labelEN: 'Initial Placement', labelID: 'Lokasi Penempatan Awal', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload GRN', labelID: 'Unggah GRN', type: 'file' }
   ] },
-  { id: 'doc_4_b', text: 'Put Away List', requiresInput: true, fields: [
-    { name: 'put_away_no', label: 'Nomor Urut', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang', type: 'text' },
-    { name: 'qty', label: 'Jumlah Barang', type: 'number' },
-    { name: 'unit', label: 'Satuan', type: 'text' },
-    { name: 'origin_loc', label: 'Lokasi Asal', type: 'text' },
-    { name: 'dest_loc', label: 'Lokasi Tujuan', type: 'text' },
-    { name: 'handling_notes', label: 'Keterangan Penanganan', type: 'text' },
-    { name: 'document_url', label: 'Upload Put Away List', type: 'file' }
+  { id: 'doc_4_b', textEN: 'Put Away List', textID: 'Daftar Penempatan Barang (Put Away)', requiresInput: true, fields: [
+    { name: 'put_away_no', labelEN: 'Sequence Number', labelID: 'Nomor Urut', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code', labelID: 'Kode Barang', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name', labelID: 'Nama Barang', type: 'text' },
+    { name: 'qty', labelEN: 'Quantity', labelID: 'Jumlah Barang', type: 'number' },
+    { name: 'unit', labelEN: 'Unit', labelID: 'Satuan', type: 'text' },
+    { name: 'origin_loc', labelEN: 'Origin Location', labelID: 'Lokasi Asal', type: 'text' },
+    { name: 'dest_loc', labelEN: 'Destination Location', labelID: 'Lokasi Tujuan', type: 'text' },
+    { name: 'handling_notes', labelEN: 'Handling Notes', labelID: 'Keterangan Penanganan', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Put Away List', labelID: 'Unggah Put Away List', type: 'file' }
   ] },
-  { id: 'doc_4_c', text: 'Stock Card', requiresInput: true, fields: [
-    { name: 'trans_date', label: 'Tanggal & Waktu', type: 'text' },
-    { name: 'ref_doc', label: 'Nomor Dokumen Referensi', type: 'text' },
-    { name: 'trans_type', label: 'Jenis Transaksi', type: 'text' },
-    { name: 'qty_in', label: 'Jumlah Masuk', type: 'number' },
-    { name: 'qty_out', label: 'Jumlah Keluar', type: 'number' },
-    { name: 'qty_balance', label: 'Sisa Stok', type: 'number' },
-    { name: 'batch_no', label: 'Nomor Batch/Seri', type: 'text' },
-    { name: 'document_url', label: 'Upload Stock Card', type: 'file' }
+  { id: 'doc_4_c', textEN: 'Stock Card', textID: 'Kartu Stok', requiresInput: true, fields: [
+    { name: 'trans_date', labelEN: 'Date & Time', labelID: 'Tanggal & Waktu', type: 'text' },
+    { name: 'ref_doc', labelEN: 'Reference Document', labelID: 'Nomor Dokumen Referensi', type: 'text' },
+    { name: 'trans_type', labelEN: 'Transaction Type', labelID: 'Jenis Transaksi', type: 'text' },
+    { name: 'qty_in', labelEN: 'Qty In', labelID: 'Jumlah Masuk', type: 'number' },
+    { name: 'qty_out', labelEN: 'Qty Out', labelID: 'Jumlah Keluar', type: 'number' },
+    { name: 'qty_balance', labelEN: 'Balance', labelID: 'Sisa Stok', type: 'number' },
+    { name: 'batch_no', labelEN: 'Batch/Serial Number', labelID: 'Nomor Batch/Seri', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Stock Card', labelID: 'Unggah Kartu Stok', type: 'file' }
   ] },
-  { id: 'doc_4_d', text: 'Packing List (WH)', requiresInput: true, fields: [
-    { name: 'package_no', label: 'Nomor Kemasan/Kardus', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang', type: 'text' },
-    { name: 'qty_per_package', label: 'Jumlah Dalam Kemasan', type: 'number' },
-    { name: 'unit', label: 'Satuan', type: 'text' },
-    { name: 'weight_per_package', label: 'Berat Per Kemasan', type: 'text' },
-    { name: 'handling_notes', label: 'Tanda Penanganan', type: 'text' },
-    { name: 'document_url', label: 'Upload Packing List', type: 'file' }
+  { id: 'doc_4_d', textEN: 'Packing List (WH)', textID: 'Daftar Isi Kemasan (Gudang)', requiresInput: true, fields: [
+    { name: 'package_no', labelEN: 'Package Number', labelID: 'Nomor Kemasan/Kardus', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code', labelID: 'Kode Barang', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name', labelID: 'Nama Barang', type: 'text' },
+    { name: 'qty_per_package', labelEN: 'Qty In Package', labelID: 'Jumlah Dalam Kemasan', type: 'number' },
+    { name: 'unit', labelEN: 'Unit', labelID: 'Satuan', type: 'text' },
+    { name: 'weight_per_package', labelEN: 'Weight Per Package', labelID: 'Berat Per Kemasan', type: 'text' },
+    { name: 'handling_notes', labelEN: 'Handling Marks', labelID: 'Tanda Penanganan', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Packing List', labelID: 'Unggah Packing List', type: 'file' }
   ] },
-  { id: 'doc_4_e', text: 'Good Issue (GI)', requiresInput: true, fields: [
-    { name: 'gi_no', label: 'Nomor Urut', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang', type: 'text' },
-    { name: 'unit', label: 'Satuan', type: 'text' },
-    { name: 'qty_diff', label: 'Jumlah Diminta vs Dikeluarkan', type: 'text' },
-    { name: 'batch_no', label: 'Nomor Batch / Seri', type: 'text' },
-    { name: 'location', label: 'Lokasi Pengambilan', type: 'text' },
-    { name: 'document_url', label: 'Upload GI', type: 'file' }
+  { id: 'doc_4_e', textEN: 'Good Issue (GI)', textID: 'Bukti Pengeluaran Barang (GI)', requiresInput: true, fields: [
+    { name: 'gi_no', labelEN: 'Sequence Number', labelID: 'Nomor Urut', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code', labelID: 'Kode Barang', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name', labelID: 'Nama Barang', type: 'text' },
+    { name: 'unit', labelEN: 'Unit', labelID: 'Satuan', type: 'text' },
+    { name: 'qty_diff', labelEN: 'Requested vs Issued Qty', labelID: 'Jumlah Diminta vs Dikeluarkan', type: 'text' },
+    { name: 'batch_no', labelEN: 'Batch / Serial Number', labelID: 'Nomor Batch / Seri', type: 'text' },
+    { name: 'location', labelEN: 'Picking Location', labelID: 'Lokasi Pengambilan', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload GI', labelID: 'Unggah GI', type: 'file' }
   ] },
-  { id: 'doc_4_f', text: 'Delivery Order (DO)', requiresInput: true, fields: [
-    { name: 'do_no', label: 'Nomor Urut', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang & Spesifikasi', type: 'text' },
-    { name: 'unit', label: 'Satuan', type: 'text' },
-    { name: 'quantity', label: 'Jumlah Dikirim', type: 'number' },
-    { name: 'notes', label: 'Keterangan Tambahan', type: 'text' },
-    { name: 'document_url', label: 'Upload DO', type: 'file' }
+  { id: 'doc_4_f', textEN: 'Delivery Order (DO)', textID: 'Surat Pengantar Pengiriman (DO Gudang)', requiresInput: true, fields: [
+    { name: 'do_no', labelEN: 'Sequence Number', labelID: 'Nomor Urut', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code', labelID: 'Kode Barang', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name & Specs', labelID: 'Nama Barang & Spesifikasi', type: 'text' },
+    { name: 'unit', labelEN: 'Unit', labelID: 'Satuan', type: 'text' },
+    { name: 'quantity', labelEN: 'Delivered Qty', labelID: 'Jumlah Dikirim', type: 'number' },
+    { name: 'notes', labelEN: 'Additional Notes', labelID: 'Keterangan Tambahan', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload DO', labelID: 'Unggah DO', type: 'file' }
   ] },
-  { id: 'doc_4_g', text: 'Proof of Delivery (POD) (WH)', requiresInput: true, fields: [
-    { name: 'item_details', label: 'Daftar Barang Dikirim', type: 'text' },
-    { name: 'qty_condition', label: 'Konfirmasi Jumlah Diterima', type: 'text' },
-    { name: 'condition', label: 'Kondisi Barang', type: 'text' },
-    { name: 'notes', label: 'Catatan Keluhan/Persetujuan', type: 'text' },
-    { name: 'receiver', label: 'Tanda Tangan & Nama Penerima', type: 'text' },
-    { name: 'document_url', label: 'Upload POD & Foto', type: 'file' }
+  { id: 'doc_4_g', textEN: 'Proof of Delivery (WH POD)', textID: 'Bukti Serah Terima (POD Gudang)', requiresInput: true, fields: [
+    { name: 'item_details', labelEN: 'Delivered Items', labelID: 'Daftar Barang Dikirim', type: 'text' },
+    { name: 'qty_condition', labelEN: 'Quantity Confirmation', labelID: 'Konfirmasi Jumlah Diterima', type: 'text' },
+    { name: 'condition', labelEN: 'Item Condition', labelID: 'Kondisi Barang', type: 'text' },
+    { name: 'notes', labelEN: 'Complaints/Approvals', labelID: 'Catatan Keluhan/Persetujuan', type: 'text' },
+    { name: 'receiver', labelEN: 'Receiver Signature & Name', labelID: 'Tanda Tangan & Nama Penerima', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload POD & Photo', labelID: 'Unggah POD & Foto', type: 'file' }
   ] },
-  { id: 'doc_4_h', text: 'Shipping Manifest', requiresInput: true, fields: [
-    { name: 'manifest_no', label: 'Nomor Urut Kiriman', type: 'text' },
-    { name: 'do_ref', label: 'Nomor DO / Resi', type: 'text' },
-    { name: 'sender', label: 'Nama & Alamat Pengirim', type: 'text' },
-    { name: 'receiver', label: 'Nama & Alamat Penerima', type: 'text' },
-    { name: 'total_packages', label: 'Jumlah Kemasan', type: 'number' },
-    { name: 'cargo_details', label: 'Isi Barang Secara Umum', type: 'text' },
-    { name: 'weight', label: 'Berat Per Kiriman', type: 'text' },
-    { name: 'document_url', label: 'Upload Manifest', type: 'file' }
+  { id: 'doc_4_h', textEN: 'Shipping Manifest', textID: 'Daftar Muatan Pengiriman', requiresInput: true, fields: [
+    { name: 'manifest_no', labelEN: 'Shipment Sequence', labelID: 'Nomor Urut Kiriman', type: 'text' },
+    { name: 'do_ref', labelEN: 'DO / Receipt Number', labelID: 'Nomor DO / Resi', type: 'text' },
+    { name: 'sender', labelEN: 'Sender Name & Address', labelID: 'Nama & Alamat Pengirim', type: 'text' },
+    { name: 'receiver', labelEN: 'Receiver Name & Address', labelID: 'Nama & Alamat Penerima', type: 'text' },
+    { name: 'total_packages', labelEN: 'Total Packages', labelID: 'Jumlah Kemasan', type: 'number' },
+    { name: 'cargo_details', labelEN: 'General Cargo Description', labelID: 'Isi Barang Secara Umum', type: 'text' },
+    { name: 'weight', labelEN: 'Weight Per Shipment', labelID: 'Berat Per Kiriman', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Manifest', labelID: 'Unggah Manifest', type: 'file' }
   ] },
-  { id: 'doc_4_i', text: 'RMA (Return Merchandise Authorization)', requiresInput: true, fields: [
-    { name: 'rma_no', label: 'Nomor RMA', type: 'text' },
-    { name: 'dates', label: 'Tanggal Permohonan & Disetujui', type: 'text' },
-    { name: 'do_ref', label: 'Nomor DO/Invoice Asal', type: 'text' },
-    { name: 'customer', label: 'Nama & Alamat Pengembali', type: 'text' },
-    { name: 'reason', label: 'Alasan Pengembalian', type: 'text' },
-    { name: 'status', label: 'Status RMA', type: 'text' },
-    { name: 'item_sku', label: 'Kode & Nama Barang', type: 'text' },
-    { name: 'qty', label: 'Jumlah Dikembalikan', type: 'number' },
-    { name: 'condition', label: 'Kondisi Barang', type: 'text' },
-    { name: 'action', label: 'Tindakan Lanjut', type: 'text' },
-    { name: 'document_url', label: 'Upload RMA', type: 'file' }
+  { id: 'doc_4_i', textEN: 'RMA (Return Merchandise Authorization)', textID: 'Izin Pengembalian Barang (RMA)', requiresInput: true, fields: [
+    { name: 'rma_no', labelEN: 'RMA Number', labelID: 'Nomor RMA', type: 'text' },
+    { name: 'dates', labelEN: 'Request & Approval Dates', labelID: 'Tanggal Permohonan & Disetujui', type: 'text' },
+    { name: 'do_ref', labelEN: 'Origin DO/Invoice Number', labelID: 'Nomor DO/Invoice Asal', type: 'text' },
+    { name: 'customer', labelEN: 'Returner Info', labelID: 'Nama & Alamat Pengembali', type: 'text' },
+    { name: 'reason', labelEN: 'Return Reason', labelID: 'Alasan Pengembalian', type: 'text' },
+    { name: 'status', labelEN: 'RMA Status', labelID: 'Status RMA', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code & Name', labelID: 'Kode & Nama Barang', type: 'text' },
+    { name: 'qty', labelEN: 'Returned Qty', labelID: 'Jumlah Dikembalikan', type: 'number' },
+    { name: 'condition', labelEN: 'Item Condition', labelID: 'Kondisi Barang', type: 'text' },
+    { name: 'action', labelEN: 'Further Action', labelID: 'Tindakan Lanjut', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload RMA', labelID: 'Unggah RMA', type: 'file' }
   ] },
 
   // Process 5 Documents
-  { id: 'doc_5_a', text: 'e-POD (Electronic Proof of Delivery)', requiresInput: true, fields: [
-    { name: 'item_details', label: 'Daftar Barang Dikirim', type: 'text' },
-    { name: 'status', label: 'Status Penerimaan', type: 'text' },
-    { name: 'condition', label: 'Kondisi Kemasan & Catatan', type: 'text' },
-    { name: 'signature', label: 'Tanda Tangan Digital / OTP', type: 'text' },
-    { name: 'metadata', label: 'Metadata Digital', type: 'text' },
-    { name: 'document_url', label: 'Upload e-POD / Foto Bukti', type: 'file' }
+  { id: 'doc_5_a', textEN: 'e-POD (Electronic Proof of Delivery)', textID: 'e-POD (Bukti Serah Terima Elektronik)', requiresInput: true, fields: [
+    { name: 'item_details', labelEN: 'Delivered Items List', labelID: 'Daftar Barang Dikirim', type: 'text' },
+    { name: 'status', labelEN: 'Receiving Status', labelID: 'Status Penerimaan', type: 'text' },
+    { name: 'condition', labelEN: 'Package Condition & Notes', labelID: 'Kondisi Kemasan & Catatan', type: 'text' },
+    { name: 'signature', labelEN: 'Digital Signature / OTP', labelID: 'Tanda Tangan Digital / OTP', type: 'text' },
+    { name: 'metadata', labelEN: 'Digital Metadata', labelID: 'Metadata Digital', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload e-POD / Photo', labelID: 'Unggah e-POD / Foto Bukti', type: 'file' }
   ] },
-  { id: 'doc_5_b', text: 'Digital Waybill + QR Code', requiresInput: true, fields: [
-    { name: 'waybill_no', label: 'Nomor Unik Waybill', type: 'text' },
-    { name: 'dates', label: 'Tanggal Terbit & Masa Berlaku', type: 'text' },
-    { name: 'sender', label: 'Pengirim (Nama/Alamat/NPWP)', type: 'text' },
-    { name: 'receiver', label: 'Penerima (Nama/Alamat)', type: 'text' },
-    { name: 'route', label: 'Rute & Titik Transit', type: 'text' },
-    { name: 'vehicle', label: 'Data Kendaraan & Pengemudi', type: 'text' },
-    { name: 'cargo', label: 'Rincian Barang & Berat', type: 'text' },
-    { name: 'hs_code', label: 'Nilai Barang & Kode HS', type: 'text' },
-    { name: 'instructions', label: 'Instruksi Khusus', type: 'text' },
-    { name: 'signature', label: 'Tanda Tangan Pengirim & Angkut', type: 'text' },
-    { name: 'document_url', label: 'Upload Waybill', type: 'file' }
+  { id: 'doc_5_b', textEN: 'Digital Waybill + QR Code', textID: 'Digital Waybill + QR Code', requiresInput: true, fields: [
+    { name: 'waybill_no', labelEN: 'Unique Waybill Number', labelID: 'Nomor Unik Waybill', type: 'text' },
+    { name: 'dates', labelEN: 'Issue & Expiry Dates', labelID: 'Tanggal Terbit & Masa Berlaku', type: 'text' },
+    { name: 'sender', labelEN: 'Sender Details', labelID: 'Pengirim (Nama/Alamat/NPWP)', type: 'text' },
+    { name: 'receiver', labelEN: 'Receiver Details', labelID: 'Penerima (Nama/Alamat)', type: 'text' },
+    { name: 'route', labelEN: 'Route & Transit Points', labelID: 'Rute & Titik Transit', type: 'text' },
+    { name: 'vehicle', labelEN: 'Vehicle & Driver Details', labelID: 'Data Kendaraan & Pengemudi', type: 'text' },
+    { name: 'cargo', labelEN: 'Cargo Details & Weight', labelID: 'Rincian Barang & Berat', type: 'text' },
+    { name: 'hs_code', labelEN: 'Item Value & HS Code', labelID: 'Nilai Barang & Kode HS', type: 'text' },
+    { name: 'instructions', labelEN: 'Special Instructions', labelID: 'Instruksi Khusus', type: 'text' },
+    { name: 'signature', labelEN: 'Sender & Carrier Signature', labelID: 'Tanda Tangan Pengirim & Angkut', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Waybill', labelID: 'Unggah Waybill', type: 'file' }
   ] },
-  { id: 'doc_5_c', text: 'OTP Verification Token', requiresInput: true, fields: [
-    { name: 'otp_code', label: 'Kode OTP', type: 'text' },
-    { name: 'ref_no', label: 'Nomor Referensi', type: 'text' },
-    { name: 'purpose', label: 'Tujuan Verifikasi', type: 'text' },
-    { name: 'limits', label: 'Batas Percobaan & Waktu', type: 'text' },
-    { name: 'status', label: 'Status OTP', type: 'text' },
-    { name: 'contact', label: 'No HP / Email Penerima', type: 'text' },
-    { name: 'timestamp', label: 'Waktu Verifikasi', type: 'text' }
+  { id: 'doc_5_c', textEN: 'OTP Verification Token', textID: 'Token Verifikasi Sekali Pakai (OTP)', requiresInput: true, fields: [
+    { name: 'otp_code', labelEN: 'OTP Code', labelID: 'Kode OTP', type: 'text' },
+    { name: 'ref_no', labelEN: 'Reference Number', labelID: 'Nomor Referensi', type: 'text' },
+    { name: 'purpose', labelEN: 'Verification Purpose', labelID: 'Tujuan Verifikasi', type: 'text' },
+    { name: 'limits', labelEN: 'Attempt & Time Limits', labelID: 'Batas Percobaan & Waktu', type: 'text' },
+    { name: 'status', labelEN: 'OTP Status', labelID: 'Status OTP', type: 'text' },
+    { name: 'contact', labelEN: 'Receiver Phone/Email', labelID: 'No HP / Email Penerima', type: 'text' },
+    { name: 'timestamp', labelEN: 'Verification Time', labelID: 'Waktu Verifikasi', type: 'text' }
   ] },
-  { id: 'doc_5_d', text: 'Electronic Consignment Note (e-CMR)', requiresInput: true, fields: [
-    { name: 'package_info', label: 'Jenis & Jumlah Kemasan', type: 'text' },
-    { name: 'weight_vol', label: 'Berat Kotor/Bersih & Volume', type: 'text' },
-    { name: 'value', label: 'Nilai Barang', type: 'text' },
-    { name: 'danger_goods', label: 'Barang Berbahaya (ADR/UN)', type: 'text' },
-    { name: 'instructions', label: 'Instruksi Khusus', type: 'text' },
-    { name: 'finance', label: 'Keuangan & Biaya Angkut', type: 'text' },
-    { name: 'document_url', label: 'Upload e-CMR', type: 'file' }
+  { id: 'doc_5_d', textEN: 'Electronic Consignment Note (e-CMR)', textID: 'e-CMR (Catatan Konsinyasi Elektronik)', requiresInput: true, fields: [
+    { name: 'package_info', labelEN: 'Package Type & Qty', labelID: 'Jenis & Jumlah Kemasan', type: 'text' },
+    { name: 'weight_vol', labelEN: 'Gross/Net Weight & Volume', labelID: 'Berat Kotor/Bersih & Volume', type: 'text' },
+    { name: 'value', labelEN: 'Item Value', labelID: 'Nilai Barang', type: 'text' },
+    { name: 'danger_goods', labelEN: 'Dangerous Goods (ADR/UN)', labelID: 'Barang Berbahaya (ADR/UN)', type: 'text' },
+    { name: 'instructions', labelEN: 'Special Instructions', labelID: 'Instruksi Khusus', type: 'text' },
+    { name: 'finance', labelEN: 'Finance & Transport Fees', labelID: 'Keuangan & Biaya Angkut', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload e-CMR', labelID: 'Unggah e-CMR', type: 'file' }
   ] },
 
   // Process 6 Documents
-  { id: 'doc_6_a', text: '3PL Inbound Delivery Note', requiresInput: true, fields: [
-    { name: 'inbound_no', label: 'Nomor Urut', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang / SKU', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang & Spesifikasi', type: 'text' },
-    { name: 'qty', label: 'Jumlah Dikirim & Satuan', type: 'text' },
-    { name: 'package', label: 'Jenis & Jumlah Kemasan', type: 'text' },
-    { name: 'weight', label: 'Berat & Volume per Item', type: 'text' },
-    { name: 'batch_no', label: 'Nomor Batch / Seri', type: 'text' },
-    { name: 'handling', label: 'Keterangan Penanganan', type: 'text' },
-    { name: 'document_url', label: 'Upload Inbound Note', type: 'file' }
+  { id: 'doc_6_a', textEN: '3PL Inbound Delivery Note', textID: 'Catatan Pengiriman Masuk 3PL', requiresInput: true, fields: [
+    { name: 'inbound_no', labelEN: 'Sequence Number', labelID: 'Nomor Urut', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code / SKU', labelID: 'Kode Barang / SKU', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name & Specs', labelID: 'Nama Barang & Spesifikasi', type: 'text' },
+    { name: 'qty', labelEN: 'Delivered Qty & Unit', labelID: 'Jumlah Dikirim & Satuan', type: 'text' },
+    { name: 'package', labelEN: 'Package Type & Qty', labelID: 'Jenis & Jumlah Kemasan', type: 'text' },
+    { name: 'weight', labelEN: 'Weight & Volume per Item', labelID: 'Berat & Volume per Item', type: 'text' },
+    { name: 'batch_no', labelEN: 'Batch / Serial Number', labelID: 'Nomor Batch / Seri', type: 'text' },
+    { name: 'handling', labelEN: 'Handling Notes', labelID: 'Keterangan Penanganan', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Inbound Note', labelID: 'Unggah Catatan Inbound', type: 'file' }
   ] },
-  { id: 'doc_6_b', text: 'Advance Shipping Notice (ASN)', requiresInput: true, fields: [
-    { name: 'asn_items', label: 'Daftar Lengkap Barang', type: 'text' },
-    { name: 'package', label: 'Identitas Kemasan', type: 'text' },
-    { name: 'weight', label: 'Berat Kotor/Bersih & Volume', type: 'text' },
-    { name: 'route', label: 'Lokasi Asal & Tujuan', type: 'text' },
-    { name: 'extra_data', label: 'Data Tambahan (Seri/Batch)', type: 'text' },
-    { name: 'metadata', label: 'Metadata Pengiriman Data', type: 'text' },
-    { name: 'document_url', label: 'Upload ASN', type: 'file' }
+  { id: 'doc_6_b', textEN: 'Advance Shipping Notice (ASN)', textID: 'Pemberitahuan Pengiriman Awal (ASN)', requiresInput: true, fields: [
+    { name: 'asn_items', labelEN: 'Full Items List', labelID: 'Daftar Lengkap Barang', type: 'text' },
+    { name: 'package', labelEN: 'Package Identity', labelID: 'Identitas Kemasan', type: 'text' },
+    { name: 'weight', labelEN: 'Gross/Net Weight & Volume', labelID: 'Berat Kotor/Bersih & Volume', type: 'text' },
+    { name: 'route', labelEN: 'Origin & Destination', labelID: 'Lokasi Asal & Tujuan', type: 'text' },
+    { name: 'extra_data', labelEN: 'Extra Data (Serial/Batch)', labelID: 'Data Tambahan (Seri/Batch)', type: 'text' },
+    { name: 'metadata', labelEN: 'Submission Metadata', labelID: 'Metadata Pengiriman Data', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload ASN', labelID: 'Unggah ASN', type: 'file' }
   ] },
-  { id: 'doc_6_c', text: 'Surat Jalan Pindahan (STO)', requiresInput: true, fields: [
-    { name: 'sto_no', label: 'Nomor STO', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang / SKU', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang', type: 'text' },
-    { name: 'qty', label: 'Jumlah Dipindah', type: 'number' },
-    { name: 'unit', label: 'Satuan', type: 'text' },
-    { name: 'condition', label: 'Kondisi Barang', type: 'text' },
-    { name: 'batch_no', label: 'Nomor Batch / Seri', type: 'text' },
-    { name: 'document_url', label: 'Upload STO', type: 'file' }
+  { id: 'doc_6_c', textEN: 'Transfer Letter (STO)', textID: 'Surat Jalan Pindahan (STO)', requiresInput: true, fields: [
+    { name: 'sto_no', labelEN: 'STO Number', labelID: 'Nomor STO', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code / SKU', labelID: 'Kode Barang / SKU', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name', labelID: 'Nama Barang', type: 'text' },
+    { name: 'qty', labelEN: 'Transferred Qty', labelID: 'Jumlah Dipindah', type: 'number' },
+    { name: 'unit', labelEN: 'Unit', labelID: 'Satuan', type: 'text' },
+    { name: 'condition', labelEN: 'Item Condition', labelID: 'Kondisi Barang', type: 'text' },
+    { name: 'batch_no', labelEN: 'Batch / Serial Number', labelID: 'Nomor Batch / Seri', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload STO', labelID: 'Unggah STO', type: 'file' }
   ] },
-  { id: 'doc_6_d', text: 'Contract / Perjanjian Kerjasama 3PL', requiresInput: true, fields: [
-    { name: 'contract_no', label: 'Nomor Kontrak', type: 'text' },
-    { name: 'dates', label: 'Tanggal Berlaku & Berakhir', type: 'text' },
-    { name: 'parties', label: 'Nama Pihak & Wakil Sah', type: 'text' },
-    { name: 'scope', label: 'Ruang Lingkup Layanan', type: 'text' },
-    { name: 'terms_storage', label: 'Ketentuan Penyimpanan', type: 'text' },
-    { name: 'terms_transport', label: 'Ketentuan Pengangkutan', type: 'text' },
-    { name: 'rates', label: 'Struktur Tarif', type: 'text' },
-    { name: 'sla', label: 'SLA (Tingkat Layanan)', type: 'text' },
-    { name: 'liability', label: 'Tanggung Jawab Risiko & Asuransi', type: 'text' },
-    { name: 'document_url', label: 'Upload Contract', type: 'file' }
+  { id: 'doc_6_d', textEN: '3PL Contract Agreement', textID: 'Perjanjian Kerjasama 3PL', requiresInput: true, fields: [
+    { name: 'contract_no', labelEN: 'Contract Number', labelID: 'Nomor Kontrak', type: 'text' },
+    { name: 'dates', labelEN: 'Validity Dates', labelID: 'Tanggal Berlaku & Berakhir', type: 'text' },
+    { name: 'parties', labelEN: 'Parties & Representatives', labelID: 'Nama Pihak & Wakil Sah', type: 'text' },
+    { name: 'scope', labelEN: 'Scope of Service', labelID: 'Ruang Lingkup Layanan', type: 'text' },
+    { name: 'terms_storage', labelEN: 'Storage Terms', labelID: 'Ketentuan Penyimpanan', type: 'text' },
+    { name: 'terms_transport', labelEN: 'Transport Terms', labelID: 'Ketentuan Pengangkutan', type: 'text' },
+    { name: 'rates', labelEN: 'Rate Structure', labelID: 'Struktur Tarif', type: 'text' },
+    { name: 'sla', labelEN: 'SLA (Service Level)', labelID: 'SLA (Tingkat Layanan)', type: 'text' },
+    { name: 'liability', labelEN: 'Risk Liability & Insurance', labelID: 'Tanggung Jawab Risiko & Asuransi', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Contract', labelID: 'Unggah Kontrak', type: 'file' }
   ] },
-  { id: 'doc_6_e', text: 'Stock Reconciliation Report', requiresInput: true, fields: [
-    { name: 'item_sku', label: 'Kode Barang / SKU', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang & Satuan', type: 'text' },
-    { name: 'stock_system', label: 'Stok Sistem', type: 'number' },
-    { name: 'stock_physical', label: 'Stok Fisik', type: 'number' },
-    { name: 'diff', label: 'Selisih (+/-)', type: 'number' },
-    { name: 'diff_percent', label: 'Persentase Selisih', type: 'text' },
-    { name: 'reason', label: 'Alasan Selisih', type: 'text' },
-    { name: 'action', label: 'Tindakan Perbaikan', type: 'text' },
-    { name: 'document_url', label: 'Upload Recon Report', type: 'file' }
+  { id: 'doc_6_e', textEN: 'Stock Reconciliation Report', textID: 'Laporan Rekonsiliasi Stok', requiresInput: true, fields: [
+    { name: 'item_sku', labelEN: 'Item Code / SKU', labelID: 'Kode Barang / SKU', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name & Unit', labelID: 'Nama Barang & Satuan', type: 'text' },
+    { name: 'stock_system', labelEN: 'System Stock', labelID: 'Stok Sistem', type: 'number' },
+    { name: 'stock_physical', labelEN: 'Physical Stock', labelID: 'Stok Fisik', type: 'number' },
+    { name: 'diff', labelEN: 'Difference (+/-)', labelID: 'Selisih (+/-)', type: 'number' },
+    { name: 'diff_percent', labelEN: 'Difference Percentage', labelID: 'Persentase Selisih', type: 'text' },
+    { name: 'reason', labelEN: 'Reason for Difference', labelID: 'Alasan Selisih', type: 'text' },
+    { name: 'action', labelEN: 'Corrective Action', labelID: 'Tindakan Perbaikan', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Recon Report', labelID: 'Unggah Laporan Recon', type: 'file' }
   ] },
-  { id: 'doc_6_f', text: 'Material Damage Report', requiresInput: true, fields: [
-    { name: 'item_sku', label: 'Kode Barang / SKU', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang', type: 'text' },
-    { name: 'damage_qty', label: 'Jumlah Rusak/Hilang', type: 'number' },
-    { name: 'damage_type', label: 'Jenis Kerusakan', type: 'text' },
-    { name: 'cause', label: 'Penyebab Kerusakan', type: 'text' },
-    { name: 'value', label: 'Estimasi Kerugian', type: 'number' },
-    { name: 'document_url', label: 'Upload Damage Report & Foto Bukti', type: 'file' }
+  { id: 'doc_6_f', textEN: 'Material Damage Report', textID: 'Laporan Kerusakan Barang', requiresInput: true, fields: [
+    { name: 'item_sku', labelEN: 'Item Code / SKU', labelID: 'Kode Barang / SKU', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name', labelID: 'Nama Barang', type: 'text' },
+    { name: 'damage_qty', labelEN: 'Damaged/Lost Qty', labelID: 'Jumlah Rusak/Hilang', type: 'number' },
+    { name: 'damage_type', labelEN: 'Damage Type', labelID: 'Jenis Kerusakan', type: 'text' },
+    { name: 'cause', labelEN: 'Cause of Damage', labelID: 'Penyebab Kerusakan', type: 'text' },
+    { name: 'value', labelEN: 'Estimated Loss Value', labelID: 'Estimasi Kerugian', type: 'number' },
+    { name: 'document_url', labelEN: 'Upload Damage Report & Photo', labelID: 'Unggah Laporan & Foto', type: 'file' }
   ] },
-  { id: 'doc_6_g', text: 'Shipping Order (SO)', requiresInput: true, fields: [
-    { name: 'so_no', label: 'Nomor SO', type: 'text' },
-    { name: 'item_sku', label: 'Kode Barang / SKU', type: 'text' },
-    { name: 'item_name', label: 'Nama Barang', type: 'text' },
-    { name: 'qty', label: 'Jumlah Dikirim', type: 'number' },
-    { name: 'instructions', label: 'Instruksi Khusus', type: 'text' },
-    { name: 'transport', label: 'Data Pengangkutan & Estimasi Biaya', type: 'text' },
-    { name: 'document_url', label: 'Upload SO', type: 'file' }
+  { id: 'doc_6_g', textEN: 'Shipping Order (SO)', textID: 'Perintah Pengiriman (SO)', requiresInput: true, fields: [
+    { name: 'so_no', labelEN: 'SO Number', labelID: 'Nomor SO', type: 'text' },
+    { name: 'item_sku', labelEN: 'Item Code / SKU', labelID: 'Kode Barang / SKU', type: 'text' },
+    { name: 'item_name', labelEN: 'Item Name', labelID: 'Nama Barang', type: 'text' },
+    { name: 'qty', labelEN: 'Delivered Qty', labelID: 'Jumlah Dikirim', type: 'number' },
+    { name: 'instructions', labelEN: 'Special Instructions', labelID: 'Instruksi Khusus', type: 'text' },
+    { name: 'transport', labelEN: 'Transport Data & Cost', labelID: 'Data Pengangkutan & Estimasi Biaya', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload SO', labelID: 'Unggah SO', type: 'file' }
   ] },
-  { id: 'doc_6_h', text: '3PL Shipping Manifest', requiresInput: true, fields: [
-    { name: 'manifest_no', label: 'Nomor Urut Kiriman', type: 'text' },
-    { name: 'ref_no', label: 'Nomor DO/Resi/SO', type: 'text' },
-    { name: 'client', label: 'Nama Klien/Pemilik', type: 'text' },
-    { name: 'parties', label: 'Nama Pengirim & Penerima', type: 'text' },
-    { name: 'cargo', label: 'Rincian Isi Barang', type: 'text' },
-    { name: 'packages', label: 'Jumlah Kemasan', type: 'number' },
-    { name: 'weight_value', label: 'Berat & Nilai', type: 'text' },
-    { name: 'destination', label: 'Tujuan Bongkar', type: 'text' },
-    { name: 'document_url', label: 'Upload Manifest', type: 'file' }
+  { id: 'doc_6_h', textEN: '3PL Shipping Manifest', textID: 'Daftar Muatan Pengiriman 3PL', requiresInput: true, fields: [
+    { name: 'manifest_no', labelEN: 'Shipment Sequence', labelID: 'Nomor Urut Kiriman', type: 'text' },
+    { name: 'ref_no', labelEN: 'DO/Receipt/SO Number', labelID: 'Nomor DO/Resi/SO', type: 'text' },
+    { name: 'client', labelEN: 'Client/Owner Name', labelID: 'Nama Klien/Pemilik', type: 'text' },
+    { name: 'parties', labelEN: 'Sender & Receiver Names', labelID: 'Nama Pengirim & Penerima', type: 'text' },
+    { name: 'cargo', labelEN: 'Cargo Details', labelID: 'Rincian Isi Barang', type: 'text' },
+    { name: 'packages', labelEN: 'Total Packages', labelID: 'Jumlah Kemasan', type: 'number' },
+    { name: 'weight_value', labelEN: 'Weight & Value', labelID: 'Berat & Nilai', type: 'text' },
+    { name: 'destination', labelEN: 'Unloading Destination', labelID: 'Tujuan Bongkar', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Manifest', labelID: 'Unggah Manifest', type: 'file' }
   ] },
-  { id: 'doc_6_i', text: 'Surat Jalan & POD', requiresInput: true, fields: [
-    { name: 'surat_jalan_no', label: 'Nomor Surat Jalan & Tanggal', type: 'text' },
-    { name: 'parties', label: 'Data Pengirim, Pemilik, Penerima', type: 'text' },
-    { name: 'vehicle', label: 'Data Kendaraan & Pengemudi', type: 'text' },
-    { name: 'item_details', label: 'Rincian Barang', type: 'text' },
-    { name: 'pod_details', label: 'Data POD (Waktu, Lokasi, Konfirmasi)', type: 'text' },
-    { name: 'signature', label: 'Tanda Tangan & Cap Penerima', type: 'text' },
-    { name: 'document_url', label: 'Upload Surat Jalan & POD', type: 'file' }
+  { id: 'doc_6_i', textEN: 'Delivery Note & POD', textID: 'Surat Jalan & POD', requiresInput: true, fields: [
+    { name: 'surat_jalan_no', labelEN: 'Delivery Note No & Date', labelID: 'Nomor Surat Jalan & Tanggal', type: 'text' },
+    { name: 'parties', labelEN: 'Sender, Owner, Receiver Data', labelID: 'Data Pengirim, Pemilik, Penerima', type: 'text' },
+    { name: 'vehicle', labelEN: 'Vehicle & Driver Details', labelID: 'Data Kendaraan & Pengemudi', type: 'text' },
+    { name: 'item_details', labelEN: 'Item Details', labelID: 'Rincian Barang', type: 'text' },
+    { name: 'pod_details', labelEN: 'POD Data (Time, Location, Status)', labelID: 'Data POD (Waktu, Lokasi, Konfirmasi)', type: 'text' },
+    { name: 'signature', labelEN: 'Receiver Signature & Stamp', labelID: 'Tanda Tangan & Cap Penerima', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Delivery Note & POD', labelID: 'Unggah Surat Jalan & POD', type: 'file' }
   ] },
-  { id: 'doc_6_j', text: 'Logistics Invoice', requiresInput: true, fields: [
-    { name: 'storage_fee', label: 'Biaya Penyimpanan', type: 'number' },
-    { name: 'transport_fee', label: 'Biaya Pengangkutan', type: 'number' },
-    { name: 'extra_fee', label: 'Biaya Tambahan', type: 'number' },
-    { name: 'taxes', label: 'Pajak & Potongan', type: 'number' },
-    { name: 'total_fee', label: 'Total Tagihan', type: 'number' },
-    { name: 'amount_words', label: 'Terbilang', type: 'text' },
-    { name: 'bank_account', label: 'Rekening Pembayaran', type: 'text' },
-    { name: 'document_url', label: 'Upload Invoice', type: 'file' }
+  { id: 'doc_6_j', textEN: 'Logistics Invoice', textID: 'Faktur Tagihan Logistik (Invoice)', requiresInput: true, fields: [
+    { name: 'storage_fee', labelEN: 'Storage Fee', labelID: 'Biaya Penyimpanan', type: 'number' },
+    { name: 'transport_fee', labelEN: 'Transport Fee', labelID: 'Biaya Pengangkutan', type: 'number' },
+    { name: 'extra_fee', labelEN: 'Additional Fees', labelID: 'Biaya Tambahan', type: 'number' },
+    { name: 'taxes', labelEN: 'Taxes & Deductions', labelID: 'Pajak & Potongan', type: 'number' },
+    { name: 'total_fee', labelEN: 'Total Invoice Amount', labelID: 'Total Tagihan', type: 'number' },
+    { name: 'amount_words', labelEN: 'Amount in Words', labelID: 'Terbilang', type: 'text' },
+    { name: 'bank_account', labelEN: 'Payment Bank Account', labelID: 'Rekening Pembayaran', type: 'text' },
+    { name: 'document_url', labelEN: 'Upload Invoice', labelID: 'Unggah Invoice', type: 'file' }
   ] },
-  { id: 'doc_6_k', text: 'Billing Statement', requiresInput: true, fields: [
-    { name: 'ref_no', label: 'Nomor Referensi Transaksi', type: 'text' },
-    { name: 'date', label: 'Tanggal Layanan', type: 'date' },
-    { name: 'service_type', label: 'Jenis Layanan', type: 'text' },
-    { name: 'volume', label: 'Jumlah Unit/Volume', type: 'number' },
-    { name: 'rate', label: 'Tarif Satuan', type: 'number' },
-    { name: 'amount_per_trans', label: 'Nilai Tagihan Transaksi', type: 'number' },
-    { name: 'total_amount', label: 'Total Tagihan Periode', type: 'number' },
-    { name: 'status', label: 'Status Pembayaran', type: 'text' },
-    { name: 'prev_balance', label: 'Saldo Sebelumnya', type: 'number' },
-    { name: 'document_url', label: 'Upload Billing Statement', type: 'file' }
+  { id: 'doc_6_k', textEN: 'Billing Statement', textID: 'Laporan Penagihan (Billing Statement)', requiresInput: true, fields: [
+    { name: 'ref_no', labelEN: 'Transaction Ref Number', labelID: 'Nomor Referensi Transaksi', type: 'text' },
+    { name: 'date', labelEN: 'Service Date', labelID: 'Tanggal Layanan', type: 'date' },
+    { name: 'service_type', labelEN: 'Service Type', labelID: 'Jenis Layanan', type: 'text' },
+    { name: 'volume', labelEN: 'Unit/Volume Count', labelID: 'Jumlah Unit/Volume', type: 'number' },
+    { name: 'rate', labelEN: 'Unit Rate', labelID: 'Tarif Satuan', type: 'number' },
+    { name: 'amount_per_trans', labelEN: 'Transaction Amount', labelID: 'Nilai Tagihan Transaksi', type: 'number' },
+    { name: 'total_amount', labelEN: 'Total Period Amount', labelID: 'Total Tagihan Periode', type: 'number' },
+    { name: 'status', labelEN: 'Payment Status', labelID: 'Status Pembayaran', type: 'text' },
+    { name: 'prev_balance', labelEN: 'Previous Balance', labelID: 'Saldo Sebelumnya', type: 'number' },
+    { name: 'document_url', labelEN: 'Upload Billing Statement', labelID: 'Unggah Billing Statement', type: 'file' }
   ] }
 ];
 

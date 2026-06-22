@@ -3,7 +3,7 @@ import { X, User, Clock } from 'lucide-react';
 import { clarificationChecklist, processes, stageRequirements } from '../data/constants';
 import { supabase } from '../supabaseClient';
 
-export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChecklistItem, handleDeleteOrder }) {
+export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChecklistItem, handleDeleteOrder, language }) {
   const [activeFormId, setActiveFormId] = useState(null);
   const [formData, setFormData] = useState({});
   const [fileUploads, setFileUploads] = useState({});
@@ -165,25 +165,25 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
         <div className="drawer-header">
           <div>
             <h3>{selectedOrder.id}</h3>
-            <span style={{fontSize: '0.875rem', color: 'var(--text-muted)'}}>Order Details</span>
+            <span style={{fontSize: '0.875rem', color: 'var(--text-muted)'}}>{language === 'id' ? 'Detail Pesanan' : 'Order Details'}</span>
           </div>
           <button className="close-btn" onClick={() => setSelectedOrder(null)}><X size={24} /></button>
         </div>
         <div className="drawer-content">
           <div className="drawer-section">
-            <h4>General Info</h4>
+            <h4>{language === 'id' ? 'Informasi Umum' : 'General Info'}</h4>
             <div style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>{selectedOrder.title}</div>
             <div style={{ display: 'flex', gap: '2rem', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-              <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Assignee</div><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><User size={16} /> {selectedOrder.assignee}</div></div>
-              <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Priority</div><div>{selectedOrder.priority}</div></div>
-              <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Quantity</div><div style={{ fontWeight: '600' }}>{selectedOrder.quantity || 1} Units</div></div>
+              <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{language === 'id' ? 'Penanggung Jawab' : 'Assignee'}</div><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><User size={16} /> {selectedOrder.assignee}</div></div>
+              <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{language === 'id' ? 'Prioritas' : 'Priority'}</div><div>{selectedOrder.priority}</div></div>
+              <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{language === 'id' ? 'Kuantitas' : 'Quantity'}</div><div style={{ fontWeight: '600' }}>{selectedOrder.quantity || 1} Units</div></div>
             </div>
             <button onClick={generatePO} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content' }}>
-              <Clock size={16} /> Generate PO Document
+              <Clock size={16} /> {language === 'id' ? 'Buat Dokumen PO' : 'Generate PO Document'}
             </button>
           </div>
           <div className="drawer-section">
-            <h4>Fulfillment Checklist & Documents</h4>
+            <h4>{language === 'id' ? 'Checklist Pemenuhan & Dokumen' : 'Fulfillment Checklist & Documents'}</h4>
             {(() => {
               const currentProcess = processes.find(p => p.stages.some(s => s.id === selectedOrder.stage));
               if (!currentProcess) return null;
@@ -201,7 +201,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
               return (
                 <div style={{ marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-main)' }}>
-                    <span>Current Phase Progress ({currentProcess.title})</span>
+                    <span>{language === 'id' ? 'Progres Fase Saat Ini' : 'Current Phase Progress'} ({currentProcess.title})</span>
                     <span style={{ color: progressPct === 100 ? '#10b981' : 'var(--accent-color)' }}>{checkedCount} / {totalCount} ({progressPct}%)</span>
                   </div>
                   <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
@@ -230,7 +230,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                 const unmappedItems = clarificationChecklist.filter(c => !mappedIds.has(c.id));
                 if (unmappedItems.length > 0) {
                   checklistGroups.push({
-                    title: 'Other / General Operational Tasks',
+                    title: language === 'id' ? 'Tugas Operasional Umum/Lainnya' : 'Other / General Operational Tasks',
                     items: unmappedItems
                   });
                 }
@@ -254,6 +254,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                         {group.items.map(item => {
                           const isChecked = selectedOrder.checklistState && !!selectedOrder.checklistState[item.id];
                           const itemData = selectedOrder.checklistState?.[item.id]?.data;
+                          const currentItemText = language === 'id' ? (item.textID || item.text) : (item.textEN || item.text);
 
                           if (item.requiresInput) {
                             const isExpanded = activeFormId === item.id;
@@ -263,41 +264,44 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
                                     <input type="checkbox" checked={isChecked} readOnly style={{ marginTop: '0.25rem', cursor: 'inherit' }} />
                                     <div style={{ fontSize: '0.875rem', color: isChecked ? '#15803d' : 'var(--text-main)', fontWeight: isChecked ? '500' : '400' }}>
-                                      {item.text}
-                                      {!isChecked && !isExpanded && <div style={{ fontSize: '0.7rem', color: 'var(--accent-color)', marginTop: '0.25rem', fontWeight: '600' }}>Requires Input • Click to expand</div>}
+                                      {currentItemText}
+                                      {!isChecked && !isExpanded && <div style={{ fontSize: '0.7rem', color: 'var(--accent-color)', marginTop: '0.25rem', fontWeight: '600' }}>{language === 'id' ? 'Membutuhkan Input • Klik untuk meluaskan' : 'Requires Input • Click to expand'}</div>}
                                     </div>
                                   </div>
-                                  {isChecked && <span style={{ fontSize: '0.75rem', backgroundColor: '#10b981', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>Verified</span>}
+                                  {isChecked && <span style={{ fontSize: '0.75rem', backgroundColor: '#10b981', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>{language === 'id' ? 'Terverifikasi' : 'Verified'}</span>}
                                 </div>
                                 
                                 {isExpanded && !isChecked && (
                                   <form onSubmit={(e) => handleFormSubmit(e, item.id)} style={{ marginTop: '1rem', borderTop: '1px dashed var(--border-color)', paddingTop: '1rem' }}>
-                                    {(item.fields || []).map(field => (
-                                      <div key={field.name} style={{ marginBottom: '0.75rem' }}>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-main)' }}>{field.label}</label>
-                                        {field.type === 'file' ? (
-                                          <input 
-                                            type="file" 
-                                            accept="image/*,.pdf"
-                                            onChange={e => setFileUploads(prev => ({ ...prev, [field.name]: e.target.files[0] }))}
-                                            style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.875rem', outline: 'none' }}
-                                          />
-                                        ) : (
-                                          <input 
-                                            type={field.type} 
-                                            required 
-                                            placeholder={field.placeholder} 
-                                            value={formData[field.name] || ''}
-                                            onChange={e => handleFormChange(field.name, e.target.value)}
-                                            style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.875rem', outline: 'none' }}
-                                          />
-                                        )}
-                                      </div>
-                                    ))}
+                                    {(item.fields || []).map(field => {
+                                      const currentFieldLabel = language === 'id' ? (field.labelID || field.label) : (field.labelEN || field.label);
+                                      return (
+                                        <div key={field.name} style={{ marginBottom: '0.75rem' }}>
+                                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-main)' }}>{currentFieldLabel}</label>
+                                          {field.type === 'file' ? (
+                                            <input 
+                                              type="file" 
+                                              accept="image/*,.pdf"
+                                              onChange={e => setFileUploads(prev => ({ ...prev, [field.name]: e.target.files[0] }))}
+                                              style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.875rem', outline: 'none' }}
+                                            />
+                                          ) : (
+                                            <input 
+                                              type={field.type} 
+                                              required 
+                                              placeholder={field.placeholder} 
+                                              value={formData[field.name] || ''}
+                                              onChange={e => handleFormChange(field.name, e.target.value)}
+                                              style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.875rem', outline: 'none' }}
+                                            />
+                                          )}
+                                        </div>
+                                      );
+                                    })}
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-                                      <button type="button" onClick={() => setActiveFormId(null)} style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '0.375rem', cursor: 'pointer' }} disabled={isUploading}>Cancel</button>
+                                      <button type="button" onClick={() => setActiveFormId(null)} style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '0.375rem', cursor: 'pointer' }} disabled={isUploading}>{language === 'id' ? 'Batal' : 'Cancel'}</button>
                                       <button type="submit" style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer' }} disabled={isUploading}>
-                                        {isUploading ? 'Uploading...' : 'Save & Verify'}
+                                        {isUploading ? (language === 'id' ? 'Mengunggah...' : 'Uploading...') : (language === 'id' ? 'Simpan & Verifikasi' : 'Save & Verify')}
                                       </button>
                                     </div>
                                   </form>
@@ -307,11 +311,13 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                                   <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: '0.375rem', fontSize: '0.8rem' }}>
                                     {Object.entries(itemData || {}).map(([key, val]) => {
                                       const isLink = val && typeof val === 'string' && val.startsWith('http');
+                                      const matchingField = (item.fields || []).find(f => f.name === key);
+                                      const currentKeyLabel = matchingField ? (language === 'id' ? (matchingField.labelID || matchingField.label) : (matchingField.labelEN || matchingField.label)) : key;
                                       return (
                                         <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.25rem' }}>
-                                          <span style={{ color: 'var(--text-muted)' }}>{(item.fields || []).find(f => f.name === key)?.label || key}:</span>
+                                          <span style={{ color: 'var(--text-muted)' }}>{currentKeyLabel}:</span>
                                           <span style={{ fontWeight: '500', color: 'var(--text-main)', maxWidth: '60%', textAlign: 'right', wordBreak: 'break-all' }}>
-                                            {isLink ? <a href={val} target="_blank" rel="noreferrer" style={{ color: 'var(--primary-color)', textDecoration: 'underline' }}>View Document</a> : val}
+                                            {isLink ? <a href={val} target="_blank" rel="noreferrer" style={{ color: 'var(--primary-color)', textDecoration: 'underline' }}>{language === 'id' ? 'Lihat Dokumen' : 'View Document'}</a> : val}
                                           </span>
                                         </div>
                                       );
@@ -325,7 +331,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                           return (
                             <div key={item.id} className="checklist-item" onClick={() => toggleChecklistItem(selectedOrder.id, item.id)}>
                               <input type="checkbox" className="checklist-checkbox" checked={isChecked} readOnly />
-                              <div className={`checklist-text ${isChecked ? 'done' : ''}`}>{item.text}</div>
+                              <div className={`checklist-text ${isChecked ? 'done' : ''}`}>{currentItemText}</div>
                             </div>
                           );
                         })}
@@ -338,9 +344,9 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
           </div>
 
           <div className="drawer-section" style={{ marginTop: '2rem' }}>
-            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock size={16} /> Audit Trail & History</h4>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock size={16} /> {language === 'id' ? 'Riwayat & Audit Trail' : 'Audit Trail & History'}</h4>
             {historyLogs.length === 0 ? (
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '0.5rem' }}>No history recorded yet.</div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '0.5rem' }}>{language === 'id' ? 'Belum ada riwayat tercatat.' : 'No history recorded yet.'}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
                 {historyLogs.map(log => (
@@ -365,8 +371,8 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
           </div>
         </div>
         <div className="drawer-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button className="btn" style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' }} onClick={() => handleDeleteOrder(selectedOrder.id)}>Delete Order</button>
-          <button className="btn btn-primary" onClick={() => setSelectedOrder(null)}>Save & Close</button>
+          <button className="btn" style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' }} onClick={() => handleDeleteOrder(selectedOrder.id)}>{language === 'id' ? 'Hapus Pesanan' : 'Delete Order'}</button>
+          <button className="btn btn-primary" onClick={() => setSelectedOrder(null)}>{language === 'id' ? 'Simpan & Tutup' : 'Save & Close'}</button>
         </div>
       </div>
     </>

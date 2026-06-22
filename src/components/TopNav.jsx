@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, User, LogOut } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
-export default function TopNav({ currentView, setCurrentView, handleLogout, session }) {
+export default function TopNav({ currentView, setCurrentView, handleLogout, session, language, setLanguage }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -63,8 +63,17 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
       <div className="page-title">{currentView === 'board' ? 'End-to-End Supply Chain Workflow' : currentView === 'help' ? 'System Help & Terminology' : 'Profile Settings'}</div>
       <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
         
+        {/* Language Toggle */}
+        <button 
+          onClick={() => setLanguage(language === 'en' ? 'id' : 'en')} 
+          style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '0.2rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+          title={language === 'en' ? "Switch to Bahasa Indonesia" : "Beralih ke Bahasa Inggris"}
+        >
+          {language === 'en' ? 'ID' : 'EN'}
+        </button>
+
         {/* Notification Bell */}
-        <div style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={handleOpenNotifications}>
+        <div style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: '0.5rem' }} onClick={handleOpenNotifications}>
           <Bell size={20} color="white" />
           {unreadCount > 0 && (
             <span style={{ position: 'absolute', top: '-4px', right: '-4px', backgroundColor: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

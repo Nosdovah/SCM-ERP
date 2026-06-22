@@ -18,6 +18,7 @@ import NewOrderModal from './components/NewOrderModal';
 
 function App() {
   const [session, setSession] = useState(null);
+  const [language, setLanguage] = useState('en');
   
   const [currentView, setCurrentView] = useState('board'); // 'board' | 'help' | 'settings' | 'analytics' | 'master_data'
   const [tasks, setTasks] = useState(initialTasks.map(t => ({ ...t, company_name: 'DEFAULT' })));
@@ -355,7 +356,7 @@ function App() {
   return (
     <div className="app-container">
       <TutorialModal />
-      <TopNav currentView={currentView} setCurrentView={setCurrentView} handleLogout={handleLogout} session={session} />
+      <TopNav currentView={currentView} setCurrentView={setCurrentView} handleLogout={handleLogout} session={session} language={language} setLanguage={setLanguage} />
       
       <div className="app-body">
         <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
@@ -461,6 +462,7 @@ function App() {
           setSelectedOrder={setSelectedOrder} 
           toggleChecklistItem={toggleChecklistItem} 
           handleDeleteOrder={handleDeleteOrder}
+          language={language}
         />
 
         {/* Modal for New Order */}
