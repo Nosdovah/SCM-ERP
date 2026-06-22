@@ -359,7 +359,7 @@ function App() {
       <TopNav currentView={currentView} setCurrentView={setCurrentView} handleLogout={handleLogout} session={session} language={language} setLanguage={setLanguage} />
       
       <div className="app-body">
-        <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
+        <Sidebar currentView={currentView} setCurrentView={setCurrentView} language={language} />
 
         {/* Main Content */}
         <main className="main-content">
@@ -390,22 +390,22 @@ function App() {
 
         {/* Content Area */}
         <div className="content-area">
-          {currentView === 'help' ? <HelpDictionary /> :
-           currentView === 'settings' ? <Settings session={session} /> :
-           currentView === 'analytics' ? <Analytics session={session} /> :
-           currentView === 'master_data' ? <MasterData session={session} /> :
+          {currentView === 'help' ? <HelpDictionary language={language} /> :
+           currentView === 'settings' ? <Settings session={session} language={language} /> :
+           currentView === 'analytics' ? <Analytics session={session} language={language} /> :
+           currentView === 'master_data' ? <MasterData session={session} language={language} /> :
            (
             <>
-              <DashboardMetrics companyTasks={companyTasks} />
+              <DashboardMetrics companyTasks={companyTasks} language={language} />
 
               <div className="board-container">
                 <div className="board-header">
-                  <h2>Order Pipeline Tracker</h2>
+                  <h2>{language === 'id' ? 'Pelacak Saluran Pesanan' : 'Order Pipeline Tracker'}</h2>
                   <div className="board-actions">
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                       <input 
                         type="text" 
-                        placeholder="Search ID, title, assignee..." 
+                        placeholder={language === 'id' ? 'Cari ID, judul, penanggung jawab...' : 'Search ID, title, assignee...'} 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         style={{ padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', width: '200px' }}
@@ -415,14 +415,14 @@ function App() {
                         onChange={(e) => setFilterPriority(e.target.value)}
                         style={{ padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }}
                       >
-                        <option value="All">All Priorities</option>
-                        <option value="High">High Priority</option>
-                        <option value="Medium">Medium Priority</option>
-                        <option value="Low">Low Priority</option>
+                        <option value="All">{language === 'id' ? 'Semua Prioritas' : 'All Priorities'}</option>
+                        <option value="High">{language === 'id' ? 'Prioritas Tinggi' : 'High Priority'}</option>
+                        <option value="Medium">{language === 'id' ? 'Prioritas Sedang' : 'Medium Priority'}</option>
+                        <option value="Low">{language === 'id' ? 'Prioritas Rendah' : 'Low Priority'}</option>
                       </select>
                     </div>
                     <button className="btn btn-primary" onClick={() => setShowNewOrderModal(true)}>
-                      <Plus size={16} /> New Order
+                      <Plus size={16} /> {language === 'id' ? 'Pesanan Baru' : 'New Order'}
                     </button>
                   </div>
                 </div>
@@ -439,7 +439,7 @@ function App() {
                   gap: '0.5rem',
                   border: '1px solid #c7d2fe'
                 }}>
-                  <Activity size={16} /> <strong>Tip:</strong> You can drag and drop order cards to move them to the next stage. Click any card to manage its fulfillment checklist!
+                  <Activity size={16} /> <strong>{language === 'id' ? 'Tip:' : 'Tip:'}</strong> {language === 'id' ? 'Anda dapat menarik dan melepas kartu pesanan untuk memindahkannya ke tahap berikutnya. Klik kartu mana saja untuk mengelola checklist pemenuhannya!' : 'You can drag and drop order cards to move them to the next stage. Click any card to manage its fulfillment checklist!'}
                 </div>
 
                 <KanbanBoard 
@@ -450,6 +450,7 @@ function App() {
                   handleDragStart={handleDragStart}
                   setSelectedOrder={setSelectedOrder}
                   getSystemLabel={getSystemLabel}
+                  language={language}
                 />
               </div>
             </>
@@ -473,6 +474,7 @@ function App() {
           setNewOrderForm={setNewOrderForm}
           handleCreateOrder={handleCreateOrder}
           masterItems={masterItems}
+          language={language}
         />
       </main>
       </div>

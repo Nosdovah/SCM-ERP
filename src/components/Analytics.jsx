@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import { Activity, Clock, TrendingUp } from 'lucide-react';
 import { processes } from '../data/constants';
 
-export default function Analytics({ session }) {
+export default function Analytics({ session, language }) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
     avgLeadTimes: {},
@@ -160,7 +160,7 @@ export default function Analytics({ session }) {
   const getStageTitle = (stageId) => {
     for (const proc of processes) {
       const s = proc.stages.find(x => x.id === stageId);
-      if (s) return s.title;
+      if (s) return language === 'id' ? (s.titleID || s.title) : (s.titleEN || s.title);
     }
     return stageId;
   };
@@ -168,14 +168,14 @@ export default function Analytics({ session }) {
   return (
     <div className="help-page animate-fade-in" style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2>Bottleneck Analytics & Lead Time</h2>
+        <h2>{language === 'id' ? 'Analitik Bottleneck & Waktu Tunggu' : 'Bottleneck Analytics & Lead Time'}</h2>
         <div style={{ backgroundColor: '#e0e7ff', color: '#4338ca', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>
-          Data mapped for {userCompany}
+          {language === 'id' ? 'Data dipetakan untuk' : 'Data mapped for'} {userCompany}
         </div>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>Analyzing thousands of historical data points...</div>
+        <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>{language === 'id' ? 'Menganalisis ribuan titik data historis...' : 'Analyzing thousands of historical data points...'}</div>
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
@@ -184,7 +184,7 @@ export default function Analytics({ session }) {
                 <TrendingUp size={32} />
               </div>
               <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>Total Orders Tracked</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>{language === 'id' ? 'Total Pesanan Terlacak' : 'Total Orders Tracked'}</div>
                 <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--text-main)' }}>{metrics.totalOrders}</div>
               </div>
             </div>
@@ -194,9 +194,9 @@ export default function Analytics({ session }) {
                 <Activity size={32} />
               </div>
               <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>Primary Bottleneck</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>{language === 'id' ? 'Bottleneck Utama' : 'Primary Bottleneck'}</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-main)', lineHeight: '1.2' }}>
-                  {metrics.bottleneckStage ? getStageTitle(metrics.bottleneckStage) : 'Insufficient Data'}
+                  {metrics.bottleneckStage ? getStageTitle(metrics.bottleneckStage) : (language === 'id' ? 'Data Tidak Cukup' : 'Insufficient Data')}
                 </div>
               </div>
             </div>
@@ -206,7 +206,7 @@ export default function Analytics({ session }) {
                 <Activity size={32} />
               </div>
               <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>Capital Exp. (Active Orders)</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>{language === 'id' ? 'Pengeluaran Modal (Pesanan Aktif)' : 'Capital Exp. (Active Orders)'}</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-main)' }}>${metrics.activeCapEx.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
               </div>
             </div>
@@ -217,10 +217,10 @@ export default function Analytics({ session }) {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Total Inventory Value</div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{language === 'id' ? 'Total Nilai Inventaris' : 'Total Inventory Value'}</div>
                   {metrics.lowStockItems > 0 && (
                     <div style={{ backgroundColor: '#fee2e2', color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 10px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
-                      {metrics.lowStockItems} Low Stock!
+                      {metrics.lowStockItems} {language === 'id' ? 'Stok Rendah!' : 'Low Stock!'}
                     </div>
                   )}
                 </div>
@@ -231,12 +231,12 @@ export default function Analytics({ session }) {
 
           <div className="portlet">
             <div className="portlet-header">
-              <Clock size={16} /> Average Lead Time per Stage
+              <Clock size={16} /> {language === 'id' ? 'Rata-rata Waktu Tunggu per Tahap' : 'Average Lead Time per Stage'}
             </div>
             <div style={{ padding: '1.5rem' }}>
               {Object.keys(metrics.avgLeadTimes).length === 0 ? (
                 <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic', padding: '2rem' }}>
-                  Not enough historical movements to calculate lead time. Try dragging cards between columns to generate data.
+                  {language === 'id' ? 'Belum cukup pergerakan historis untuk menghitung waktu tunggu. Cobalah menarik kartu antar kolom untuk menghasilkan data.' : 'Not enough historical movements to calculate lead time. Try dragging cards between columns to generate data.'}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

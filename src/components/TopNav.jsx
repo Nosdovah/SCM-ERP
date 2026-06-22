@@ -60,7 +60,7 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
 
   return (
     <header className="top-nav">
-      <div className="page-title">{currentView === 'board' ? 'End-to-End Supply Chain Workflow' : currentView === 'help' ? 'System Help & Terminology' : 'Profile Settings'}</div>
+      <div className="page-title">{currentView === 'board' ? (language === 'id' ? 'Alur Rantai Pasokan End-to-End' : 'End-to-End Supply Chain Workflow') : currentView === 'help' ? (language === 'id' ? 'Bantuan & Terminologi Sistem' : 'System Help & Terminology') : currentView === 'analytics' ? (language === 'id' ? 'Dasbor Analitik' : 'Analytics Dashboard') : currentView === 'master_data' ? (language === 'id' ? 'Manajemen Data Induk' : 'Master Data Management') : (language === 'id' ? 'Pengaturan Profil' : 'Profile Settings')}</div>
       <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
         
         {/* Language Toggle */}
@@ -91,12 +91,12 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
             />
             <div style={{ position: 'absolute', top: '100%', right: '150px', width: '300px', backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)', zIndex: 100, marginTop: '0.5rem', overflow: 'hidden' }}>
               <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-main)' }}>
-                Notifications
-                <span onClick={() => setShowNotifications(false)} style={{ fontSize: '0.75rem', color: 'var(--accent-color)', cursor: 'pointer', fontWeight: '500' }}>Mark all as read</span>
+                {language === 'id' ? 'Notifikasi' : 'Notifications'}
+                <span onClick={() => setShowNotifications(false)} style={{ fontSize: '0.75rem', color: 'var(--accent-color)', cursor: 'pointer', fontWeight: '500' }}>{language === 'id' ? 'Tandai semua dibaca' : 'Mark all as read'}</span>
               </div>
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {notifications.length === 0 ? (
-                <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>No notifications yet</div>
+                <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>{language === 'id' ? 'Belum ada notifikasi' : 'No notifications yet'}</div>
               ) : (
                 notifications.map(notif => {
                   let notifText = `${notif.action} (Order ${notif.order_id})`;
@@ -153,7 +153,7 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
         </div>
 
         <button onClick={handleLogout} className="btn" style={{border: '1px solid rgba(255,255,255,0.3)', marginLeft: '1rem', backgroundColor: 'transparent', color: 'white'}}>
-          <LogOut size={16} /> Logout
+          <LogOut size={16} /> {language === 'id' ? 'Keluar' : 'Logout'}
         </button>
       </div>
     </header>

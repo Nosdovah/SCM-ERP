@@ -9,7 +9,8 @@ export default function KanbanBoard({
   handleDrop, 
   handleDragStart, 
   setSelectedOrder, 
-  getSystemLabel 
+  getSystemLabel,
+  language
 }) {
   return (
     <div className="board-columns">
@@ -28,7 +29,7 @@ export default function KanbanBoard({
               paddingLeft: '1rem',
               borderLeft: '6px solid var(--accent-color)'
             }}>
-              {process.title}
+              {language === 'id' ? (process.titleID || process.title) : (process.titleEN || process.title)}
             </div>
             <div style={{ display: 'flex', gap: '1.5rem', flex: 1 }}>
               {process.stages.map((stage, sIndex) => {
@@ -43,8 +44,8 @@ export default function KanbanBoard({
                   >
                     <div className="column-header" style={{'--col-color': stage.color}}>
                       <div className="column-title">
-                        {stage.title}
-                        <span className="column-subtitle">{stage.subtitle}</span>
+                        {language === 'id' ? (stage.titleID || stage.title) : (stage.titleEN || stage.title)}
+                        <span className="column-subtitle">{language === 'id' ? (stage.subtitleID || stage.subtitle) : (stage.subtitleEN || stage.subtitle)}</span>
                       </div>
                       <div className="column-badge">{stageTasks.length}</div>
                     </div>
@@ -66,7 +67,7 @@ export default function KanbanBoard({
                             <div className="task-title">{task.title}</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                               <CheckSquare size={12} />
-                              <span>{checkedCount}/{totalCount} Clarified</span>
+                              <span>{checkedCount}/{totalCount} {language === 'id' ? 'Terklarifikasi' : 'Clarified'}</span>
                             </div>
                             <div className="task-meta">
                               <span className={`task-system sys-${sysInfo.type}`}>

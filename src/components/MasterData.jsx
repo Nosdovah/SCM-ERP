@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Database, Plus, Trash2, Edit } from 'lucide-react';
 
-export default function MasterData({ session }) {
+export default function MasterData({ session, language }) {
   const [activeTab, setActiveTab] = useState('items'); // 'items' or 'suppliers'
   const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -38,7 +38,7 @@ export default function MasterData({ session }) {
     
     // Ensure supplier is selected
     if (!newItemForm.supplier_id) {
-      alert("Please select a Supplier/Vendor for this item.");
+      alert(language === 'id' ? "Pilih Supplier/Vendor untuk item ini." : "Please select a Supplier/Vendor for this item.");
       return;
     }
 
@@ -66,7 +66,10 @@ export default function MasterData({ session }) {
     const itemToDelete = items.find(i => i.id === id);
     if (!itemToDelete) return;
     
-    if (!window.confirm(`Delete this item? WARNING: This will also permanently delete ALL existing orders associated with "${itemToDelete.name}"!`)) return;
+    const confirmMsg = language === 'id' 
+      ? `Hapus item ini? PERINGATAN: Ini juga akan menghapus secara permanen SEMUA pesanan yang terkait dengan "${itemToDelete.name}"!`
+      : `Delete this item? WARNING: This will also permanently delete ALL existing orders associated with "${itemToDelete.name}"!`;
+    if (!window.confirm(confirmMsg)) return;
     
     // First, cascade delete any orders associated with this item's name
     await supabase.from('orders').delete().eq('title', itemToDelete.name).eq('company_name', userCompany);
@@ -77,7 +80,7 @@ export default function MasterData({ session }) {
   };
 
   const handleDeleteSupplier = async (id) => {
-    if (!window.confirm('Delete this supplier?')) return;
+    if (!window.confirm(language === 'id' ? 'Hapus supplier ini?' : 'Delete this supplier?')) return;
     const { error } = await supabase.from('suppliers').delete().eq('id', id);
     if (!error) setSuppliers(suppliers.filter(s => s.id !== id));
   };
@@ -85,9 +88,9 @@ export default function MasterData({ session }) {
   return (
     <div className="help-page animate-fade-in" style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Database size={28} /> Master Data Management</h2>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Database size={28} /> {language === 'id' ? 'Manajemen Data Induk' : 'Master Data Management'}</h2>
         <div style={{ backgroundColor: '#e0e7ff', color: '#4338ca', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>
-          Database: {userCompany}
+          {language === 'id' ? 'Basis Data: ' : 'Database: '} {userCompany}
         </div>
       </div>
 
@@ -96,13 +99,13 @@ export default function MasterData({ session }) {
           style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: activeTab === 'items' ? '3px solid var(--primary-color)' : '3px solid transparent', color: activeTab === 'items' ? 'var(--primary-color)' : 'var(--text-muted)', fontWeight: '600', cursor: 'pointer' }}
           onClick={() => setActiveTab('items')}
         >
-          Items (SKUs)
+          {language === 'id' ? 'Item (SKU)' : 'Items (SKUs)'}
         </button>
         <button 
           style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: activeTab === 'suppliers' ? '3px solid var(--primary-color)' : '3px solid transparent', color: activeTab === 'suppliers' ? 'var(--primary-color)' : 'var(--text-muted)', fontWeight: '600', cursor: 'pointer' }}
           onClick={() => setActiveTab('suppliers')}
         >
-          Suppliers & Vendors
+          {language === 'id' ? 'Supplier & Vendor' : 'Suppliers & Vendors'}
         </button>
       </div>
 
@@ -111,55 +114,55 @@ export default function MasterData({ session }) {
         {/* Left Col: Form */}
         <div className="portlet" style={{ flex: '0 0 350px', padding: '1.5rem' }}>
           <h4 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Plus size={18} /> Add New {activeTab === 'items' ? 'Item' : 'Supplier'}
+            <Plus size={18} /> {language === 'id' ? (activeTab === 'items' ? 'Tambah Item Baru' : 'Tambah Supplier Baru') : `Add New ${activeTab === 'items' ? 'Item' : 'Supplier'}`}
           </h4>
           
           {activeTab === 'items' ? (
             <form onSubmit={handleAddItem} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>SKU Code</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>{language === 'id' ? 'Kode SKU' : 'SKU Code'}</label>
                 <input required type="text" placeholder="e.g. CAB-FBR-01" value={newItemForm.sku} onChange={e => setNewItemForm({...newItemForm, sku: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>Item Name / Description</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>{language === 'id' ? 'Nama Item / Deskripsi' : 'Item Name / Description'}</label>
                 <input required type="text" placeholder="e.g. Fiber Optic Cable 50m" value={newItemForm.name} onChange={e => setNewItemForm({...newItemForm, name: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>Category</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>{language === 'id' ? 'Kategori' : 'Category'}</label>
                 <select value={newItemForm.category} onChange={e => setNewItemForm({...newItemForm, category: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }}>
-                  <option value="">Select Category</option>
-                  <option value="Hardware">Hardware</option>
-                  <option value="Cabling">Cabling</option>
-                  <option value="Cooling">Cooling</option>
-                  <option value="Power">Power</option>
+                  <option value="">{language === 'id' ? 'Pilih Kategori' : 'Select Category'}</option>
+                  <option value="Hardware">{language === 'id' ? 'Perangkat Keras' : 'Hardware'}</option>
+                  <option value="Cabling">{language === 'id' ? 'Kabel' : 'Cabling'}</option>
+                  <option value="Cooling">{language === 'id' ? 'Pendingin' : 'Cooling'}</option>
+                  <option value="Power">{language === 'id' ? 'Daya' : 'Power'}</option>
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>Supplier / Vendor</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>{language === 'id' ? 'Supplier / Vendor' : 'Supplier / Vendor'}</label>
                 <select required value={newItemForm.supplier_id} onChange={e => setNewItemForm({...newItemForm, supplier_id: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }}>
-                  <option value="">Select Supplier</option>
+                  <option value="">{language === 'id' ? 'Pilih Supplier' : 'Select Supplier'}</option>
                   {suppliers.map(sup => <option key={sup.id} value={sup.id}>{sup.name}</option>)}
                 </select>
               </div>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>Unit Price ($)</label>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>{language === 'id' ? 'Harga Satuan ($)' : 'Unit Price ($)'}</label>
                   <input required type="number" step="0.01" min="0" value={newItemForm.unit_price} onChange={e => setNewItemForm({...newItemForm, unit_price: e.target.value === '' ? '' : parseFloat(e.target.value)})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>Initial Stock</label>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>{language === 'id' ? 'Stok Awal' : 'Initial Stock'}</label>
                   <input required type="number" min="0" value={newItemForm.stock_on_hand} onChange={e => setNewItemForm({...newItemForm, stock_on_hand: e.target.value === '' ? '' : parseInt(e.target.value)})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }} />
                 </div>
               </div>
-              <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Create Item</button>
+              <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>{language === 'id' ? 'Buat Item' : 'Create Item'}</button>
             </form>
           ) : (
             <form onSubmit={handleAddSupplier} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>Supplier / Vendor Name</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>{language === 'id' ? 'Nama Supplier / Vendor' : 'Supplier / Vendor Name'}</label>
                 <input required type="text" placeholder="e.g. Acme Logistics Corp" value={newSupplierForm.name} onChange={e => setNewSupplierForm({...newSupplierForm, name: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }} />
               </div>
-              <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Create Supplier</button>
+              <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>{language === 'id' ? 'Buat Supplier' : 'Create Supplier'}</button>
             </form>
           )}
         </div>
@@ -167,7 +170,7 @@ export default function MasterData({ session }) {
         {/* Right Col: Data Table */}
         <div className="portlet" style={{ flex: 1, padding: '1.5rem', minWidth: 0 }}>
           {loading ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Database...</div>
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>{language === 'id' ? 'Memuat Basis Data...' : 'Loading Database...'}</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
@@ -176,16 +179,16 @@ export default function MasterData({ session }) {
                     {activeTab === 'items' ? (
                       <>
                         <th style={{ padding: '0.75rem', fontWeight: '600' }}>SKU</th>
-                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>Item Name</th>
-                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>Category</th>
+                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>{language === 'id' ? 'Nama Item' : 'Item Name'}</th>
+                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>{language === 'id' ? 'Kategori' : 'Category'}</th>
                         <th style={{ padding: '0.75rem', fontWeight: '600' }}>Supplier</th>
-                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>Price</th>
-                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>Stock</th>
+                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>{language === 'id' ? 'Harga' : 'Price'}</th>
+                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>{language === 'id' ? 'Stok' : 'Stock'}</th>
                       </>
                     ) : (
-                      <th style={{ padding: '0.75rem', fontWeight: '600' }}>Supplier Name</th>
+                      <th style={{ padding: '0.75rem', fontWeight: '600' }}>{language === 'id' ? 'Nama Supplier' : 'Supplier Name'}</th>
                     )}
-                    <th style={{ padding: '0.75rem', fontWeight: '600', textAlign: 'right' }}>Actions</th>
+                    <th style={{ padding: '0.75rem', fontWeight: '600', textAlign: 'right' }}>{language === 'id' ? 'Aksi' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -221,7 +224,7 @@ export default function MasterData({ session }) {
                   {(activeTab === 'items' ? items.length : suppliers.length) === 0 && (
                     <tr>
                       <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        No records found in database.
+                        {language === 'id' ? 'Tidak ada rekaman ditemukan di basis data.' : 'No records found in database.'}
                       </td>
                     </tr>
                   )}
