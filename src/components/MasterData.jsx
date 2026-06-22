@@ -9,7 +9,7 @@ export default function MasterData({ session }) {
   const [loading, setLoading] = useState(true);
 
   // Forms
-  const [newItemForm, setNewItemForm] = useState({ sku: '', name: '', category: '', supplier_id: '', unit_price: 0, stock_on_hand: 0 });
+  const [newItemForm, setNewItemForm] = useState({ sku: '', name: '', category: '', supplier_id: '', unit_price: '', stock_on_hand: '' });
   const [newSupplierForm, setNewSupplierForm] = useState({ name: '' });
 
   const userCompany = session?.user?.user_metadata?.company_name || 'DEFAULT';
@@ -46,7 +46,7 @@ export default function MasterData({ session }) {
     const { data, error } = await supabase.from('items').insert([entry]).select('*, suppliers(name)');
     if (!error && data) {
       setItems([data[0], ...items]);
-      setNewItemForm({ sku: '', name: '', category: '', supplier_id: '', unit_price: 0, stock_on_hand: 0 });
+      setNewItemForm({ sku: '', name: '', category: '', supplier_id: '', unit_price: '', stock_on_hand: '' });
     }
   };
 
@@ -83,7 +83,7 @@ export default function MasterData({ session }) {
   };
 
   return (
-    <div className="help-page animate-fade-in" style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
+    <div className="help-page animate-fade-in" style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Database size={28} /> Master Data Management</h2>
         <div style={{ backgroundColor: '#e0e7ff', color: '#4338ca', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>
@@ -144,11 +144,11 @@ export default function MasterData({ session }) {
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>Unit Price ($)</label>
-                  <input required type="number" step="0.01" min="0" value={newItemForm.unit_price} onChange={e => setNewItemForm({...newItemForm, unit_price: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }} />
+                  <input required type="number" step="0.01" min="0" value={newItemForm.unit_price} onChange={e => setNewItemForm({...newItemForm, unit_price: e.target.value === '' ? '' : parseFloat(e.target.value)})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>Initial Stock</label>
-                  <input required type="number" min="0" value={newItemForm.stock_on_hand} onChange={e => setNewItemForm({...newItemForm, stock_on_hand: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }} />
+                  <input required type="number" min="0" value={newItemForm.stock_on_hand} onChange={e => setNewItemForm({...newItemForm, stock_on_hand: e.target.value === '' ? '' : parseInt(e.target.value)})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }} />
                 </div>
               </div>
               <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Create Item</button>
@@ -165,7 +165,7 @@ export default function MasterData({ session }) {
         </div>
 
         {/* Right Col: Data Table */}
-        <div className="portlet" style={{ flex: 1, padding: '1.5rem' }}>
+        <div className="portlet" style={{ flex: 1, padding: '1.5rem', minWidth: 0 }}>
           {loading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Database...</div>
           ) : (

@@ -26,7 +26,7 @@ export default function NewOrderModal({
               <label>Order Title / Item Description</label>
               <select required value={newOrderForm.title} onChange={e => setNewOrderForm({...newOrderForm, title: e.target.value})}>
                 <option value="">Select an Item from Master Data</option>
-                {masterItems.map(item => <option key={item} value={item}>{item}</option>)}
+                {masterItems.map(item => <option key={item.name || item} value={item.name || item}>{(item.name || item)} (Stock: {item.stock_on_hand ?? 'N/A'})</option>)}
               </select>
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
@@ -36,7 +36,7 @@ export default function NewOrderModal({
               </div>
               <div className="form-group" style={{ flex: '0 0 100px' }}>
                 <label>Quantity</label>
-                <input required type="number" min="1" value={newOrderForm.quantity} onChange={e => setNewOrderForm({...newOrderForm, quantity: parseInt(e.target.value) || 1})} />
+                <input required type="number" min="1" max={masterItems.find(i => (i.name || i) === newOrderForm.title)?.stock_on_hand ?? ''} value={newOrderForm.quantity} onChange={e => setNewOrderForm({...newOrderForm, quantity: e.target.value === '' ? '' : parseInt(e.target.value)})} />
               </div>
             </div>
             <div className="form-group">

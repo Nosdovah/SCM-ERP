@@ -79,13 +79,13 @@ function App() {
 
   // New Order State
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
-  const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium', quantity: 1 });
+  const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium', quantity: '' });
 
   // Fetch master items when modal opens
   useEffect(() => {
     if (showNewOrderModal && supabase) {
-      supabase.from('items').select('name').eq('company_name', userCompany).then(({ data }) => {
-        if (data) setMasterItems(data.map(d => d.name));
+      supabase.from('items').select('name, stock_on_hand').eq('company_name', userCompany).then(({ data }) => {
+        if (data) setMasterItems(data);
       });
     }
   }, [showNewOrderModal, userCompany]);
@@ -236,7 +236,7 @@ function App() {
     // Optimistic UI update
     setTasks([newTask, ...tasks]);
     setShowNewOrderModal(false);
-    setNewOrderForm({ title: '', assignee: '', priority: 'Medium', quantity: 1 });
+    setNewOrderForm({ title: '', assignee: '', priority: 'Medium', quantity: '' });
 
     if (supabase) {
       try {

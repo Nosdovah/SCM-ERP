@@ -11,6 +11,7 @@ export default function Settings({ session }) {
   const [newCompany, setNewCompany] = useState('');
   const [newRole, setNewRole] = useState('');
   const [updateMsg, setUpdateMsg] = useState(null);
+  const [companiesList, setCompaniesList] = useState([]);
 
   // Team State
   const [teamMembers, setTeamMembers] = useState([]);
@@ -23,6 +24,11 @@ export default function Settings({ session }) {
   useEffect(() => {
     if (activeTab === 'team' && userCompany) {
       fetchTeam();
+    }
+    if (activeTab === 'profile') {
+      supabase.from('companies').select('name').then(({ data }) => {
+        if (data) setCompaniesList(data);
+      });
     }
   }, [activeTab, userCompany]);
 
@@ -135,7 +141,10 @@ export default function Settings({ session }) {
         </div>
         <div className="form-group">
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)', fontSize: '0.875rem' }}>Update Company / Organization</label>
-          <input type="text" placeholder="e.g. APPLE (Warning: This will change your Kanban workspace)" value={newCompany} onChange={e => setNewCompany(e.target.value)} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', width: '100%', outline: 'none' }} />
+          <input type="text" list="companies-list" placeholder="e.g. APPLE (Warning: This will change your Kanban workspace)" value={newCompany} onChange={e => setNewCompany(e.target.value)} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', width: '100%', outline: 'none' }} />
+          <datalist id="companies-list">
+            {companiesList.map(c => <option key={c.name} value={c.name} />)}
+          </datalist>
         </div>
         <div className="form-group">
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)', fontSize: '0.875rem' }}>Assign System Role (RBAC)</label>
