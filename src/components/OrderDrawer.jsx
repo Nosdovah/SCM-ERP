@@ -201,7 +201,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
               return (
                 <div style={{ marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-main)' }}>
-                    <span>{language === 'id' ? 'Progres Fase Saat Ini' : 'Current Phase Progress'} ({currentProcess.title})</span>
+                    <span>{language === 'id' ? 'Progres Fase Saat Ini' : 'Current Phase Progress'} ({language === 'id' ? (currentProcess.titleID || currentProcess.title) : (currentProcess.titleEN || currentProcess.title)})</span>
                     <span style={{ color: progressPct === 100 ? '#10b981' : 'var(--accent-color)' }}>{checkedCount} / {totalCount} ({progressPct}%)</span>
                   </div>
                   <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
@@ -222,7 +222,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                     });
                   });
                   return {
-                    title: process.title,
+                    title: language === 'id' ? (process.titleID || process.title) : (process.titleEN || process.title),
                     items: clarificationChecklist.filter(c => processChecklistIds.has(c.id))
                   };
                 }).filter(g => g.items.length > 0);
@@ -238,7 +238,8 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                 const currentProcess = processes.find(p => p.stages.some(s => s.id === selectedOrder.stage));
 
                 return checklistGroups.map((group, gIdx) => {
-                  const isOpen = currentProcess && currentProcess.title === group.title;
+                  const currentProcessTitle = currentProcess ? (language === 'id' ? (currentProcess.titleID || currentProcess.title) : (currentProcess.titleEN || currentProcess.title)) : null;
+                  const isOpen = currentProcessTitle === group.title;
                   const completedInGroup = group.items.filter(item => selectedOrder.checklistState && !!selectedOrder.checklistState[item.id]).length;
                   const progressPct = group.items.length === 0 ? 100 : Math.round((completedInGroup / group.items.length) * 100);
                   
