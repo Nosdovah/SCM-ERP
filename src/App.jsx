@@ -154,11 +154,15 @@ function App() {
       if (reqs && reqs.length > 0) {
         const missing = reqs.filter(r => !draggedTask.checklistState[r]);
         if (missing.length > 0) {
-          const missingTexts = missing.map(m => clarificationChecklist.find(c => c.id === m)?.text);
-          const stageName = processes.flatMap(p => p.stages).find(s => s.id === stageId)?.title || 'this stage';
+          const missingTexts = missing.map(m => {
+            const c = clarificationChecklist.find(x => x.id === m);
+            return c ? (language === 'id' ? (c.textID || c.text) : (c.textEN || c.text)) : 'Unknown checklist item';
+          });
+          const targetStage = processes.flatMap(p => p.stages).find(s => s.id === stageId);
+          const stageName = targetStage ? (language === 'id' ? (targetStage.titleID || targetStage.title) : (targetStage.titleEN || targetStage.title)) : 'this stage';
           
           setWarningMsg({
-            title: `Cannot move to ${stageName}. Missing prerequisites:`,
+            title: language === 'id' ? `Tidak dapat memindahkan ke ${stageName}. Prasyarat kurang:` : `Cannot move to ${stageName}. Missing prerequisites:`,
             items: missingTexts
           });
           
