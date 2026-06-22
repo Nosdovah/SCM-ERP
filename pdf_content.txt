@@ -1,0 +1,152 @@
+1.  Proses  2   a.  Delivery  Order  (DO)  /  Surat  Pengantar  Pengiriman   i.  Kode/Nama  Pemasok  (jika  internal:  kode  cabang/gudang)   ii.  Kode/Nama  Pelanggan  /  Penerima   iii.  Alamat  lengkap  tujuan  pengiriman   iv.  Nomor  Pesanan  Penjualan  (SO)  /  Nomor  Kontrak  /  Nomor  PO  Pelanggan   v.  Kode  Gudang  asal  barang   vi.  Nama  kurir  /  Ekspedisi  /  Kendaraan  pengangkut   vii.  Nomor  kendaraan  /  Plat  nomor   viii.  Nomor  urut   ix.  Kode  barang  /  SKU   x.  Nama  barang  /  Spesifikasi  lengkap   xi.  Satuan  ukuran  (pcs,  karton,  kg,  dll)   xii.  Jumlah  barang  yang  dikirim  Keterangan  tambahan  (jika  ada:  nomor  seri,  
+tanggal
+ 
+kedaluwarsa,
+ 
+nomor
+ 
+batch)
+ 
+ xiii.  Tanda  tangan  &  nama  pengirim   xiv.  Tanda  tangan  &  nama  penerima   xv.  Catatan  atau  syarat  pengiriman   b.  Packing  List  (Daftar  Isi  Kemasan)   i.  Nomor  Packing  List   ii.  Nomor  DO  yang  berhubungan   iii.  Nomor  Pesanan  Penjualan  /  PO   iv.  Tanggal  pembuatan   v.  Nama  &  Alamat  Pengirim  dan  Penerima   vi.  Total  jumlah  kemasan  /  Jumlah  kardus  Berat  kotor  (Bruto)  &  Berat  bersih  
+(Neto)
+ 
+total
+ 
+ vii.  Dimensi  total  (panjang  ×  lebar  ×  tinggi)   viii.  Nomor  kemasan  /  Nomor  kardus   ix.  Kode  barang   x.  Nama  barang   xi.  Jumlah  per  kemasan   xii.  Satuan   xiii.  Berat  per  kemasan  Keterangan  (misal:  rapuh,  jangan  dibalik,  dll)   xiv.  Tanda  tangan  petugas  pengepak   xv.  Cap  perusahaan   c.  Invoice  /  Faktur  Penjualan  i.  Nomor  urut   ii.  Kode  barang   iii.  Nama  barang  /  jasa  &  spesifikasi   iv.  Jumlah   
+v.  Satuan   vi.  Harga  satuan   vii.  Diskon  (jika  ada)   viii.  Nilai  total  per  barang   ix.  Subtotal  nilai  barang  x.  Potongan  harga/diskon  tambahan   xi.  Biaya  tambahan  (ongkos  kirim,  asuransi,  dll)   xii.  Pajak  (PPN,  PPh,  bea  cukai  sesuai  aturan)   xiii.  Total  tagihan  akhir   xiv.  Terbilang  nilai  total   d.  Proof  of  Delivery  (POD)  /  Bukti  Serah  Terima  Barang  i.  Rincian  barang  yang  dikirim  (sama  dengan  DO)   ii.  Kondisi  barang  saat  diterima  (baik,  rusak,  kurang,  dll)   iii.  Jumlah  barang  yang  diterima  sesuai/tidak  sesuai   iv.  Catatan  kelainan  atau  keluhan  (jika  ada)  v.  Tanda  tangan  asli  penerima   vi.  Nama  lengkap  &  jabatan  penerima   vii.  Foto  bukti  pengiriman  (opsional  tapi  umum  di  ERP  modern)   viii.  Lokasi  koordinat  penerimaan  (jika  sistem  terintegrasi  GPS)   e.  Surat  Muatan  /  Bill  of  Lading  (untuk  angkutan)  /  Surat  Jalan  Angkutan   i.  Jenis  kendaraan   ii.  Nomor  polisi  /  Plat  nomor   iii.  Nama  pengemudi  &  nomor  identitas   iv.  Rute  perjalanan:  Dari  (Gudang)  ➝  Ke  (Tujuan)   v.  Estimasi  waktu  tempuh   vi.  Isi  Muatan:  Nomor  urut,  Kode  &  Nama  barang,  Jumlah  &  Satuan,  Jenis  
+kemasan,
+ 
+Berat
+ 
+barang,
+ 
+Keterangan
+ 
+khusus
+ 
+(barang
+ 
+berbahaya,
+ 
+suhu
+ 
+dingin,
+ 
+dll).
+ 2.  proses  4   a.  Good  Receipts  Notes  (GRN)  /  Bukti  Penerimaan  Barang   i.  Nomor  urut  Kode  barang  /  SKU   ii.  Nama  barang  &  spesifikasi   iii.  Satuan  Jumlah  yang  dikirim  vs  jumlah  yang  diterima   iv.  Kondisi  barang  (baik/rusak/cacat)   v.  Nomor  batch  /  nomor  seri  /  tanggal  kedaluwarsa  (jika  ada)   vi.  Lokasi  penempatan  awal  (rak/blok)   b.  Put  Away  List  /  Daftar  Penempatan  Barang   i.  Nomor  urut   ii.  Kode  barang   iii.  Nama  barang   
+iv.  Jumlah  barang   v.  Satuan   vi.  Lokasi  asal  (area  penerimaan)   vii.  Lokasi  tujuan  (kode  rak,  nomor  lorong,  tingkat)   viii.  Keterangan  penanganan  khusus  (misal:  simpan  di  suhu  dingin,  tumpuk  
+maksimal
+ 
+3)
+ 
+ c.  Stock  Card  /  Kartu  Stok  Fungsi:   i.  Tanggal  &  Waktu   ii.  Nomor  Dokumen  Referensi  (GRN,  DO,  GI,  dll)   iii.  Jenis  Transaksi  (Masuk  /  Keluar  /  Penyesuaian  /  Pemindahan)  Keterangan  
+/
+ 
+Sumber/Tujuan
+ 
+ iv.  Jumlah  Masuk   v.  Jumlah  Keluar   vi.  Sisa  Stok   vii.  Nomor  batch  /  seri   d.  Packing  List  /  Daftar  Isi  Kemasan   i.  Nomor  Kemasan  /  Nomor  Kardus   ii.  Kode  barang   iii.  Nama  barang   iv.  Jumlah  dalam  kemasan   v.  Satuan   vi.  Berat  per  kemasan   vii.  Tanda  penanganan  (rapuh,  atas/bawah,  dll)   e.  Good  Issue  (GI)  /  Bukti  Pengeluaran  Barang   i.  Nomor  urut   ii.  Kode  barang   iii.  Nama  barang   iv.  Satuan   v.  Jumlah  diminta  vs  jumlah  dikeluarkan   vi.  Nomor  batch  /  seri  Lokasi  pengambilan   f.  Delivery  Order  (DO)  /  Surat  Pengantar  Pengiriman   i.  Nomor  urut   ii.  Kode  barang   iii.  Nama  barang  &  spesifikasi   iv.  Satuan   v.  Jumlah  dikirim   vi.  Keterangan  tambahan   g.  Proof  of  Delivery  (POD)  /  Bukti  Serah  Terima  Barang   i.  Daftar  barang  dikirim   ii.  Konfirmasi  jumlah  diterima  (sesuai/kurang/lebih)   
+iii.  Kondisi  barang  (baik/rusak/cacat)   iv.  Catatan  keluhan  atau  persetujuan   v.  Bukti  Lampiran:  Tanda  tangan  penerima  &  nama  lengkap,  Foto  bukti  
+pengiriman
+ 
+(opsional),
+ 
+Lokasi
+ 
+koordinat
+ 
+(jika
+ 
+ada)
+ 
+ h.  Shipping  Manifest  /  Daftar  Muatan  Pengiriman   i.  Nomor  urut  kiriman   ii.  Nomor  DO  /  Nomor  Resi   iii.  Nama  &  Alamat  Pengirim   iv.  Nama  &  Alamat  Penerima   v.  Jumlah  kemasan   vi.  Isi  barang  secara  umum   vii.  Berat  per  kiriman   i.  RMA  (Return  Merchandise  Authorization)  /  Izin  Pengembalian  Barang   i.  Nomor  RMA   ii.  Tanggal  permohonan  &  tanggal  disetujui   iii.  Nomor  DO  /  Invoice  /  Pesanan  asal   iv.  Nama  &  Alamat  Pengembali  (Pelanggan)   v.  Alasan  pengembalian  (rusak,  salah  kirim,  cacat,  garansi,  dll)   vi.  Status  RMA  (Diajukan  /  Disetujui  /  Ditolak  /  Selesai)  vii.  Nomor  urut   viii.  Kode  barang   ix.  Nama  barang   x.  Jumlah  dikembalikan   xi.  Kondisi  barang  dikembalikan   xii.  Tindakan  lanjut:  tukar  barang  /  perbaikan  /  pengembalian  uang  /  kredit  
+nota
+ 3.  proses  5   a.  e-POD  (Electronic  Proof  of  Delivery)  /  Bukti  Serah  Terima  Elektronik   i.  Daftar  barang  dikirim:  kode,  nama,  jumlah,  satuan   ii.  Status  penerimaan:  Sesuai  /  Kurang  /  Lebih  /  Rusak  /  Cacat   iii.  Kondisi  kemasan  &  catatan  keluhan   iv.  Tanda  tangan  digital  penerima  /  OTP  verifikasi   v.  Foto  bukti  pengiriman  (barang,  kemasan,  tempat)   vi.  Metadata  Digital:  Waktu  akses,  perangkat  dipakai,  riwayat  perubahan,  
+tanda
+ 
+tangan
+ 
+elektronik
+ 
+tersertifikasi
+ 
+(opsional)
+ 
+ b.  Digital  Waybill  +  QR  Code   i.  Nomor  unik  Waybill  /  Resi   ii.  Tanggal  terbit  &  masa  berlaku   iii.  Pengirim:  nama,  alamat,  NPWP/kode,  kontak   iv.  Penerima:  nama,  alamat  lengkap,  kode  pos,  kontak   
+v.  Rute:  Dari  ➝  Ke,  titik  transit  (jika  ada)   vi.  Data  kendaraan:  nomor  polisi,  jenis,  pengemudi  +  identitas   vii.  Rincian  barang:  kode,  nama,  jumlah,  berat  bruto/neto,  volume,  kemasan   viii.  Nilai  barang,  kode  HS/Pabean  (jika  lintas  batas)   ix.  Instruksi  khusus,  persyaratan  penanganan   x.  Tanda  tangan  digital  pengirim  &  pengangkut   xi.  Data  ringkas:  Nomor  Waybill,  Tanggal,  Kode  Pengirim,  Kode  Penerima,  
+Total
+ 
+kolli,
+ 
+Berat,
+ 
+Status
+ 
+ c.  OTP  Verification  Token  /  Token  Verifikasi  Sekali  Pakai   i.  Kode  OTP:  4–8  digit  angka/huruf,  acak   ii.  Nomor  referensi:  DO  /  Waybill  /  e-POD   iii.  Tujuan  verifikasi:  Penerimaan  barang  /  Akses  data  /  Tanda  tangan  Waktu  
+berlaku:
+ 
+5–15
+ 
+menit
+ 
+(kadaluarsa
+ 
+otomatis)
+ 
+ iv.  Batas  percobaan:  maks  3–5  kali   v.  Status:  Belum  dipakai  /  Terpakai  /  Kadaluarsa  /  Salah   vi.  Nomor  HP  /  Email  penerima  tujuan  pengiriman   vii.  Waktu  pembuatan  &  waktu  verifikasi   viii.  Lokasi  saat  verifikasi  (opsional)   d.  Electronic  Consignment  Note  (e-Consignment  Note  /  e-CMR)   i.  Jenis,  jumlah,  jenis  kemasan,  tanda  penandaan   ii.  Berat  kotor  /  bersih,  volume   iii.  Nilai  barang,  pernyataan  nilai  khusus   iv.  Barang  berbahaya:  kode  ADR,  kelas,  nomor  UN   v.  Instruksi  khusus,  suhu,  penanganan   vi.  Keuangan:  Biaya  angkut,  siapa  bayar,  biaya  tambahan  Syarat  penyerahan,  
+bea
+ 
+cukai
+ 4.  proses  6   a.  3PL  Inbound  Delivery  Note  /  Catatan  Pengiriman  Masuk   i.  Nomor  urut   ii.  Kode  Barang  /  SKU  (sesuai  master  data  klien)   iii.  Nama  Barang  &  Spesifikasi   iv.  Jumlah  dikirim  &  Satuan   v.  Jenis  &  Jumlah  Kemasan   vi.  Berat  &  Volume  per  item   vii.  Nomor  Batch  /  Seri  /  Tanggal  Kadaluarsa   viii.  Keterangan  penanganan  khusus   b.  Advance  Shipping  Notice  (ASN)  /  Pemberitahuan  Pengiriman  Lebih  Dulu  i.  Daftar  lengkap  barang:  kode,  nama,  jumlah,  satuan   ii.  Identitas  kemasan:  nomor  peti/kardus,  isi  per  kemasan   iii.  Berat  kotor,  berat  bersih,  volume  total   
+iv.  Lokasi  asal  &  tujuan   v.  Data  tambahan:  nomor  seri,  batch,  tanggal  produksi   vi.  Metadata:  Waktu  pengiriman  data,  pengirim  data   c.  Surat  Alan  Pindahan  (STO)  /  Surat  Tanda  Pindah   i.  Nomor  urut  Kode  barang  /  SKU   ii.  Nama  barang   iii.  Jumlah  dipindah   iv.  Satuan   v.  Kondisi  barang   vi.  Nomor  batch  /  seri   d.  Contract  /  Perjanjian  Kerjasama  3PL   i.  Nomor  Kontrak   ii.  Tanggal  berlaku  &  tanggal  berakhir   iii.  Nama  lengkap,  alamat,  wakil  sah  kedua  belah  pihak   iv.  Ruang  lingkup  layanan  (gudang,  angkut,  bongkar  muat,  administrasi)  v.  Ketentuan  penyimpanan:  jenis  barang,  kapasitas,  cara  simpan   vi.  Ketentuan  pengangkutan:  rute,  jenis  kendaraan,  waktu  kirim   vii.  Struktur  tarif  &  cara  perhitungan  biaya  (simpan,  angkut,  tambahan)   viii.  SLA  (Tingkat  Layanan):  akurasi  stok,  ketepatan  waktu,  toleransi  
+kerusakan
+ 
+ ix.  Tanggung  jawab  risiko  &  asuransi  Mekanisme  penagihan  &  pembayaran   x.  Sanksi  &  penyelesaian  sengketa   e.  Stock  Reconciliation  Report  /  Laporan  Rekonsiliasi  Stok   i.  Kode  Barang  /  SKU   ii.  Nama  Barang   iii.  Satuan   iv.  Stok  Menurut  Sistem   v.  Stok  Hasil  Hitung  Fisik   vi.  Selisih  (+  /  -)   vii.  Persentase  Selisih   viii.  Alasan  Selisih  (hilang,  rusak,  salah  catat,  dll)   ix.  Tindakan  perbaikan  f.  Material  Damage  Report  /  Laporan  Kerusakan  Barang   i.  Kode  barang  /  SKU   ii.  Nama  barang  &  spesifikasi   iii.  Jumlah  barang  rusak/hilang   iv.  Satuan   v.  Jenis  kerusakan  /  Keadaan  hilang   vi.  Penyebab  kerusakan  (bencana,  kelalaian,  kemasan  buruk,  dll)   vii.  Estimasi  nilai  kerugian   
+viii.  Bukti  lampiran:  foto  kerusakan,  keterangan  saksi   g.  Shipping  Order  (SO)  /  Perintah  Pengiriman   i.  Nomor  urut  Kode  barang  /  SKU   ii.  Nama  barang   iii.  Jumlah  dikirim   iv.  Satuan  v.  Instruksi  khusus  pengiriman   vi.  Data  Pengangkutan:  Jenis  kendaraan,  pengemudi,  rute  Estimasi  biaya   h.  3PL  Shipping  Manifest  /  Daftar  Muatan  Pengiriman  3PL   i.  Nomor  urut  kiriman   ii.  Nomor  DO  /  Resi  /  SO   iii.  Nama  Klien  /  Pemilik  Barang   iv.  Nama  Pengirim  &  Penerima   v.  Rincian  isi  barang  (umum)   vi.  Jumlah  kemasan  per  kiriman   vii.  Berat  &  nilai  per  kiriman   viii.  Tujuan  bongkar   i.  Surat  Jalan  &  Proof  of  Delivery  (POD)   i.  Surat  Jalan:  Nomor  Surat  Jalan,  Tanggal   ii.  Data  Pengirim  (3PL),  Pemilik  Barang,  Penerima   iii.  Data  Kendaraan  &  Pengemudi   iv.  Rincian  barang:  kode,  nama,  jumlah,  kemasan   v.  Tanda  tangan  pengirim  &  petugas  keamanan   vi.  POD:  Nomor  referensi  Surat  Jalan/DO,  Waktu  &  lokasi  penerimaan,  
+Konfirmasi
+ 
+jumlah
+ 
+&
+ 
+kondisi
+ 
+barang,
+ 
+Tanda
+ 
+tangan,
+ 
+nama
+ 
+lengkap,
+ 
+&
+ 
+cap
+ 
+penerima,
+ 
+Foto
+ 
+bukti
+ 
+(opsional
+ 
+namun
+ 
+standar
+ 
+3PL)
+ 
+ j.  Logistics  Invoice  /  Faktur  Tagihan  Jasa  Logistik   i.  Biaya  Penyimpanan:  (luas  gudang  ×  tarif  ×  hari)  atau  (jumlah  barang  ×  
+tarif
+ 
+simpan)
+ 
+ ii.  Biaya  Pengangkutan:  per  rute  /  per  kendaraan  /  per  berat   iii.  Biaya  Tambahan:  bongkar  muat,  administrasi,  asuransi,  kemasan  Potongan  
+/
+ 
+Pajak
+ 
+ iv.  Total:  Subtotal,  PPN,  PPh,  Total  Tagihan   v.  Terbilang   vi.  Rekening  pembayaran   k.  Billing  Statement  /  Rekap  Tagihan  /  Laporan  Penagihan   i.  Nomor  Referensi  Transaksi  (DO,  SO,  Inbound)   ii.  Tanggal  layanan  dilakukan   iii.  Jenis  layanan  yang  diberikan   iv.  Jumlah  unit/volume  yang  dilayani   
+v.  Tarif  satuan   vi.  Nilai  tagihan  per  transaksi   vii.  Total  tagihan  periode   viii.  Status  pembayaran  (lunas/belum/tangguh)   ix.  Saldo  sebelumnya  

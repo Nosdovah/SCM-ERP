@@ -194,8 +194,40 @@ export const clarificationChecklist = [
   },
   { id: 'eid_6', text: 'WBS Reservation & Transfer stock (MB1B/CN22)' },
   { id: 'eid_7', text: 'Send OBD daily report' },
-  { id: 'eid_8', text: 'Prepare materials, Pick/pack and PGI by VL02N' },
-  { id: 'eid_9', text: 'GI in WMS and Deliver to site' }
+  { id: 'eid_9', text: 'GI in WMS and Deliver to site' },
+  // Process 2 Documents
+  { id: 'doc_2_a', text: 'Delivery Order (DO) / Surat Pengantar Pengiriman', requiresInput: true, fields: [{ name: 'do_no', label: 'DO Number', type: 'text', placeholder: 'e.g. DO-2024-001' }, { name: 'document_url', label: 'Upload Document (PDF/Image)', type: 'file' }] },
+  { id: 'doc_2_b', text: 'Packing List (Daftar Isi Kemasan)', requiresInput: true, fields: [{ name: 'packing_list_no', label: 'Packing List Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_2_c', text: 'Invoice / Faktur Penjualan', requiresInput: true, fields: [{ name: 'invoice_no', label: 'Invoice Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_2_d', text: 'Proof of Delivery (POD)', requiresInput: true, fields: [{ name: 'pod_no', label: 'POD Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_2_e', text: 'Surat Muatan / Bill of Lading', requiresInput: true, fields: [{ name: 'bol_no', label: 'BOL Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  // Process 4 Documents
+  { id: 'doc_4_a', text: 'Good Receipts Notes (GRN)', requiresInput: true, fields: [{ name: 'grn_no', label: 'GRN Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_4_b', text: 'Put Away List', requiresInput: true, fields: [{ name: 'put_away_no', label: 'Put Away List Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_4_c', text: 'Stock Card', requiresInput: true, fields: [{ name: 'stock_card_no', label: 'Stock Card Ref', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_4_d', text: 'Packing List (WH)', requiresInput: true, fields: [{ name: 'packing_list_no', label: 'Packing List Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_4_e', text: 'Good Issue (GI)', requiresInput: true, fields: [{ name: 'gi_no', label: 'GI Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_4_f', text: 'Delivery Order (DO)', requiresInput: true, fields: [{ name: 'do_no', label: 'DO Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_4_g', text: 'Proof of Delivery (POD) (WH)', requiresInput: true, fields: [{ name: 'pod_no', label: 'POD Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_4_h', text: 'Shipping Manifest', requiresInput: true, fields: [{ name: 'manifest_no', label: 'Manifest Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_4_i', text: 'RMA (Return Merchandise Authorization)', requiresInput: true, fields: [{ name: 'rma_no', label: 'RMA Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  // Process 5 Documents
+  { id: 'doc_5_a', text: 'e-POD (Electronic Proof of Delivery)', requiresInput: true, fields: [{ name: 'epod_no', label: 'e-POD Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_5_b', text: 'Digital Waybill + QR Code', requiresInput: true, fields: [{ name: 'waybill_no', label: 'Waybill Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_5_c', text: 'OTP Verification Token', requiresInput: true, fields: [{ name: 'otp_ref', label: 'OTP Reference', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_5_d', text: 'Electronic Consignment Note (e-CMR)', requiresInput: true, fields: [{ name: 'ecmr_no', label: 'e-CMR Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  // Process 6 Documents
+  { id: 'doc_6_a', text: '3PL Inbound Delivery Note', requiresInput: true, fields: [{ name: 'inbound_note_no', label: 'Inbound Note Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_6_b', text: 'Advance Shipping Notice (ASN)', requiresInput: true, fields: [{ name: 'asn_no', label: 'ASN Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_6_c', text: 'Surat Jalan Pindahan (STO)', requiresInput: true, fields: [{ name: 'sto_no', label: 'STO Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_6_d', text: 'Contract / Perjanjian Kerjasama 3PL', requiresInput: true, fields: [{ name: 'contract_no', label: 'Contract Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_6_e', text: 'Stock Reconciliation Report', requiresInput: true, fields: [{ name: 'recon_report_no', label: 'Report Reference', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_6_f', text: 'Material Damage Report', requiresInput: true, fields: [{ name: 'damage_report_no', label: 'Report Reference', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_6_g', text: 'Shipping Order (SO)', requiresInput: true, fields: [{ name: 'so_no', label: 'SO Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_6_h', text: '3PL Shipping Manifest', requiresInput: true, fields: [{ name: '3pl_manifest_no', label: 'Manifest Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_6_i', text: 'Surat Jalan & POD', requiresInput: true, fields: [{ name: 'surat_jalan_pod_no', label: 'Ref Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_6_j', text: 'Logistics Invoice', requiresInput: true, fields: [{ name: 'logistics_invoice_no', label: 'Invoice Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] },
+  { id: 'doc_6_k', text: 'Billing Statement', requiresInput: true, fields: [{ name: 'billing_statement_no', label: 'Billing Number', type: 'text' }, { name: 'document_url', label: 'Upload Document', type: 'file' }] }
 ];
 
 export const initialTasks = [
@@ -324,18 +356,18 @@ export const stageRequirements = {
   'release_inquiry': ['chk_8', 'chk_9', 'chk_10'],
   'po_creation': ['chk_11'],
   'hub_activities': ['chk_12'],
-  'material_calloff': [],
+  'material_calloff': ['doc_2_a', 'doc_2_b', 'doc_2_c', 'doc_2_d', 'doc_2_e'],
   'pre_alert_docs': [],
   'custom_declaration': ['cc_1', 'cc_2', 'cc_9'],
   'custom_payment': ['cc_3', 'cc_4', 'cc_5', 'cc_6'],
   'release_delivery': ['cc_7', 'cc_8', 'cc_10'],
-  'wh_inbound': ['cc_11'],
-  'wh_inventory': ['wh_1', 'inv_7'],
-  'wh_outbound': ['wh_2', 'inv_4', 'acc_1'],
+  'wh_inbound': ['cc_11', 'doc_4_a', 'doc_4_b'],
+  'wh_inventory': ['wh_1', 'inv_7', 'doc_4_c', 'doc_4_i'],
+  'wh_outbound': ['wh_2', 'inv_4', 'acc_1', 'doc_4_d', 'doc_4_e', 'doc_4_f', 'doc_4_g', 'doc_4_h'],
   'eid_planning': ['eid_1', 'eid_2', 'eid_3'],
   'eid_obd': ['eid_4', 'eid_5', 'eid_6'],
-  'eid_delivery': ['eid_7', 'eid_8', 'eid_9'],
-  'tpp_request': ['tpp_1', 'tpp_2', 'tpp_3', 'tpp_4'],
-  'tpp_po': ['tpp_5', 'tpp_6'],
-  'tpp_delivery': ['tpp_7', 'tpp_8', 'tpp_9']
+  'eid_delivery': ['eid_7', 'eid_8', 'eid_9', 'doc_5_a', 'doc_5_b', 'doc_5_c', 'doc_5_d'],
+  'tpp_request': ['tpp_1', 'tpp_2', 'tpp_3', 'tpp_4', 'doc_6_d'],
+  'tpp_po': ['tpp_5', 'tpp_6', 'doc_6_b', 'doc_6_g'],
+  'tpp_delivery': ['tpp_7', 'tpp_8', 'tpp_9', 'doc_6_a', 'doc_6_c', 'doc_6_e', 'doc_6_f', 'doc_6_h', 'doc_6_i', 'doc_6_j', 'doc_6_k']
 };
