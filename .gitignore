@@ -23,6 +23,7 @@ document
 *.njsproj
 *.sln
 *.sw?
+migration_data.sql
 
 # Environment variables
 .env
