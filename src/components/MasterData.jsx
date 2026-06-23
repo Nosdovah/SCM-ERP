@@ -131,10 +131,18 @@ export default function MasterData({ session, language }) {
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>{language === 'id' ? 'Kategori' : 'Category'}</label>
                 <select value={newItemForm.category} onChange={e => setNewItemForm({...newItemForm, category: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }}>
                   <option value="">{language === 'id' ? 'Pilih Kategori' : 'Select Category'}</option>
-                  <option value="Hardware">{language === 'id' ? 'Perangkat Keras' : 'Hardware'}</option>
-                  <option value="Cabling">{language === 'id' ? 'Kabel' : 'Cabling'}</option>
+                  <option value="Motherboard">Motherboard</option>
                   <option value="Cooling">{language === 'id' ? 'Pendingin' : 'Cooling'}</option>
+                  <option value="Memory">{language === 'id' ? 'Memori' : 'Memory'}</option>
+                  <option value="Storage">{language === 'id' ? 'Penyimpanan' : 'Storage'}</option>
+                  <option value="Network">{language === 'id' ? 'Jaringan' : 'Network'}</option>
+                  <option value="Camera">{language === 'id' ? 'Kamera' : 'Camera'}</option>
+                  <option value="Audio">Audio</option>
+                  <option value="Display">{language === 'id' ? 'Layar' : 'Display'}</option>
+                  <option value="Battery">{language === 'id' ? 'Baterai' : 'Battery'}</option>
+                  <option value="Input">Input</option>
                   <option value="Power">{language === 'id' ? 'Daya' : 'Power'}</option>
+                  <option value="Hinge">{language === 'id' ? 'Engsel' : 'Hinge'}</option>
                 </select>
               </div>
               <div>
