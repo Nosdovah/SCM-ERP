@@ -7,6 +7,7 @@ export default function MasterData({ session, language }) {
   const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   // Forms
   const [newItemForm, setNewItemForm] = useState({ sku: '', name: '', category: '', supplier_id: '', unit_price: '', stock_on_hand: '' });
@@ -85,6 +86,61 @@ export default function MasterData({ session, language }) {
     if (!error) setSuppliers(suppliers.filter(s => s.id !== id));
   };
 
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedData = React.useMemo(() => {
+    let sortableData = [...(activeTab === 'items' ? items : suppliers)];
+    if (sortConfig.key !== null) {
+      sortableData.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        
+        if (sortConfig.key === 'suppliers.name') {
+          aValue = a.suppliers?.name || '';
+          bValue = b.suppliers?.name || '';
+        }
+        
+        if (aValue === undefined || aValue === null) aValue = '';
+        if (bValue === undefined || bValue === null) bValue = '';
+        
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+           return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+        }
+
+        if (aValue.toString().toLowerCase() < bValue.toString().toLowerCase()) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue.toString().toLowerCase() > bValue.toString().toLowerCase()) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableData;
+  }, [items, suppliers, activeTab, sortConfig]);
+
+  const SortableHeader = ({ label, sortKey }) => (
+    <th 
+      style={{ padding: '0.75rem', fontWeight: '600', cursor: 'pointer', userSelect: 'none' }} 
+      onClick={() => handleSort(sortKey)}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {label}
+        {sortConfig.key === sortKey ? (
+          <span style={{ fontSize: '0.75rem' }}>{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>
+        ) : (
+          <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>↕</span>
+        )}
+      </div>
+    </th>
+  );
+
   return (
     <div className="help-page animate-fade-in" style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -97,13 +153,13 @@ export default function MasterData({ session, language }) {
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', marginBottom: '2rem' }}>
         <button 
           style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: activeTab === 'items' ? '3px solid var(--primary-color)' : '3px solid transparent', color: activeTab === 'items' ? 'var(--primary-color)' : 'var(--text-muted)', fontWeight: '600', cursor: 'pointer' }}
-          onClick={() => setActiveTab('items')}
+          onClick={() => { setActiveTab('items'); setSortConfig({ key: null, direction: 'asc' }); }}
         >
           {language === 'id' ? 'Item (SKU)' : 'Items (SKUs)'}
         </button>
         <button 
           style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: activeTab === 'suppliers' ? '3px solid var(--primary-color)' : '3px solid transparent', color: activeTab === 'suppliers' ? 'var(--primary-color)' : 'var(--text-muted)', fontWeight: '600', cursor: 'pointer' }}
-          onClick={() => setActiveTab('suppliers')}
+          onClick={() => { setActiveTab('suppliers'); setSortConfig({ key: null, direction: 'asc' }); }}
         >
           {language === 'id' ? 'Supplier & Vendor' : 'Suppliers & Vendors'}
         </button>
@@ -186,21 +242,21 @@ export default function MasterData({ session, language }) {
                   <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: 'var(--text-muted)' }}>
                     {activeTab === 'items' ? (
                       <>
-                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>SKU</th>
-                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>{language === 'id' ? 'Nama Item' : 'Item Name'}</th>
-                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>{language === 'id' ? 'Kategori' : 'Category'}</th>
-                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>Supplier</th>
-                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>{language === 'id' ? 'Harga' : 'Price'}</th>
-                        <th style={{ padding: '0.75rem', fontWeight: '600' }}>{language === 'id' ? 'Stok' : 'Stock'}</th>
+                        <SortableHeader label="SKU" sortKey="sku" />
+                        <SortableHeader label={language === 'id' ? 'Nama Item' : 'Item Name'} sortKey="name" />
+                        <SortableHeader label={language === 'id' ? 'Kategori' : 'Category'} sortKey="category" />
+                        <SortableHeader label="Supplier" sortKey="suppliers.name" />
+                        <SortableHeader label={language === 'id' ? 'Harga' : 'Price'} sortKey="unit_price" />
+                        <SortableHeader label={language === 'id' ? 'Stok' : 'Stock'} sortKey="stock_on_hand" />
                       </>
                     ) : (
-                      <th style={{ padding: '0.75rem', fontWeight: '600' }}>{language === 'id' ? 'Nama Supplier' : 'Supplier Name'}</th>
+                      <SortableHeader label={language === 'id' ? 'Nama Supplier' : 'Supplier Name'} sortKey="name" />
                     )}
                     <th style={{ padding: '0.75rem', fontWeight: '600', textAlign: 'right' }}>{language === 'id' ? 'Aksi' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(activeTab === 'items' ? items : suppliers).map((row, idx) => (
+                  {sortedData.map((row, idx) => (
                     <tr key={row.id} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? 'white' : '#f8fafc' }}>
                       {activeTab === 'items' ? (
                         <>

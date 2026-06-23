@@ -11,6 +11,16 @@ export default function NewOrderModal({
 }) {
   if (!showNewOrderModal) return null;
 
+  const sortedMasterItems = React.useMemo(() => {
+    return [...masterItems].sort((a, b) => {
+      const nameA = (a.name || a || '').toString().toLowerCase();
+      const nameB = (b.name || b || '').toString().toLowerCase();
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+      return 0;
+    });
+  }, [masterItems]);
+
   return (
     <div className="modal-overlay" onClick={() => setShowNewOrderModal(false)}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -27,7 +37,7 @@ export default function NewOrderModal({
               <label>{language === 'id' ? 'Judul Pesanan / Deskripsi Item' : 'Order Title / Item Description'}</label>
               <select required value={newOrderForm.title} onChange={e => setNewOrderForm({...newOrderForm, title: e.target.value})}>
                 <option value="">{language === 'id' ? 'Pilih Item dari Data Induk' : 'Select an Item from Master Data'}</option>
-                {masterItems.map(item => <option key={item.name || item} value={item.name || item}>{(item.name || item)} ({language === 'id' ? 'Stok' : 'Stock'}: {item.stock_on_hand ?? 'N/A'})</option>)}
+                {sortedMasterItems.map(item => <option key={item.name || item} value={item.name || item}>{(item.name || item)} ({language === 'id' ? 'Stok' : 'Stock'}: {item.stock_on_hand ?? 'N/A'})</option>)}
               </select>
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
