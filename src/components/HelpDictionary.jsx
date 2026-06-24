@@ -44,22 +44,82 @@ export default function HelpDictionary({ language }) {
 
       <div style={{ marginBottom: '3rem', backgroundColor: 'white', padding: '2rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <h3 style={{ fontSize: '1.25rem', color: 'var(--primary-color)', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
-          📖 {language === 'id' ? 'Cara Menggunakan Sistem' : 'How to Use the System'}
+          📖 {language === 'id' ? 'Buku Panduan ERP (User Manual)' : 'ERP User Manual'}
         </h3>
-        <ul style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingLeft: '1.5rem', color: 'var(--text-main)', lineHeight: '1.6' }}>
-          <li>
-            <strong>{language === 'id' ? 'Alur Kerja Drag and Drop:' : 'Drag and Drop Workflow:'}</strong> {language === 'id' ? 'Dasbor utama adalah papan Kanban interaktif. Anda dapat mengeklik dan menahan kartu pesanan apa pun, lalu menariknya ke kolom baru untuk memajukan tahapannya dalam proses rantai pasokan.' : 'The main dashboard is an interactive Kanban board. You can click and hold any order card, then drag it into a new column to advance its stage in the supply chain process.'}
-          </li>
-          <li>
-            <strong>{language === 'id' ? 'Checklist Pesanan 100% Terklarifikasi:' : '100% Clarified Order Checklist:'}</strong> {language === 'id' ? 'Dengan mengeklik kartu pesanan apa pun, laci detail akan muncul dari kanan. Laci ini berisi checklist yang komprehensif. Anda harus menyelesaikan item checklist yang diperlukan untuk suatu tahap sebelum sistem mengizinkan Anda menarik kartu ke fase berikutnya.' : 'By simply clicking on any order card, a details drawer will slide out from the right. This drawer contains a comprehensive checklist. You must complete the required checklist items for a stage before the system allows you to drag the card to the next phase.'}
-          </li>
-          <li>
-            <strong>{language === 'id' ? 'Membuat Pesanan Baru:' : 'Creating New Orders:'}</strong> {language === 'id' ? 'Klik tombol "Pesanan Baru" di kanan atas dasbor. Isi informasi umum untuk memulai alur pelacakan baru.' : 'Click the "New Order" button in the top right of the dashboard. Fill out the general information to initiate a new tracking flow.'}
-          </li>
-          <li>
-            <strong>{language === 'id' ? 'Penyaringan & Pencarian:' : 'Filtering & Searching:'}</strong> {language === 'id' ? 'Gunakan bilah pencarian untuk menemukan pesanan dengan cepat berdasarkan ID, judul, atau penerima tugas. Anda juga dapat memfilter pesanan berdasarkan tingkat prioritas menggunakan dropdown di sebelah bilah pencarian.' : 'Use the search bar to quickly find orders by ID, title, or assignee. You can also filter orders by priority level (High, Medium, Low) using the dropdown next to the search bar.'}
-          </li>
-        </ul>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', color: 'var(--text-main)', lineHeight: '1.6', fontSize: '0.95rem' }}>
+          
+          <details style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+            <summary style={{ fontWeight: '600', cursor: 'pointer', fontSize: '1rem', color: 'var(--primary-color)' }}>
+              1. Profile and Settings Configuration
+            </summary>
+            <div style={{ padding: '1rem 0 0 1rem' }}>
+              <p><strong>Step 1:</strong> {language === 'id' ? 'Setelah login dan masuk ke dashboard utama, navigasikan ke menu Profile atau Settings.' : 'After logging into the main dashboard, navigate to the Profile or Settings menu.'}</p>
+              <p><strong>Step 2:</strong> {language === 'id' ? 'Masukkan nama perusahaan/organisasi Anda. Tentukan peran sistem (Role) yang diinginkan (Pilih Admin untuk akses penuh). Setelah selesai, klik Update Profile.' : 'Enter your company/organization name. Select your desired system Role (Choose Admin for full access). Click Update Profile when done.'}</p>
+            </div>
+          </details>
+
+          <details style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+            <summary style={{ fontWeight: '600', cursor: 'pointer', fontSize: '1rem', color: 'var(--primary-color)' }}>
+              2. Master Data Setup
+            </summary>
+            <div style={{ padding: '1rem 0 0 1rem' }}>
+              <p><strong>Step 3: Master Data Configuration</strong></p>
+              <ul>
+                <li style={{marginBottom: '0.5rem'}}><strong>Suppliers:</strong> {language === 'id' ? 'Buka modul Master Data. Pilih tab Suppliers. Masukkan detail perusahaan dan klik Create Supplier.' : 'Open the Master Data module. Select the Suppliers tab. Enter company details and click Create Supplier.'}</li>
+                <li><strong>Items (SKUs):</strong> {language === 'id' ? 'Pindah ke tab Items. Isi formulir Add New Item secara lengkap (SKU, Item Name, Category, Supplier, Unit Price, Stock). Klik Create Item.' : 'Switch to the Items tab. Fill out the Add New Item form completely (SKU, Item Name, Category, Supplier, Unit Price, Stock). Click Create Item.'}</li>
+              </ul>
+            </div>
+          </details>
+
+          <details style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+            <summary style={{ fontWeight: '600', cursor: 'pointer', fontSize: '1rem', color: 'var(--primary-color)' }}>
+              3. Supply Chain Flow: Creating a New Order
+            </summary>
+            <div style={{ padding: '1rem 0 0 1rem' }}>
+              <p><strong>Step 4: Create Order</strong></p>
+              <ol>
+                <li>{language === 'id' ? 'Masuk ke modul Supply Chain Flow (Kanban Board).' : 'Enter the Supply Chain Flow (Kanban Board) module.'}</li>
+                <li>{language === 'id' ? 'Klik tombol New Order untuk menambahkan pesanan baru.' : 'Click the New Order button to add a new order.'}</li>
+                <li>{language === 'id' ? 'Pilih Item dari master data dan tentukan Kuantitas yang dipesan.' : 'Select an Item from the master data and specify the ordered Quantity.'}</li>
+                <li>{language === 'id' ? 'Masukkan nama Anda sebagai penanggung jawab pesanan (Assignee).' : 'Enter your name as the order assignee.'}</li>
+                <li>{language === 'id' ? 'Tentukan tingkat prioritas pesanan. Klik Create Order.' : 'Determine the order priority level. Click Create Order.'}</li>
+              </ol>
+            </div>
+          </details>
+
+          <details open style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+            <summary style={{ fontWeight: '600', cursor: 'pointer', fontSize: '1rem', color: 'var(--primary-color)' }}>
+              4. Fulfillment Pipeline Execution (Drag & Drop)
+            </summary>
+            <div style={{ padding: '1rem 0 0 1rem' }}>
+              <p><em>{language === 'id' ? 'Pipeline ERP beroperasi menggunakan sistem Kanban Board. Pesanan harus menyelesaikan semua checklist prasyarat sebelum dapat dipindahkan ke tahap selanjutnya.' : 'The ERP Pipeline operates on a Kanban Board system. Orders must complete all prerequisite checklists before they can be moved to the next stage.'}</em></p>
+              
+              <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                <li><strong>Step 5 (Process 1):</strong> {language === 'id' ? 'Klik pada kartu pesanan. Selesaikan prasyarat (VC, WBS, ESTA/PO, Info Partner). Setelah checklist komplit, tahan dan tarik (drag) order ke kolom selanjutnya di Process 1 secara berurutan.' : 'Click the order card. Complete the prerequisites (VC, WBS, ESTA/PO, Partner Info). Once the checklist is complete, hold and drag the order to the next column in Process 1 sequentially.'}</li>
+                <li><strong>Step 6 (Process 2):</strong> {language === 'id' ? 'Lengkapi checklist dan unggah form dokumen pengiriman (DO, Packing List, Invoice, dll) sebelum menyeret order ke Process 2.' : 'Complete the checklist and upload delivery document forms (DO, Packing List, Invoice, etc.) before dragging the order to Process 2.'}</li>
+                <li><strong>Step 7 (Process 3):</strong> {language === 'id' ? 'Selesaikan persyaratan pabean dan unggah form Izin Impor sebelum order dapat melewati tahap Custom Clearance.' : 'Complete customs requirements and upload Import Permit forms before the order can pass the Custom Clearance stage.'}</li>
+                <li><strong>Step 8 (Process 4):</strong> {language === 'id' ? 'Selesaikan checklist dokumen Gudang (GRN, Put Away List, GI) sebelum order masuk ke tahap Warehouse Management. Di sini stok akan otomatis di-update.' : 'Complete the Warehouse document checklist (GRN, Put Away List, GI) before the order enters Warehouse Management. Inventory stock updates automatically here.'}</li>
+                <li><strong>Step 9 & 10 (Process 5 & 6):</strong> {language === 'id' ? 'Untuk jalur EID Last Mile dan Local 3PP Flow, ikuti pola yang sama: klik pesanan, lengkapi dokumen spesifik, lalu geser kartu hingga kolom terakhir.' : 'For EID Last Mile and Local 3PP Flow, follow the same pattern: click the order, complete specific documents, then drag the card to the final column.'}</li>
+              </ul>
+            </div>
+          </details>
+
+          <details style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+            <summary style={{ fontWeight: '600', cursor: 'pointer', fontSize: '1rem', color: 'var(--primary-color)' }}>
+              5. Generating Official PO Document
+            </summary>
+            <div style={{ padding: '1rem 0 0 1rem' }}>
+              <ol>
+                <li>{language === 'id' ? 'Klik pada kartu order yang diinginkan untuk membuka laci Order Drawer.' : 'Click on the desired order card to open the Order Drawer.'}</li>
+                <li>{language === 'id' ? 'Di bagian General Info, cari dan klik tombol Generate PO Document.' : 'In the General Info section, find and click the Generate PO Document button.'}</li>
+                <li>{language === 'id' ? 'Sistem akan membuka tab baru berisi PDF Purchase Order resmi yang merangkum vendor, kuantitas, harga, dan total biaya.' : 'The system will open a new tab containing an official Purchase Order PDF summarizing the vendor, quantity, price, and total cost.'}</li>
+                <li>{language === 'id' ? 'Klik tombol Print PDF untuk mencetak atau menyimpannya secara lokal.' : 'Click the Print PDF button to print or save it locally.'}</li>
+              </ol>
+            </div>
+          </details>
+
+        </div>
       </div>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
