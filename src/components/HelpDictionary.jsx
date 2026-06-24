@@ -165,6 +165,52 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
             </div>
           </details>
 
+          {/* Canva Visual Diagram */}
+          <div style={{ marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h4 style={{ color: 'var(--primary-color)', margin: 0, fontWeight: '700', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🖼️ {language === 'id' ? 'Bagan Alur SCM (Canva Visual Guide)' : 'SCM Flowchart (Canva Visual Guide)'}
+              </h4>
+              <a 
+                href="/canva_guide.webp" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="btn"
+                style={{ 
+                  fontSize: '0.75rem', 
+                  color: 'var(--primary-color)', 
+                  border: '1px solid var(--primary-color)', 
+                  backgroundColor: 'transparent',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '0.375rem',
+                  textDecoration: 'none', 
+                  fontWeight: '600',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(79, 70, 229, 0.05)' }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+              >
+                {language === 'id' ? 'Buka Gambar Penuh ↗' : 'Open Full Image ↗'}
+              </a>
+            </div>
+            <div style={{ 
+              overflow: 'hidden', 
+              borderRadius: '0.75rem', 
+              border: '1px solid var(--border-color)', 
+              backgroundColor: '#f8fafc', 
+              padding: '1rem', 
+              display: 'flex', 
+              justifyContent: 'center',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+            }}>
+              <img 
+                src="/canva_guide.webp" 
+                alt="Canva SCM Flow Chart Guide" 
+                style={{ maxWidth: '100%', height: 'auto', borderRadius: '0.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.08)' }} 
+              />
+            </div>
+          </div>
+
         </div>
       </div>
       
