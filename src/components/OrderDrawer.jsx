@@ -3,7 +3,7 @@ import { X, User, Clock } from 'lucide-react';
 import { clarificationChecklist, processes, stageRequirements } from '../data/constants';
 import { supabase } from '../supabaseClient';
 
-export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChecklistItem, handleDeleteOrder, language }) {
+export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChecklistItem, handleDeleteOrder, language, onUpdateOrderStage }) {
   const [activeFormId, setActiveFormId] = useState(null);
   const [formData, setFormData] = useState({});
   const [fileUploads, setFileUploads] = useState({});
@@ -227,6 +227,42 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
               <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{language === 'id' ? 'Prioritas' : 'Priority'}</div><div>{selectedOrder.priority}</div></div>
               <div><div style={{ color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{language === 'id' ? 'Kuantitas' : 'Quantity'}</div><div style={{ fontWeight: '600' }}>{selectedOrder.quantity || 1} Units</div></div>
             </div>
+            {/* Quick SCM Phase Routing Select */}
+            {onUpdateOrderStage && (
+              <div style={{ marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  🚀 {language === 'id' ? 'Pindahkan Alur/Fase (Bypass Drag & Drop):' : 'Bypass Route / Change Phase:'}
+                </label>
+                <select
+                  value={selectedOrder.stage}
+                  onChange={(e) => onUpdateOrderStage(selectedOrder, e.target.value)}
+                  style={{ 
+                    width: '100%',
+                    padding: '0.5rem', 
+                    borderRadius: '0.375rem', 
+                    border: '1px solid var(--border-color)', 
+                    backgroundColor: 'white', 
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: 'var(--primary-color)',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
+                >
+                  {processes.map(p => (
+                    <optgroup key={p.id} label={language === 'id' ? (p.titleID || p.title) : (p.titleEN || p.title)}>
+                      {p.stages.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {language === 'id' ? (s.titleID || s.title) : (s.titleEN || s.title)}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <button onClick={generatePO} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content' }}>
               <Clock size={16} /> {language === 'id' ? 'Buat Dokumen PO' : 'Generate PO Document'}
             </button>

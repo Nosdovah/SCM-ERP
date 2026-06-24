@@ -252,6 +252,9 @@ function App() {
     // Optimistic UI update
     const updatedTasks = tasks.map(t => t.id === task.id ? { ...t, stage: targetStage } : t);
     setTasks(updatedTasks);
+    if (selectedOrder && selectedOrder.id === task.id) {
+      setSelectedOrder(prev => ({ ...prev, stage: targetStage }));
+    }
     
     if (supabase) {
       supabase.from('orders').update({ stage: targetStage }).eq('id', task.id).then(({ error }) => {
@@ -265,6 +268,105 @@ function App() {
       logAudit(task.id, 'Reverted Stage', { to: stageName, stageId: targetStage, reason: reasonText });
     }
     setRevertPrompt(null);
+  };
+
+  const handleUpdateOrderStage = (task, stageId) => {
+    if (userRole === 'Viewer') {
+      alert('RBAC Error: Viewers cannot modify tasks.');
+      return;
+    }
+
+    // Check process-level permissions
+    const targetProcess = processes.find(p => p.stages.some(s => s.id === stageId));
+    if (targetProcess && userRole !== 'Admin') {
+      if (targetProcess.id === 'proc-1' && userRole !== 'Procurement') {
+        alert('RBAC Error: Only Procurement or Admin can manage Ordering Preparation.');
+        return;
+      }
+      if (targetProcess.id === 'proc-3' && userRole !== 'Customs') {
+        alert('RBAC Error: Only Customs or Admin can manage Custom Clearance.');
+        return;
+      }
+      if (targetProcess.id === 'proc-4' && userRole !== 'Warehouse') {
+        alert('RBAC Error: Only Warehouse or Admin can manage WH Management.');
+        return;
+      }
+      if (targetProcess.id === 'proc-5' && userRole !== 'Logistics') {
+        alert('RBAC Error: Only Logistics or Admin can manage Last Mile Delivery.');
+        return;
+      }
+    }
+
+    const reqs = stageRequirements[stageId];
+    
+    // Determine if backward movement
+    const flatStages = processes.flatMap(p => p.stages.map(s => s.id));
+    const currentIndex = flatStages.indexOf(task.stage);
+    const targetIndex = flatStages.indexOf(stageId);
+
+    if (targetIndex < currentIndex) {
+      setRevertPrompt({ task: task, targetStage: stageId });
+      return;
+    }
+
+    if (reqs && reqs.length > 0) {
+      const missing = reqs.filter(r => !task.checklistState[r]);
+      if (missing.length > 0) {
+        const missingTexts = missing.map(m => {
+          const c = clarificationChecklist.find(x => x.id === m);
+          return c ? (language === 'id' ? (c.textID || c.text) : (c.textEN || c.text)) : 'Unknown checklist item';
+        });
+        const targetStageObj = processes.flatMap(p => p.stages).find(s => s.id === stageId);
+        const stageName = targetStageObj ? (language === 'id' ? (targetStageObj.titleID || targetStageObj.title) : (targetStageObj.titleEN || targetStageObj.title)) : 'this stage';
+        
+        setWarningMsg({
+          title: language === 'id' ? `Tidak dapat memindahkan ke ${stageName}. Prasyarat kurang:` : `Cannot move to ${stageName}. Missing prerequisites:`,
+          items: missingTexts
+        });
+        
+        if (window.warningTimeout) clearTimeout(window.warningTimeout);
+        window.warningTimeout = setTimeout(() => setWarningMsg(null), 15000); // 15 seconds
+        return;
+      }
+    }
+
+    // Direct Forward Update
+    const updatedTasks = tasks.map(t => t.id === task.id ? { ...t, stage: stageId } : t);
+    setTasks(updatedTasks);
+    if (selectedOrder && selectedOrder.id === task.id) {
+      setSelectedOrder(prev => ({ ...prev, stage: stageId }));
+    }
+    
+    if (supabase) {
+      supabase.from('orders').update({ stage: stageId }).eq('id', task.id).then(({ error }) => {
+        if (error) {
+          console.error("Update failed", error);
+          alert("Failed to update stage in database: " + error.message);
+        } else {
+          // Inventory Management: Auto-increment stock if order reaches warehouse / delivery completion
+          if (stageId === 'wh_inbound' || stageId === 'tpp_delivery') {
+            supabase.from('items')
+              .select('id, stock_on_hand')
+              .eq('name', task.title)
+              .eq('company_name', userCompany)
+              .single()
+              .then(({ data, error: fetchErr }) => {
+                if (data && !fetchErr) {
+                  const newStock = (data.stock_on_hand || 0) + (task.quantity || 1);
+                  supabase.from('items').update({ stock_on_hand: newStock }).eq('id', data.id).then(({ error: updateErr }) => {
+                     if (!updateErr) {
+                       console.log(`Inventory auto-incremented for ${task.title}. New stock: ${newStock}`);
+                     }
+                  });
+                }
+              });
+          }
+        }
+      });
+      
+      const stageName = processes.flatMap(p => p.stages).find(s => s.id === stageId)?.title || stageId;
+      logAudit(task.id, 'Moved Stage', { to: stageName, stageId: stageId });
+    }
   };
 
   const handleCreateOrder = async (e) => {
@@ -529,6 +631,7 @@ function App() {
           toggleChecklistItem={toggleChecklistItem} 
           handleDeleteOrder={handleDeleteOrder}
           language={language}
+          onUpdateOrderStage={handleUpdateOrderStage}
         />
 
         {/* Modal for New Order */}
