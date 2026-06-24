@@ -1,7 +1,8 @@
 import React from 'react';
+import { HelpCircle } from 'lucide-react';
 import { dictionaryTerms } from '../data/constants';
 
-export default function HelpDictionary({ language }) {
+export default function HelpDictionary({ language, onOpenTutorial }) {
   const categorizedTerms = [
     {
       title: "Process 1: Ordering Preparation",
@@ -43,9 +44,15 @@ export default function HelpDictionary({ language }) {
       </p>
 
       <div style={{ marginBottom: '3rem', backgroundColor: 'white', padding: '2rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <h3 style={{ fontSize: '1.25rem', color: 'var(--primary-color)', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
-          📖 {language === 'id' ? 'Buku Panduan ERP (User Manual)' : 'ERP User Manual'}
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.25rem', color: 'var(--primary-color)', margin: 0 }}>
+            📖 {language === 'id' ? 'Buku Panduan ERP (User Manual)' : 'ERP User Manual'}
+          </h3>
+          <button onClick={onOpenTutorial} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '600', transition: 'all 0.2s' }}>
+            <HelpCircle size={18} />
+            {language === 'id' ? 'Mulai Tur Interaktif' : 'Start Interactive Tour'}
+          </button>
+        </div>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', color: 'var(--text-main)', lineHeight: '1.6', fontSize: '0.95rem' }}>
           

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, LayoutDashboard, CheckSquare, BookOpen, Bell, ChevronRight, ChevronLeft, X } from 'lucide-react';
 
-export default function TutorialModal() {
+export default function TutorialModal({ forceOpen, setForceOpen }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -11,6 +11,14 @@ export default function TutorialModal() {
       setIsOpen(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (forceOpen) {
+      setIsOpen(true);
+      setCurrentStep(0);
+      if (setForceOpen) setForceOpen(false);
+    }
+  }, [forceOpen, setForceOpen]);
 
   const completeTutorial = () => {
     localStorage.setItem('moai_tutorial_completed', 'true');

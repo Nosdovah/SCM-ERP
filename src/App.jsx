@@ -96,6 +96,8 @@ function App() {
   // Warning State
   const [warningMsg, setWarningMsg] = useState(null);
 
+  const [forceTutorial, setForceTutorial] = useState(false);
+
   // New Order State
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
   const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium', quantity: '' });
@@ -414,7 +416,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <TutorialModal />
+      <TutorialModal forceOpen={forceTutorial} setForceOpen={setForceTutorial} />
       <TopNav currentView={currentView} setCurrentView={setCurrentView} handleLogout={handleLogout} session={session} language={language} setLanguage={setLanguage} />
       
       <div className="app-body">
@@ -449,7 +451,7 @@ function App() {
 
         {/* Content Area */}
         <div className="content-area">
-          {currentView === 'help' ? <HelpDictionary language={language} /> :
+          {currentView === 'help' ? <HelpDictionary language={language} onOpenTutorial={() => setForceTutorial(true)} /> :
            currentView === 'settings' ? <Settings session={session} language={language} /> :
            currentView === 'analytics' ? <Analytics session={session} language={language} /> :
            currentView === 'master_data' ? <MasterData session={session} language={language} /> :
