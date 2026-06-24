@@ -165,6 +165,26 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
             </div>
           </details>
 
+          <details style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+            <summary style={{ fontWeight: '600', cursor: 'pointer', fontSize: '1rem', color: 'var(--primary-color)' }}>
+              6. SCM Phase Routing Bypass (Bypass Alur/Fase)
+            </summary>
+            <div style={{ padding: '1rem 0 0 1rem' }}>
+              <p>
+                {language === 'id' 
+                  ? 'Guna meningkatkan kemudahan pengguna (user-friendliness) dan menghindari hambatan menarik kartu (drag-and-drop) yang terlampau jauh—seperti saat alur lokal melompat dari Proses 1 langsung ke Proses 6 (3PP) lalu kembali ke Proses 4—sistem menyediakan fitur pemindahan fase instan.'
+                  : 'To enhance user-friendliness and prevent tedious drag-and-drop operations across scrolled distances—such as local orders jumping from Process 1 to Process 6 (3PP) and returning to Process 4—the system provides a quick phase routing feature.'
+                }
+              </p>
+              <ol>
+                <li>{language === 'id' ? 'Klik kartu pesanan yang ingin Anda pindahkan untuk membuka laci detail pesanan (Order Drawer).' : 'Click on the order card you want to route to open its Order Drawer details.'}</li>
+                <li>{language === 'id' ? 'Cari bagian "Pindahkan Alur/Fase (Bypass Drag & Drop)" di bawah Informasi Umum.' : 'Locate the "Bypass Route / Change Phase" selection box under the General Info section.'}</li>
+                <li>{language === 'id' ? 'Pilih fase tujuan Anda langsung dari menu dropdown. Sistem akan otomatis memindahkan pesanan ke kolom tujuan secara instan.' : 'Select your target phase directly from the dropdown. The system will immediately route the order to that stage.'}</li>
+                <li>{language === 'id' ? 'Seluruh validasi hak akses peran (RBAC), pengisian dokumen prasyarat, serta verifikasi pengembalian alur mundur (Revert Modal) tetap aktif dan diawasi demi keamanan data.' : 'Standard role checks (RBAC), prerequisite document completion, and backward revert verification modals remain active to ensure data integrity.'}</li>
+              </ol>
+            </div>
+          </details>
+
           {/* Canva Visual Diagram */}
           <div style={{ marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
