@@ -362,6 +362,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                         {log.details && log.details.to ? `Moved to ${log.details.to}` : ''}
                         {log.details && log.details.item ? `Checked: ${log.details.item}` : ''}
                         {log.details && log.details.title ? `Created: ${log.details.title}` : ''}
+                        {log.details && log.details.reason ? <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem' }}>Reason: {log.details.reason}</div> : null}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>By: {log.user_email}</div>
                     </div>

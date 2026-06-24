@@ -15,6 +15,7 @@ import MasterData from './components/MasterData';
 import KanbanBoard from './components/KanbanBoard';
 import DashboardMetrics from './components/DashboardMetrics';
 import NewOrderModal from './components/NewOrderModal';
+import RevertModal from './components/RevertModal';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -58,10 +59,27 @@ function App() {
         if (payload.eventType === 'INSERT') {
           setTasks(prev => {
             if (prev.find(t => t.id === payload.new.id)) return prev;
-            return [...prev, payload.new];
+            const newItem = payload.new;
+            if (typeof newItem.checklistState === 'string') {
+              try { newItem.checklistState = JSON.parse(newItem.checklistState); } catch (e) {}
+            }
+            return [...prev, newItem];
           });
         } else if (payload.eventType === 'UPDATE') {
-          setTasks(prev => prev.map(t => t.id === payload.new.id ? payload.new : t));
+          setTasks(prev => prev.map(t => {
+            if (t.id === payload.new.id) {
+              const updated = { ...t, ...payload.new };
+              if (typeof updated.checklistState === 'string') {
+                try {
+                  updated.checklistState = JSON.parse(updated.checklistState);
+                } catch (e) {
+                  console.error('Failed to parse checklistState in UPDATE event', e);
+                }
+              }
+              return updated;
+            }
+            return t;
+          }));
         } else if (payload.eventType === 'DELETE') {
           setTasks(prev => prev.filter(t => t.id !== payload.old.id));
         }
@@ -81,6 +99,9 @@ function App() {
   // New Order State
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
   const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium', quantity: '' });
+
+  // Revert Order State
+  const [revertPrompt, setRevertPrompt] = useState(null);
 
   // Fetch master items when modal opens
   useEffect(() => {
@@ -151,6 +172,18 @@ function App() {
       }
 
       const reqs = stageRequirements[stageId];
+      
+      // Determine if backward movement
+      const flatStages = processes.flatMap(p => p.stages.map(s => s.id));
+      const currentIndex = flatStages.indexOf(draggedTask.stage);
+      const targetIndex = flatStages.indexOf(stageId);
+
+      if (targetIndex < currentIndex) {
+        setRevertPrompt({ task: draggedTask, targetStage: stageId });
+        setDraggedTask(null);
+        return;
+      }
+
       if (reqs && reqs.length > 0) {
         const missing = reqs.filter(r => !draggedTask.checklistState[r]);
         if (missing.length > 0) {
@@ -208,6 +241,28 @@ function App() {
       }
     }
     setDraggedTask(null);
+  };
+
+  const handleConfirmRevert = async (reasonText) => {
+    if (!revertPrompt) return;
+    const { task, targetStage } = revertPrompt;
+    
+    // Optimistic UI update
+    const updatedTasks = tasks.map(t => t.id === task.id ? { ...t, stage: targetStage } : t);
+    setTasks(updatedTasks);
+    
+    if (supabase) {
+      supabase.from('orders').update({ stage: targetStage }).eq('id', task.id).then(({ error }) => {
+        if (error) {
+          console.error("Update failed", error);
+          alert("Failed to revert stage in database: " + error.message);
+        }
+      });
+      
+      const stageName = processes.flatMap(p => p.stages).find(s => s.id === targetStage)?.title || targetStage;
+      logAudit(task.id, 'Reverted Stage', { to: stageName, stageId: targetStage, reason: reasonText });
+    }
+    setRevertPrompt(null);
   };
 
   const handleCreateOrder = async (e) => {
@@ -478,6 +533,14 @@ function App() {
           setNewOrderForm={setNewOrderForm}
           handleCreateOrder={handleCreateOrder}
           masterItems={masterItems}
+          language={language}
+        />
+
+        {/* Modal for Reverting Order */}
+        <RevertModal
+          revertPrompt={revertPrompt}
+          setRevertPrompt={setRevertPrompt}
+          handleConfirmRevert={handleConfirmRevert}
           language={language}
         />
       </main>
