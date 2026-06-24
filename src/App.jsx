@@ -416,7 +416,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <TutorialModal forceOpen={forceTutorial} setForceOpen={setForceTutorial} />
+      <TutorialModal forceOpen={forceTutorial} setForceOpen={setForceTutorial} currentView={currentView} setCurrentView={setCurrentView} language={language} />
       <TopNav currentView={currentView} setCurrentView={setCurrentView} handleLogout={handleLogout} session={session} language={language} setLanguage={setLanguage} />
       
       <div className="app-body">
@@ -457,7 +457,9 @@ function App() {
            currentView === 'master_data' ? <MasterData session={session} language={language} /> :
            (
             <>
-              <DashboardMetrics companyTasks={companyTasks} language={language} />
+              <div id="tour-metrics-container">
+                <DashboardMetrics companyTasks={companyTasks} language={language} />
+              </div>
 
               <div className="board-container">
                 <div className="board-header">
@@ -482,7 +484,7 @@ function App() {
                         <option value="Low">{language === 'id' ? 'Prioritas Rendah' : 'Low Priority'}</option>
                       </select>
                     </div>
-                    <button className="btn btn-primary" onClick={() => setShowNewOrderModal(true)}>
+                    <button className="btn btn-primary" id="tour-new-order-btn" onClick={() => setShowNewOrderModal(true)}>
                       <Plus size={16} /> {language === 'id' ? 'Pesanan Baru' : 'New Order'}
                     </button>
                   </div>
@@ -503,16 +505,18 @@ function App() {
                   <Activity size={16} /> <strong>{language === 'id' ? 'Tip:' : 'Tip:'}</strong> {language === 'id' ? 'Anda dapat menarik dan melepas kartu pesanan untuk memindahkannya ke tahap berikutnya. Klik kartu mana saja untuk mengelola checklist pemenuhannya!' : 'You can drag and drop order cards to move them to the next stage. Click any card to manage its fulfillment checklist!'}
                 </div>
 
-                <KanbanBoard 
-                  processes={processes}
-                  filteredTasks={filteredTasks}
-                  handleDragOver={handleDragOver}
-                  handleDrop={handleDrop}
-                  handleDragStart={handleDragStart}
-                  setSelectedOrder={setSelectedOrder}
-                  getSystemLabel={getSystemLabel}
-                  language={language}
-                />
+                <div id="tour-kanban-board">
+                  <KanbanBoard 
+                    processes={processes}
+                    filteredTasks={filteredTasks}
+                    handleDragOver={handleDragOver}
+                    handleDrop={handleDrop}
+                    handleDragStart={handleDragStart}
+                    setSelectedOrder={setSelectedOrder}
+                    getSystemLabel={getSystemLabel}
+                    language={language}
+                  />
+                </div>
               </div>
             </>
           )}

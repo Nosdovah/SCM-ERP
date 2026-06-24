@@ -61,10 +61,11 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
   return (
     <header className="top-nav">
       <div className="page-title">{currentView === 'board' ? (language === 'id' ? 'Alur Rantai Pasokan End-to-End' : 'End-to-End Supply Chain Workflow') : currentView === 'help' ? (language === 'id' ? 'Bantuan & Terminologi Sistem' : 'System Help & Terminology') : currentView === 'analytics' ? (language === 'id' ? 'Dasbor Analitik' : 'Analytics Dashboard') : currentView === 'master_data' ? (language === 'id' ? 'Manajemen Data Induk' : 'Master Data Management') : (language === 'id' ? 'Pengaturan Profil' : 'Profile Settings')}</div>
-      <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
+      <div className="user-profile" id="tour-top-profile" style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
         
         {/* Language Toggle */}
         <button 
+          id="tour-top-lang"
           onClick={() => setLanguage(language === 'en' ? 'id' : 'en')} 
           style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '0.2rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
           title={language === 'en' ? "Switch to Bahasa Indonesia" : "Beralih ke Bahasa Inggris"}
@@ -73,7 +74,7 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
         </button>
 
         {/* Notification Bell */}
-        <div style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: '0.5rem' }} onClick={handleOpenNotifications}>
+        <div id="tour-top-notifications" style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: '0.5rem' }} onClick={handleOpenNotifications}>
           <Bell size={20} color="white" />
           {unreadCount > 0 && (
             <span style={{ position: 'absolute', top: '-4px', right: '-4px', backgroundColor: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

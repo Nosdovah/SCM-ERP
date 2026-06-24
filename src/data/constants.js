@@ -44,8 +44,8 @@ export const processes = [
   },
   {
     id: 'proc-5',
-    titleEN: 'Process 5: EID Last Mile',
-    titleID: 'Proses 5: EID Last Mile',
+    titleEN: 'Conditional Import Flow: EID Last Mile',
+    titleID: 'Alur Kondisional Impor: EID Last Mile',
     stages: [
       { id: 'eid_planning', titleEN: 'MR Validation', titleID: 'Validasi MR', subtitleEN: 'IM/EPC', subtitleID: 'IM/EPC', system: 'sap', systemLabel: 'SAP', color: '#8b5cf6' },
       { id: 'eid_obd', titleEN: 'OBD Creation', titleID: 'Pembuatan OBD', subtitleEN: 'EPC', subtitleID: 'EPC', system: 'sap', systemLabel: 'SAP', color: '#3b82f6' },
@@ -54,8 +54,8 @@ export const processes = [
   },
   {
     id: 'proc-6',
-    titleEN: 'Process 6: Local 3PP Flow',
-    titleID: 'Proses 6: Alur 3PP Lokal',
+    titleEN: 'Conditional Local Flow: 3PP',
+    titleID: 'Alur Kondisional Lokal: 3PP',
     stages: [
       { id: 'tpp_request', titleEN: 'Request & Validate', titleID: 'Permintaan & Validasi', subtitleEN: 'Supply Local', subtitleID: 'Pasokan Lokal', system: 'boq', systemLabel: 'Sourcing', color: '#f59e0b' },
       { id: 'tpp_po', titleEN: 'Create/Change PO', titleID: 'Buat/Ubah PO', subtitleEN: 'Supply Local & EPC', subtitleID: 'Pasokan Lokal & EPC', system: 'sap', systemLabel: 'SAP', color: '#ef4444' },
@@ -648,8 +648,8 @@ export const dictionaryTerms = [
   { term: "Process 2: Material Delivery", desc: "The execution phase. This involves releasing inquiries to suppliers, creating actual Purchase Orders (PO), hub activities, and material call-offs.", descID: "Fase pelaksanaan. Ini melibatkan perilisan permintaan ke pemasok, pembuatan Pesanan Pembelian (PO) aktual, aktivitas hub, dan call-off material." },
   { term: "Process 3: Custom Clearance", desc: "The importation phase. Involves gathering pre-alerts, coordinating with customs brokers (LSP) for declarations, paying duties, and getting the materials released legally.", descID: "Fase impor. Melibatkan pengumpulan pra-peringatan, koordinasi dengan pialang pabean (LSP) untuk deklarasi, pembayaran bea, dan mendapatkan rilis material secara hukum." },
   { term: "Process 4: WH Management", desc: "The warehouse operations phase. Includes inbound Goods Receipt (GR), inventory reconciliation, stock adjustments, scrapping, and general capacity governance.", descID: "Fase operasi gudang. Meliputi Penerimaan Barang (GR) inbound, rekonsiliasi inventaris, penyesuaian stok, pemusnahan (scrapping), dan tata kelola kapasitas umum." },
-  { term: "Process 5: EID Last Mile", desc: "The physical dispatch phase. Involves validating Material Requests (MR), creating Outbound Deliveries (OBD), picking/packing in the WMS, Goods Issue (GI), and final transport to the site.", descID: "Fase pengiriman fisik. Melibatkan validasi Permintaan Material (MR), pembuatan Pengiriman Keluar (OBD), pengambilan/pengepakan di WMS, Pengeluaran Barang (GI), dan transportasi akhir ke lokasi." },
-  { term: "Process 6: Local 3PP Flow", desc: "A specialized alternate workflow for locally sourced materials. Involves sourcing local vendors, forecasting, creating local POs, and managing local deliveries.", descID: "Alur kerja alternatif khusus untuk material yang bersumber secara lokal. Melibatkan pencarian vendor lokal, perkiraan, pembuatan PO lokal, dan pengelolaan pengiriman lokal." }
+  { term: "Conditional Import Flow: EID Last Mile", desc: "The physical dispatch phase for imported items. Involves validating Material Requests (MR), creating Outbound Deliveries (OBD), picking/packing in the WMS, Goods Issue (GI), and final transport to the site.", descID: "Fase pengiriman fisik untuk barang impor. Melibatkan validasi Permintaan Material (MR), pembuatan Pengiriman Keluar (OBD), pengambilan/pengepakan di WMS, Pengeluaran Barang (GI), dan transportasi akhir ke lokasi." },
+  { term: "Conditional Local Flow: 3PP", desc: "A specialized alternate workflow for locally sourced materials. Involves sourcing local vendors, forecasting, creating local POs, and managing local deliveries.", descID: "Alur kerja alternatif khusus untuk material yang bersumber secara lokal. Melibatkan pencarian vendor lokal, perkiraan, pembuatan PO lokal, dan pengelolaan pengiriman lokal." }
 ];
 
 export const stageRequirements = {
