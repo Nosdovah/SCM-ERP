@@ -71,6 +71,55 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
     setIsUploading(false);
   };
 
+  const handleExpandForm = (itemId, itemFields) => {
+    if (activeFormId === itemId) {
+      setActiveFormId(null);
+      setFormData({});
+      return;
+    }
+    
+    const newFormData = {};
+    if (itemFields) {
+      itemFields.forEach(field => {
+        if (field.name === 'item_sku' && itemDetails?.sku) newFormData[field.name] = itemDetails.sku;
+        else if (field.name === 'item_name') newFormData[field.name] = selectedOrder.title;
+        else if (field.name === 'quantity' || field.name === 'qty' || field.name === 'qty_received' || field.name === 'damage_qty' || field.name === 'qty_diff' || field.name === 'qty_in' || field.name === 'qty_out') {
+           newFormData[field.name] = selectedOrder.quantity || 1;
+        }
+        else if (field.name === 'unit') newFormData[field.name] = 'Unit'; 
+        
+        // Auto-populate cross-process data
+        else if (field.name === 'batch_no' || field.name === 'do_ref' || field.name === 'do_no' || field.name === 'so_po_number' || field.name === 'po_ref') {
+          let foundValue = '';
+          if (selectedOrder.checklistState) {
+            for (const state of Object.values(selectedOrder.checklistState)) {
+               if (state?.data) {
+                 if (state.data[field.name]) {
+                   foundValue = state.data[field.name];
+                   break;
+                 }
+                 // Cross-mapping references
+                 if ((field.name === 'do_ref' || field.name === 'do_no') && state.data['do_no']) {
+                   foundValue = state.data['do_no'];
+                   break;
+                 }
+                 if ((field.name === 'po_ref' || field.name === 'so_po_number') && state.data['so_po_number']) {
+                   foundValue = state.data['so_po_number'];
+                   break;
+                 }
+               }
+            }
+          }
+          if (foundValue) newFormData[field.name] = foundValue;
+        }
+      });
+    }
+
+    setActiveFormId(itemId);
+    setFormData(newFormData);
+    setFileUploads({});
+  };
+
   const generatePO = () => {
     if (!itemDetails) {
       alert("Item details not found. Make sure this item exists in Master Data.");
@@ -261,7 +310,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                             const isExpanded = activeFormId === item.id;
                             return (
                               <div key={item.id} style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '0.5rem', backgroundColor: isChecked ? '#f0fdf4' : 'white' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: !isChecked ? 'pointer' : 'default' }} onClick={() => !isChecked && setActiveFormId(isExpanded ? null : item.id)}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: !isChecked ? 'pointer' : 'default' }} onClick={() => !isChecked && handleExpandForm(item.id, item.fields)}>
                                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
                                     <input type="checkbox" checked={isChecked} readOnly style={{ marginTop: '0.25rem', cursor: 'inherit' }} />
                                     <div style={{ fontSize: '0.875rem', color: isChecked ? '#15803d' : 'var(--text-main)', fontWeight: isChecked ? '500' : '400' }}>
@@ -300,7 +349,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                                       );
                                     })}
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-                                      <button type="button" onClick={() => setActiveFormId(null)} style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '0.375rem', cursor: 'pointer' }} disabled={isUploading}>{language === 'id' ? 'Batal' : 'Cancel'}</button>
+                                      <button type="button" onClick={() => handleExpandForm(item.id, null)} style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '0.375rem', cursor: 'pointer' }} disabled={isUploading}>{language === 'id' ? 'Batal' : 'Cancel'}</button>
                                       <button type="submit" style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer' }} disabled={isUploading}>
                                         {isUploading ? (language === 'id' ? 'Mengunggah...' : 'Uploading...') : (language === 'id' ? 'Simpan & Verifikasi' : 'Save & Verify')}
                                       </button>
