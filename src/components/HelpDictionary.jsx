@@ -5,32 +5,38 @@ import { dictionaryTerms } from '../data/constants';
 export default function HelpDictionary({ language, onOpenTutorial }) {
   const categorizedTerms = [
     {
-      title: "Process 1: Ordering Preparation",
+      titleEN: "Process 1: Ordering Preparation",
+      titleID: "Proses 1: Persiapan Pemesanan",
       definitionTerm: "Process 1: Ordering Preparation",
       terms: ["CPO / ESTA", "VC", "WBS", "NW", "BoQ", "PP", "RO", "OCL"]
     },
     {
-      title: "Process 2: Material Delivery",
+      titleEN: "Process 2: Material Delivery",
+      titleID: "Proses 2: Pengiriman Material",
       definitionTerm: "Process 2: Material Delivery",
       terms: ["EPC", "SLDM"]
     },
     {
-      title: "Process 3: Custom Clearance",
+      titleEN: "Process 3: Custom Clearance",
+      titleID: "Proses 3: Izin Kepabeanan (Custom Clearance)",
       definitionTerm: "Process 3: Custom Clearance",
       terms: []
     },
     {
-      title: "Process 4: WH Management & Logistics",
+      titleEN: "Process 4: WH Management & Logistics",
+      titleID: "Proses 4: Manajemen Gudang & Logistik",
       definitionTerm: "Process 4: WH Management",
       terms: ["LSP", "GR / GI"]
     },
     {
-      title: "Process 5: EID Last Mile",
+      titleEN: "Process 5: EID Last Mile",
+      titleID: "Proses 5: Pengiriman Jarak Dekat (EID Last Mile)",
       definitionTerm: "Process 5: EID Last Mile",
       terms: ["OBD", "POD", "MR"]
     },
     {
-      title: "Process 6: Local 3PP Flow",
+      titleEN: "Process 6: Local 3PP Flow",
+      titleID: "Proses 6: Alur Pemasok Pihak Ketiga Lokal (3PP Flow)",
       definitionTerm: "Process 6: Local 3PP Flow",
       terms: ["3PP"]
     }
@@ -133,7 +139,7 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
         {categorizedTerms.map((category) => {
           const definition = dictionaryTerms.find(t => t.term === category.definitionTerm);
           return (
-            <div key={category.title} className="dictionary-category">
+            <div key={category.titleEN} className="dictionary-category">
               <h3 style={{ 
                 fontSize: '1.25rem', 
                 color: 'var(--primary-color)', 
@@ -141,7 +147,7 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
                 paddingBottom: '0.5rem',
                 marginBottom: '0.5rem'
               }}>
-                {category.title}
+                {language === 'id' ? category.titleID : category.titleEN}
               </h3>
               
               {definition && (
@@ -155,7 +161,7 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
                   borderRadius: '0.5rem',
                   borderLeft: '4px solid var(--accent-color)'
                 }}>
-                  {definition.desc}
+                  {language === 'id' && definition.descID ? definition.descID : definition.desc}
                 </p>
               )}
 
@@ -167,7 +173,7 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
                     return (
                       <div className="term-card" key={termName} style={{ margin: 0 }}>
                         <div className="term-title">{termData.term}</div>
-                        <div className="term-desc">{termData.desc}</div>
+                        <div className="term-desc">{language === 'id' && termData.descID ? termData.descID : termData.desc}</div>
                       </div>
                     );
                   })}
