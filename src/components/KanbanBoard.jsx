@@ -21,7 +21,7 @@ export default function KanbanBoard({
               <ChevronRight size={64} />
             </div>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div id={`tour-${process.id}`} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{
               fontSize: '1.5rem', 
               fontWeight: '700', 

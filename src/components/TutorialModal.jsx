@@ -8,85 +8,85 @@ export default function TutorialModal({ forceOpen, setForceOpen, currentView, se
 
   const steps = [
     {
-      titleEN: "Welcome to MOAI ERP",
-      titleID: "Selamat Datang di MOAI ERP",
-      descEN: "Your complete End-to-End Supply Chain Management System. Let's take a quick interactive tour of the features.",
-      descID: "Sistem Manajemen Rantai Pasokan (SCM) End-to-End lengkap Anda. Mari ikuti tur interaktif cepat dari fitur-fiturnya.",
+      titleEN: "MOAI ERP: End-to-End SCM Guide",
+      titleID: "MOAI ERP: Panduan SCM End-to-End",
+      descEN: "Welcome! This interactive guide will walk you through the actual business logic of each SCM process step on our Kanban board, with detailed real-world examples.",
+      descID: "Selamat datang! Panduan interaktif ini akan membawa Anda membedah logika bisnis sesungguhnya di setiap tahapan SCM pada papan Kanban, lengkap dengan contoh kasus detail.",
       selector: null,
       placement: 'center',
       view: 'board'
     },
     {
-      titleEN: "Navigation Panel",
-      titleID: "Panel Navigasi Utama",
-      descEN: "Use the sidebar to jump between modules: Supply Chain Kanban, Master Data Setup, Analytics, and Help.",
-      descID: "Gunakan sidebar untuk berpindah modul: Kanban Rantai Pasokan, Pengaturan Data Induk, Analitik, dan Bantuan.",
-      selector: '#tour-sidebar',
+      titleEN: "Process 1: Ordering Preparation & Planning",
+      titleID: "Proses 1: Persiapan & Perencanaan Pesanan",
+      descEN: "Here, project orders are initiated and verified against contracts. Before moving to Process 2, you must enter commercial details (Value Contract #, WBS Project Code, and ESTA PO).\n\n💡 Example: Sourcing a motherboard for site XYZ requires linking VC-100293 and project code WBS-XYZ-99. Without these, the pipeline blocks further progression.",
+      descID: "Di sini, pesanan proyek diinisiasi dan diperiksa kelayakannya. Sebelum kartu dapat ditarik ke Proses 2, Anda wajib melengkapi data kontrak komersial (Value Contract/VC, kode proyek WBS, dan nomor ESTA PO).\n\n💡 Contoh: Pengadaan motherboard untuk proyek XYZ mewajibkan Anda mengisi nomor kontrak VC-100293 dan kode proyek WBS-XYZ-99. Tanpa data ini, sistem akan memblokir pesanan.",
+      selector: '#tour-proc-1',
       placement: 'right',
       view: 'board'
     },
     {
-      titleEN: "KPI Dashboard",
+      titleEN: "Process 2: Material Delivery (Supplier PO)",
+      titleID: "Proses 2: Pengiriman Material (Logistik Supplier)",
+      descEN: "Once planned, the EPC team issues a formal Purchase Order (PO) to the global supplier. The vendor processes the order and provides pre-alert shipping details.\n\n💡 Example: For imports, the user must upload the Delivery Order (DO) and Packing List as official shipping proofs before proceeding to customs.",
+      descID: "Setelah perencanaan disetujui, tim EPC menerbitkan Purchase Order (PO) resmi ke supplier global. Pemasok memproses barang dan mengirimkan berkas pengiriman awal.\n\n💡 Contoh: Untuk barang impor, user wajib mengunggah dokumen Delivery Order (DO) dan Packing List resmi dari supplier sebagai bukti fisik pengapalan sebelum masuk bea cukai.",
+      selector: '#tour-proc-2',
+      placement: 'right',
+      view: 'board'
+    },
+    {
+      titleEN: "Process 3: Custom Clearance & Duties",
+      titleID: "Proses 3: Izin Kepabeanan (Custom Clearance)",
+      descEN: "Applies exclusively to imported cargo. The customs team coordinates code verification (HS code), duty payments, and import permit releases.\n\n💡 Example: The user uploads the official Import Permit (PDF) and enters the Air Waybill (AWB) number (e.g. AWB-889922). Once cleared, materials are released to domestic transit.",
+      descID: "Berlaku khusus untuk kargo impor dari luar negeri. Tim pabean melakukan verifikasi kode HS, pembayaran pajak/bea masuk, dan penerbitan izin rilis.\n\n💡 Contoh: User mengunggah berkas pdf Izin Impor (Import Permit) resmi dan menginput nomor pelacakan Air Waybill (AWB-889922). Setelah beres, barang baru dapat dikirim ke gudang lokal.",
+      selector: '#tour-proc-3',
+      placement: 'right',
+      view: 'board'
+    },
+    {
+      titleEN: "Process 4: Warehouse Management & Stock GR",
+      titleID: "Proses 4: Manajemen Gudang & Penerimaan Stok (GR)",
+      descEN: "Physical receipt and storage log. When an order card lands here, the system performs a Goods Receipt (GR) and automatically increments the inventory stock in Master Data.\n\n💡 Example: Once motherboard items physically arrive at the warehouse, staff verify the inventory and sign the Goods Receipt Note (GRN). Stock increases from 0 to 150 units in the database.",
+      descID: "Fase pencatatan fisik barang masuk gudang. Begitu kartu pesanan ditarik ke kolom ini (Goods Receipt/GR), sistem secara otomatis menambahkan kuantitas persediaan barang pada Master Data.\n\n💡 Contoh: Setelah item motherboard tiba secara fisik di gudang, staff mencocokkan jumlah dan menandatangani GRN. Stok item tersebut di database akan bertambah otomatis dari 0 menjadi 150 unit.",
+      selector: '#tour-proc-4',
+      placement: 'right',
+      view: 'board'
+    },
+    {
+      titleEN: "Conditional Import Flow: EID Last Mile",
+      titleID: "Alur Kondisional Impor: EID Last Mile",
+      descEN: "The final stretch for imported goods. Materials are dispatched from the main warehouse straight to the construction site.\n\n💡 Example: A driver transports the physical motherboard to the installation site and uploads the signed Proof of Delivery (POD) document to complete the import workflow.",
+      descID: "Jalur akhir khusus pengiriman barang impor. Material yang sudah tercatat di gudang utama langsung dikirim ke lokasi proyek pembangunan.\n\n💡 Contoh: Kurir mengirimkan motherboard ke lokasi pemasangan (site) dan mengunggah dokumen Proof of Delivery (POD) yang telah ditandatangani di lokasi untuk menyelesaikan siklus impor.",
+      selector: '#tour-proc-5',
+      placement: 'right',
+      view: 'board'
+    },
+    {
+      titleEN: "Conditional Local Flow: 3PP",
+      titleID: "Alur Kondisional Lokal: 3PP",
+      descEN: "Alternate bypass route for locally-sourced goods. Since local orders do not cross borders, they skip Process 2 & 3 completely, jumping directly from Process 1 to Process 6.\n\n💡 Example: A local contractor delivers materials directly to the project. After validating the delivery in Process 6, the order is pulled BACK to Process 4 to log the stock entry.",
+      descID: "Jalur khusus pengadaan lokal. Karena barang dibeli di dalam negeri, pesanan tidak membutuhkan proses pabean (skip Proses 2 & 3) dan langsung melompat dari Proses 1 ke Proses 6.\n\n💡 Contoh: Kontraktor lokal mengirim material langsung. Setelah verifikasi alur lokal di Proses 6 selesai, kartu ditarik mundur kembali ke Proses 4 Gudang untuk mencatatkan stok masuknya.",
+      selector: '#tour-proc-6',
+      placement: 'right',
+      view: 'board'
+    },
+    {
+      titleEN: "KPI Dashboard Performance",
       titleID: "Dasbor Kinerja Utama (KPI)",
-      descEN: "Monitor supply chain performance, active orders, completion rates, and average lead times in real-time.",
-      descID: "Pantau performa rantai pasokan, pesanan aktif, rasio penyelesaian, dan rata-rata waktu tunggu secara real-time.",
+      descEN: "Monitor aggregate SCM metrics: total active orders, completed jobs, critical/low stocks, and average lead times to catch bottlenecks early.\n\n💡 Example: If the average Lead Time in Process 3 (Customs) exceeds 10 days, managers can spot the delay here and take immediate actions with the customs broker.",
+      descID: "Pantau metrik SCM gabungan: total pesanan aktif, rasio penyelesaian, barang dengan stok kritis, serta rata-rata lead time untuk mendeteksi kendala operasional.\n\n💡 Contoh: Jika rata-rata Lead Time di Proses 3 (Pabean) membengkak hingga 10 hari, manajemen bisa langsung mendeteksi hambatan dokumen di sini dan menegur agen pialang.",
       selector: '#tour-metrics-container',
       placement: 'bottom',
       view: 'board'
     },
     {
-      titleEN: "Initiate New Order",
-      titleID: "Buat Pesanan Baru",
-      descEN: "Click here to add a new order, specify product SKUs, priority levels, quantity, and assignees.",
-      descID: "Klik di sini untuk membuat pesanan baru, tentukan SKU produk, tingkat prioritas, kuantitas, dan penanggung jawab.",
-      selector: '#tour-new-order-btn',
-      placement: 'left',
-      view: 'board'
-    },
-    {
-      titleEN: "Fulfillment Pipeline",
-      titleID: "Saluran Papan Kerja Kanban",
-      descEN: "Manage active orders by dragging and dropping cards across pipeline stages. Each stage requires completing specific documentation checklist tasks.",
-      descID: "Kelola pesanan aktif dengan menyeret dan melepas kartu di sepanjang tahapan. Setiap tahap mengharuskan penyelesaian daftar periksa dokumen.",
-      selector: '#tour-kanban-board',
-      placement: 'top',
-      view: 'board'
-    },
-    {
-      titleEN: "Master Data Management",
-      titleID: "Manajemen Data Induk",
-      descEN: "Configure and register items, SKUs, pricing, initial stocks, and Suppliers before starting fulfillment orders.",
-      descID: "Konfigurasikan dan daftarkan barang, SKU, harga, stok awal, dan Pemasok sebelum memulai pesanan pemenuhan.",
+      titleEN: "Master Data Registry",
+      titleID: "Pendaftaran Data Induk (Master Data)",
+      descEN: "Configure and register items, SKU categories, prices, initial stocks, and Suppliers before initiating orders.\n\n💡 Example: Add a new SKU (e.g. CPU-AMD-R7) with its price and source Supplier. This product will instantly appear in the dropdown menu when creating new transactions.",
+      descID: "Modul konfigurasi database barang dan rekanan. Sebelum membuat pesanan, pastikan Anda mendaftarkan kode SKU barang, kategori, harga unit, dan data supplier.\n\n💡 Contoh: Daftarkan SKU baru (misal CPU-AMD-R7) beserta harga dan supplier terkait. Produk tersebut akan langsung muncul di dropdown pilihan saat Anda membuat pesanan baru.",
       selector: '#tour-sidebar-master',
       placement: 'right',
       view: 'master_data'
-    },
-    {
-      titleEN: "Lead Time Analytics",
-      titleID: "Analitik Waktu Tunggu",
-      descEN: "Identify operational bottlenecks and view lead time performance across the entire supply chain phases.",
-      descID: "Identifikasi hambatan operasional dan lihat kinerja waktu tunggu (lead time) di seluruh fase rantai pasokan.",
-      selector: '#tour-sidebar-analytics',
-      placement: 'right',
-      view: 'analytics'
-    },
-    {
-      titleEN: "Official User Manual",
-      titleID: "Buku Panduan & Glosarium",
-      descEN: "Lookup SCM acronyms (CPO, VC, WBS, GR/GI) and access the complete user manual documentation anytime.",
-      descID: "Cari singkatan SCM (CPO, VC, WBS, GR/GI) dan akses dokumentasi lengkap panduan pengguna kapan saja.",
-      selector: '#tour-sidebar-help',
-      placement: 'right',
-      view: 'help'
-    },
-    {
-      titleEN: "Profile & Language Switcher",
-      titleID: "Pengaturan Profil & Bahasa",
-      descEN: "Switch between English and Indonesian, check notifications, and manage profile configurations here.",
-      descID: "Beralih antara Bahasa Inggris dan Indonesia, periksa notifikasi, dan kelola konfigurasi profil di sini.",
-      selector: '#tour-top-profile',
-      placement: 'bottom',
-      view: 'board'
     }
   ];
 
@@ -113,13 +113,18 @@ export default function TutorialModal({ forceOpen, setForceOpen, currentView, se
     }
     const el = document.querySelector(step.selector);
     if (el) {
-      const rect = el.getBoundingClientRect();
-      setTargetRect({
-        top: rect.top,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height
-      });
+      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      
+      // Allow scroll animation to finish
+      setTimeout(() => {
+        const rect = el.getBoundingClientRect();
+        setTargetRect({
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height
+        });
+      }, 350);
     } else {
       setTargetRect(null);
     }
