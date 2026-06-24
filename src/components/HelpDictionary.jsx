@@ -115,6 +115,39 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
                 <li><strong>Step 8 (Process 4):</strong> {language === 'id' ? 'Selesaikan checklist dokumen Gudang (GRN, Put Away List, GI) sebelum order masuk ke tahap Warehouse Management. Di sini stok akan otomatis di-update.' : 'Complete the Warehouse document checklist (GRN, Put Away List, GI) before the order enters Warehouse Management. Inventory stock updates automatically here.'}</li>
                 <li><strong>Step 9 & 10 (Process 5 & 6):</strong> {language === 'id' ? 'Untuk jalur EID Last Mile dan Local 3PP Flow, ikuti pola yang sama: klik pesanan, lengkapi dokumen spesifik, lalu geser kartu hingga kolom terakhir.' : 'For EID Last Mile and Local 3PP Flow, follow the same pattern: click the order, complete specific documents, then drag the card to the final column.'}</li>
               </ul>
+
+              {/* Note: Import vs Local Routing */}
+              <div style={{
+                marginTop: '1.5rem',
+                padding: '1rem',
+                backgroundColor: '#eff6ff',
+                borderLeft: '4px solid #3b82f6',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem'
+              }}>
+                <strong style={{ color: '#1e40af', display: 'block', marginBottom: '0.5rem' }}>
+                  💡 {language === 'id' ? 'Keterangan Penting Alur Kerja (Impor vs Lokal):' : 'Important Workflow Routing (Import vs Local):'}
+                </strong>
+                <div style={{ margin: 0, color: '#1e3a8a', lineHeight: '1.5' }}>
+                  {language === 'id' ? (
+                    <>
+                      <strong>1. Jalur Impor (Linear):</strong> Pesanan mengikuti alur lurus dari <strong>Proses 1 → 2 → 3 → 4 → 5</strong>. Barang dikirim dari hub global, melewati pabean/customs, masuk gudang utama, lalu dikirim ke lokasi.<br/>
+                      <strong style={{ display: 'block', marginTop: '0.5rem' }}>2. Jalur Lokal (Non-Linear):</strong> Pesanan lokal dibeli langsung dari vendor dalam negeri. Jalurnya adalah <strong>Proses 1 → langsung lompat ke Proses 6</strong> (Local 3PP). Setelah proses pengiriman lokal selesai, barang masuk ke <strong>Proses 4</strong> untuk dicatat stoknya.
+                      <span style={{ display: 'block', marginTop: '0.5rem', color: '#b91c1c', fontWeight: '600' }}>
+                        *Catatan: Saat memindahkan kartu lokal dari Proses 6 kembali ke Proses 4, sistem akan memicu jendela verifikasi kemunduran tahap (Revert Stage). Masukkan keterangan alasan seperti "Penerimaan stok lokal di gudang" untuk melanjutkan.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <strong>1. Import Route (Linear):</strong> Orders follow the straight path of <strong>Process 1 → 2 → 3 → 4 → 5</strong>. Materials are shipped from global hubs, clear customs, enter the main warehouse, and dispatch to sites.<br/>
+                      <strong style={{ display: 'block', marginTop: '0.5rem' }}>2. Local Route (Non-Linear):</strong> Local orders are sourced domestically. They go from <strong>Process 1 → jump directly to Process 6</strong> (Local 3PP). Once local shipping completes, they return to <strong>Process 4</strong> for warehouse inventory logging.
+                      <span style={{ display: 'block', marginTop: '0.5rem', color: '#b91c1c', fontWeight: '600' }}>
+                        *Note: When dragging a local card back from Process 6 to Process 4, the system will trigger the Revert Stage verification modal. Enter a reason like "Receiving local stock in warehouse" to proceed.
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </details>
 
