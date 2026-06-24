@@ -205,6 +205,7 @@ export const clarificationChecklist = [
   },
   { id: 'eid_6', textEN: 'WBS Reservation & Transfer stock (MB1B/CN22)', textID: 'Reservasi WBS & Transfer Stok (MB1B/CN22)' },
   { id: 'eid_7', textEN: 'Send OBD daily report', textID: 'Kirim laporan harian OBD' },
+  { id: 'eid_8', textEN: 'Pick and Pack items in Warehouse', textID: 'Pengambilan dan Pengemasan barang di Gudang' },
   { id: 'eid_9', textEN: 'GI in WMS and Deliver to site', textID: 'Pengeluaran (GI) di WMS dan Kirim ke site' },
 // Process 2 Documents
   { id: 'doc_2_a', textEN: 'Delivery Order (DO)', textID: 'Surat Pengantar Pengiriman (DO)', requiresInput: true, fields: [
