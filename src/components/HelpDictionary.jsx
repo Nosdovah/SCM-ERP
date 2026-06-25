@@ -191,27 +191,51 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
               <h4 style={{ color: 'var(--primary-color)', margin: 0, fontWeight: '700', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 🖼️ {language === 'id' ? 'Bagan Alur SCM (Canva Visual Guide)' : 'SCM Flowchart (Canva Visual Guide)'}
               </h4>
-              <a 
-                href="/canva_guide.webp" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="btn"
-                style={{ 
-                  fontSize: '0.75rem', 
-                  color: 'var(--primary-color)', 
-                  border: '1px solid var(--primary-color)', 
-                  backgroundColor: 'transparent',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '0.375rem',
-                  textDecoration: 'none', 
-                  fontWeight: '600',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(79, 70, 229, 0.05)' }}
-                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
-              >
-                {language === 'id' ? 'Buka Gambar Penuh ↗' : 'Open Full Image ↗'}
-              </a>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <a 
+                  href="https://canva.link/wdzwswsu92h7mln" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="btn"
+                  title={language === 'id' ? 'Ganti link ini dengan link Canva Anda' : 'Replace this with your Canva link'}
+                  style={{ 
+                    fontSize: '0.75rem', 
+                    color: 'white', 
+                    backgroundColor: '#00c4cc',
+                    border: '1px solid #00c4cc', 
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    textDecoration: 'none', 
+                    fontWeight: '600',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#00a3a9'; e.currentTarget.style.borderColor = '#00a3a9'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#00c4cc'; e.currentTarget.style.borderColor = '#00c4cc'; }}
+                >
+                  {language === 'id' ? 'Buka di Canva ↗' : 'Open in Canva ↗'}
+                </a>
+                <a 
+                  href="/canva_guide.webp" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="btn"
+                  style={{ 
+                    fontSize: '0.75rem', 
+                    color: 'var(--primary-color)', 
+                    border: '1px solid var(--primary-color)', 
+                    backgroundColor: 'transparent',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    textDecoration: 'none', 
+                    fontWeight: '600',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(79, 70, 229, 0.05)' }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                >
+                  {language === 'id' ? 'Buka Gambar Penuh ↗' : 'Open Full Image ↗'}
+                </a>
+              </div>
             </div>
             <div style={{ 
               overflow: 'hidden', 
