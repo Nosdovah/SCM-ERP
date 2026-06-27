@@ -68,86 +68,57 @@ export default function KanbanBoard({
   };
 
   return (
-    <div className="board-columns">
-      {/* Main Linear Processes (1 - 4) */}
-      {processes.slice(0, 4).map((process, pIndex) => (
-        <React.Fragment key={process.id}>
-          {pIndex > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', color: 'var(--border-color)', margin: '0 1.5rem', marginTop: '2rem' }}>
-              <ChevronRight size={48} />
-            </div>
-          )}
-          <div id={`tour-${process.id}`} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{
-              fontSize: '1.25rem', 
-              fontWeight: '700', 
-              color: 'var(--primary-color)',
-              paddingLeft: '0.75rem',
-              borderLeft: '5px solid var(--accent-color)'
-            }}>
-              {language === 'id' ? (process.titleID || process.title) : (process.titleEN || process.title)}
-            </div>
-            <div style={{ display: 'flex', gap: '1.25rem', flex: 1 }}>
-              {process.stages.map((stage, sIndex) => renderStage(stage, pIndex, sIndex))}
-            </div>
-          </div>
-        </React.Fragment>
-      ))}
-
-      {/* Separator to Conditional Branches */}
-      <div style={{ display: 'flex', alignItems: 'center', color: 'var(--border-color)', margin: '0 1.5rem', marginTop: '2rem' }}>
-        <ChevronRight size={48} />
-      </div>
-
-      {/* Parallel Conditional Branches (Process 5 & 6 Stacked Vertically) */}
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        gap: '2rem', 
-        borderLeft: '2px dashed rgba(79, 70, 229, 0.3)', 
-        paddingLeft: '1.5rem',
-        justifyContent: 'center'
-      }}>
-        <div style={{ 
-          fontSize: '0.8rem', 
-          fontWeight: '800', 
-          color: 'var(--accent-color)', 
-          letterSpacing: '0.08em', 
-          textTransform: 'uppercase' 
-        }}>
-          {language === 'id' ? 'Cabang Alur Kondisional' : 'Conditional Flow Branches'}
-        </div>
-
-        {[processes[4], processes[5]].map((process, idx) => (
+    <div className="board-columns" style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, max-content)',
+      gap: '2rem',
+      paddingBottom: '2rem',
+      alignItems: 'start'
+    }}>
+      {processes.map((process, idx) => {
+        const isConditional = idx >= 4;
+        return (
           <div 
             key={process.id} 
             id={`tour-${process.id}`} 
             style={{ 
               display: 'flex', 
               flexDirection: 'column', 
-              gap: '0.75rem',
-              padding: '1rem',
-              backgroundColor: 'rgba(79, 70, 229, 0.02)',
+              gap: '1rem',
+              padding: '1.5rem',
+              backgroundColor: isConditional ? 'rgba(79, 70, 229, 0.02)' : 'white',
               borderRadius: '0.75rem',
-              border: '1px solid rgba(79, 70, 229, 0.08)',
+              border: isConditional ? '1px solid rgba(79, 70, 229, 0.08)' : '1px solid var(--border-color)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
             }}
           >
             <div style={{
-              fontSize: '1.05rem', 
+              fontSize: '1.1rem', 
               fontWeight: '700', 
-              color: 'var(--primary-color)',
-              paddingLeft: '0.5rem',
-              borderLeft: '4px solid var(--accent-color)'
+              color: isConditional ? 'var(--primary-color)' : 'var(--text-main)',
+              paddingLeft: '0.75rem',
+              borderLeft: `4px solid ${isConditional ? 'var(--accent-color)' : 'var(--border-color)'}`
             }}>
+              {isConditional && (
+                <div style={{ 
+                  fontSize: '0.75rem', 
+                  fontWeight: '800', 
+                  color: 'var(--accent-color)', 
+                  letterSpacing: '0.05em', 
+                  textTransform: 'uppercase',
+                  marginBottom: '0.25rem'
+                }}>
+                  {language === 'id' ? 'Alur Kondisional' : 'Conditional Flow'}
+                </div>
+              )}
               {language === 'id' ? (process.titleID || process.title) : (process.titleEN || process.title)}
             </div>
             <div style={{ display: 'flex', gap: '1.25rem' }}>
-              {process.stages.map((stage, sIndex) => renderStage(stage, 4 + idx, sIndex))}
+              {process.stages.map((stage, sIndex) => renderStage(stage, idx, sIndex))}
             </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
