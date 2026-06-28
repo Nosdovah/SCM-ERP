@@ -4,7 +4,8 @@ import { Activity, Clock, TrendingUp, AlertTriangle, CheckCircle, Package, Dolla
 import { processes } from '../data/constants';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  BarChart, Bar, RadialBarChart, RadialBar, Cell, ReferenceLine, Legend, PieChart, Pie
+  BarChart, Bar, RadialBarChart, RadialBar, Cell, ReferenceLine, Legend, PieChart, Pie,
+  AreaChart, Area
 } from 'recharts';
 
 // Dynamic chart data will be calculated in fetchAnalyticsData based on real system metrics
@@ -388,13 +389,23 @@ export default function Analytics({ session, language }) {
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Invoice Cycle Time (Target {'<'} 24h)</div>
           <div style={{ height: '150px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={metrics.chartData.invoiceCycleData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="batch" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                <Tooltip cursor={{fill: 'transparent'}} />
-                <Bar dataKey="time" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
+              <AreaChart data={metrics.chartData.invoiceCycleData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.5}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                <XAxis dataKey="batch" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6b7280'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6b7280'}} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                  labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px' }}
+                />
+                <ReferenceLine y={24} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'insideTopLeft', value: 'Target < 24h', fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }} />
+                <Area type="monotone" dataKey="time" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorTime)" activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }} />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>

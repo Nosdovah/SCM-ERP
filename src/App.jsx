@@ -100,7 +100,7 @@ function App() {
 
   // New Order State
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
-  const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium', quantity: '' });
+  const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium', quantity: '', orderType: 'import' });
 
   // Revert Order State
   const [revertPrompt, setRevertPrompt] = useState(null);
@@ -398,7 +398,7 @@ function App() {
     const newTask = {
       id: newId,
       title: newOrderForm.title || 'New Unnamed Order',
-      stage: 'cpo_esta',
+      stage: newOrderForm.orderType === 'local' ? 'tpp_request' : 'cpo_esta',
       system: 'boq',
       priority: newOrderForm.priority,
       assignee: newOrderForm.assignee || 'Unassigned',
@@ -410,7 +410,7 @@ function App() {
     // Optimistic UI update
     setTasks([newTask, ...tasks]);
     setShowNewOrderModal(false);
-    setNewOrderForm({ title: '', assignee: '', priority: 'Medium', quantity: '' });
+    setNewOrderForm({ title: '', assignee: '', priority: 'Medium', quantity: '', orderType: 'import' });
 
     if (supabase) {
       try {

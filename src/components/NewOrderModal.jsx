@@ -50,13 +50,22 @@ export default function NewOrderModal({
                 <input required type="number" min="1" max={masterItems.find(i => (i.name || i) === newOrderForm.title)?.stock_on_hand ?? ''} value={newOrderForm.quantity} onChange={e => setNewOrderForm({...newOrderForm, quantity: e.target.value === '' ? '' : parseInt(e.target.value)})} />
               </div>
             </div>
-            <div className="form-group">
-              <label>{language === 'id' ? 'Prioritas' : 'Priority'}</label>
-              <select value={newOrderForm.priority} onChange={e => setNewOrderForm({...newOrderForm, priority: e.target.value})}>
-                <option value="Low">{language === 'id' ? 'Rendah' : 'Low'}</option>
-                <option value="Medium">{language === 'id' ? 'Sedang' : 'Medium'}</option>
-                <option value="High">{language === 'id' ? 'Tinggi' : 'High'}</option>
-              </select>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>{language === 'id' ? 'Prioritas' : 'Priority'}</label>
+                <select value={newOrderForm.priority} onChange={e => setNewOrderForm({...newOrderForm, priority: e.target.value})}>
+                  <option value="Low">{language === 'id' ? 'Rendah' : 'Low'}</option>
+                  <option value="Medium">{language === 'id' ? 'Sedang' : 'Medium'}</option>
+                  <option value="High">{language === 'id' ? 'Tinggi' : 'High'}</option>
+                </select>
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>{language === 'id' ? 'Tipe Pesanan / Alur' : 'Order Type / Route'}</label>
+                <select value={newOrderForm.orderType || 'import'} onChange={e => setNewOrderForm({...newOrderForm, orderType: e.target.value})}>
+                  <option value="import">{language === 'id' ? 'Impor (Mulai di Proses 1)' : 'Import (Start at Process 1)'}</option>
+                  <option value="local">{language === 'id' ? 'Lokal (Mulai di 3PP)' : 'Local (Start at 3PP)'}</option>
+                </select>
+              </div>
             </div>
             <div className="modal-actions">
               <button type="button" className="btn" style={{border: '1px solid var(--border-color)'}} onClick={() => setShowNewOrderModal(false)}>{language === 'id' ? 'Batal' : 'Cancel'}</button>
