@@ -180,7 +180,12 @@ function App() {
       const currentIndex = flatStages.indexOf(draggedTask.stage);
       const targetIndex = flatStages.indexOf(stageId);
 
-      if (targetIndex < currentIndex) {
+      // Exception: 3PP (Proc 6) going back to WH (Proc 4) is a normal forward local flow
+      const isLocalReturnToWH = 
+        processes[5].stages.some(s => s.id === draggedTask.stage) && 
+        processes[3].stages.some(s => s.id === stageId);
+
+      if (targetIndex < currentIndex && !isLocalReturnToWH) {
         setRevertPrompt({ task: draggedTask, targetStage: stageId });
         setDraggedTask(null);
         return;
@@ -304,7 +309,12 @@ function App() {
     const currentIndex = flatStages.indexOf(task.stage);
     const targetIndex = flatStages.indexOf(stageId);
 
-    if (targetIndex < currentIndex) {
+    // Exception: 3PP (Proc 6) going back to WH (Proc 4) is a normal forward local flow
+    const isLocalReturnToWH = 
+      processes[5].stages.some(s => s.id === task.stage) && 
+      processes[3].stages.some(s => s.id === stageId);
+
+    if (targetIndex < currentIndex && !isLocalReturnToWH) {
       setRevertPrompt({ task: task, targetStage: stageId });
       return;
     }
