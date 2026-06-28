@@ -357,7 +357,7 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                                   {isChecked && <span style={{ fontSize: '0.75rem', backgroundColor: '#10b981', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>{language === 'id' ? 'Terverifikasi' : 'Verified'}</span>}
                                 </div>
                                 
-                                {isExpanded && !isChecked && (
+                                {isExpanded && (
                                   <form onSubmit={(e) => handleFormSubmit(e, item.id)} style={{ marginTop: '1rem', borderTop: '1px dashed var(--border-color)', paddingTop: '1rem' }}>
                                     {(item.fields || []).map(field => {
                                       const currentFieldLabel = language === 'id' ? (field.labelID || field.label) : (field.labelEN || field.label);
@@ -393,21 +393,33 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
                                   </form>
                                 )}
 
-                                {isChecked && itemData && (
-                                  <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: '0.375rem', fontSize: '0.8rem' }}>
-                                    {Object.entries(itemData || {}).map(([key, val]) => {
-                                      const isLink = val && typeof val === 'string' && val.startsWith('http');
-                                      const matchingField = (item.fields || []).find(f => f.name === key);
-                                      const currentKeyLabel = matchingField ? (language === 'id' ? (matchingField.labelID || matchingField.label) : (matchingField.labelEN || matchingField.label)) : key;
-                                      return (
-                                        <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.25rem' }}>
-                                          <span style={{ color: 'var(--text-muted)' }}>{currentKeyLabel}:</span>
-                                          <span style={{ fontWeight: '500', color: 'var(--text-main)', maxWidth: '60%', textAlign: 'right', wordBreak: 'break-all' }}>
-                                            {isLink ? <a href={val} target="_blank" rel="noreferrer" style={{ color: 'var(--primary-color)', textDecoration: 'underline' }}>{language === 'id' ? 'Lihat Dokumen' : 'View Document'}</a> : val}
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
+                                {isChecked && itemData && !isExpanded && (
+                                  <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: '0.375rem', fontSize: '0.8rem', position: 'relative' }}>
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveFormId(item.id);
+                                        setFormData(itemData);
+                                      }}
+                                      style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', zIndex: 1 }}
+                                    >
+                                      {language === 'id' ? 'Edit' : 'Edit'}
+                                    </button>
+                                    <div style={{ marginTop: '1rem' }}>
+                                      {Object.entries(itemData || {}).map(([key, val]) => {
+                                        const isLink = val && typeof val === 'string' && val.startsWith('http');
+                                        const matchingField = (item.fields || []).find(f => f.name === key);
+                                        const currentKeyLabel = matchingField ? (language === 'id' ? (matchingField.labelID || matchingField.label) : (matchingField.labelEN || matchingField.label)) : key;
+                                        return (
+                                          <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.25rem' }}>
+                                            <span style={{ color: 'var(--text-muted)' }}>{currentKeyLabel}:</span>
+                                            <span style={{ fontWeight: '500', color: 'var(--text-main)', maxWidth: '60%', textAlign: 'right', wordBreak: 'break-all' }}>
+                                              {isLink ? <a href={val} target="_blank" rel="noreferrer" style={{ color: 'var(--primary-color)', textDecoration: 'underline' }}>{language === 'id' ? 'Lihat Dokumen' : 'View Document'}</a> : val}
+                                            </span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
                                 )}
                               </div>
