@@ -193,46 +193,83 @@ export default function Analytics({ session, language }) {
       const avgDsoDays = completedCount > 0 ? Math.round(totalOrderDurationMs / (1000 * 60 * 60 * 24)) : 0;
       const avgInvoiceCycleHrs = finalStageCount > 0 ? (totalFinalStageMs / (1000 * 60 * 60)).toFixed(1) : 0;
 
-      // Generate dynamic chart data based on real numbers
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const baseOFR = parseFloat(ofrRate);
-      const orderFulfillmentData = days.map((day, idx) => ({
-        day,
-        rate: idx === days.length - 1 ? baseOFR : Math.min(100, Math.max(0, baseOFR + (Math.random() * 4 - 2)))
+      // Generate dynamic chart data based on EXACT real numbers from the database
+      const now = new Date();
+      const last7Days = Array.from({length: 7}, (_, i) => {
+         const d = new Date(now);
+         d.setDate(d.getDate() - (6 - i));
+         return d.toLocaleDateString('en-US', { weekday: 'short' });
+      });
+
+      const ofrByDay = {};
+      const invoiceByDay = {};
+      last7Days.forEach(d => {
+         ofrByDay[d] = { total: 0, completed: 0 };
+         invoiceByDay[d] = { totalHrs: 0, count: 0 };
+      });
+
+      let aging0_30 = 0;
+      let aging31_60 = 0;
+      let aging60plus = 0;
+
+      if (activeOrdersData) {
+        activeOrdersData.forEach(order => {
+            const createdAtStr = new Date(order.created_at).toLocaleDateString('en-US', { weekday: 'short' });
+            if (ofrByDay[createdAtStr]) {
+                ofrByDay[createdAtStr].total++;
+            }
+            
+            const isCompleted = ['wh_outbound', 'eid_delivery', 'tpp_delivery'].includes(order.stage);
+            if (isCompleted && ofrByDay[createdAtStr]) {
+                ofrByDay[createdAtStr].completed++;
+            }
+
+            if (isCompleted) {
+               const orderLogs = orders[order.id] || [];
+               if (orderLogs.length > 0) {
+                   const firstLog = orderLogs[0];
+                   const lastLog = orderLogs[orderLogs.length - 1];
+                   const durationDays = (new Date(lastLog.created_at).getTime() - new Date(firstLog.created_at).getTime()) / (1000 * 60 * 60 * 24);
+                   if (durationDays <= 30) aging0_30++;
+                   else if (durationDays <= 60) aging31_60++;
+                   else aging60plus++;
+               }
+            }
+        });
+      }
+
+      Object.values(orders).forEach(logs => {
+         const finalStageLogs = [...logs].reverse();
+         const finalStageLog = finalStageLogs.find(l => l.action === 'Moved Stage' && ['wh_outbound', 'eid_delivery', 'tpp_delivery'].includes(l.details?.stageId));
+         
+         if (finalStageLog) {
+             const stageDayStr = new Date(finalStageLog.created_at).toLocaleDateString('en-US', { weekday: 'short' });
+             const timeInFinalStage = (new Date().getTime() - new Date(finalStageLog.created_at).getTime()) / (1000 * 60 * 60);
+             if (invoiceByDay[stageDayStr]) {
+                 invoiceByDay[stageDayStr].totalHrs += timeInFinalStage;
+                 invoiceByDay[stageDayStr].count++;
+             }
+         }
+      });
+
+      const orderFulfillmentData = last7Days.map(day => ({
+         day,
+         rate: ofrByDay[day].total > 0 ? parseFloat(((ofrByDay[day].completed / ofrByDay[day].total) * 100).toFixed(1)) : 0
       }));
+
+      const invoiceCycleData = last7Days.map(day => ({
+         batch: day,
+         time: invoiceByDay[day].count > 0 ? parseFloat((invoiceByDay[day].totalHrs / invoiceByDay[day].count).toFixed(1)) : 0
+      }));
+
+      const arAgingData = [
+         { name: '0-30 Days', value: aging0_30, color: '#10b981' },
+         { name: '31-60 Days', value: aging31_60, color: '#f59e0b' },
+         { name: '60+ Days', value: aging60plus, color: '#ef4444' }
+      ];
 
       const turnoverChartData = [
         { name: 'Turnover', value: parseFloat(turnoverRatio), fill: parseFloat(turnoverRatio) >= 8 ? '#10b981' : '#f59e0b' }
-      ];
-
-      let arAgingData = [];
-      if (avgDsoDays <= 30) {
-         arAgingData = [
-           { name: '0-30 Days', value: 80, color: '#10b981' },
-           { name: '31-60 Days', value: 15, color: '#f59e0b' },
-           { name: '60+ Days', value: 5, color: '#ef4444' },
-         ];
-      } else if (avgDsoDays <= 60) {
-         arAgingData = [
-           { name: '0-30 Days', value: 30, color: '#10b981' },
-           { name: '31-60 Days', value: 60, color: '#f59e0b' },
-           { name: '60+ Days', value: 10, color: '#ef4444' },
-         ];
-      } else {
-         arAgingData = [
-           { name: '0-30 Days', value: 10, color: '#10b981' },
-           { name: '31-60 Days', value: 20, color: '#f59e0b' },
-           { name: '60+ Days', value: 70, color: '#ef4444' },
-         ];
-      }
-
-      const baseHrs = parseFloat(avgInvoiceCycleHrs);
-      const invoiceCycleData = [
-        { batch: 'B1', time: baseHrs + 12 },
-        { batch: 'B2', time: baseHrs + 8 },
-        { batch: 'B3', time: baseHrs + 4 },
-        { batch: 'B4', time: baseHrs + 2 },
-        { batch: 'Current', time: baseHrs },
       ];
 
       setMetrics({
