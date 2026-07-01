@@ -205,6 +205,269 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
     poWindow.document.close();
   };
 
+  const generateDO = () => {
+    if (!itemDetails) {
+      alert("Item details not found. Make sure this item exists in Master Data.");
+      return;
+    }
+    const docWindow = window.open('', '_blank');
+    docWindow.document.write(`
+      <html>
+        <head>
+          <title>Delivery Order - ${selectedOrder.id}</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+            .title { font-size: 28px; font-weight: 800; color: #4338ca; }
+            .details { display: flex; justify-content: space-between; margin-bottom: 40px; }
+            .box { padding: 20px; background: #f8fafc; border-radius: 8px; width: 45%; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+            th { background-color: #f1f5f9; font-weight: 600; }
+            .notes { margin-top: 30px; padding: 15px; background: #f8fafc; border-radius: 8px; border-left: 4px solid #4338ca; }
+            @media print { button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">DELIVERY ORDER</div>
+            <div style="text-align: right;">
+              <div><strong>DO Number:</strong> ${selectedOrder.id}</div>
+              <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+            </div>
+          </div>
+          
+          <div class="details">
+            <div class="box">
+              <strong>BILL TO:</strong><br/>
+              ${selectedOrder.company_name}<br/>
+              Supply Chain Department
+            </div>
+            <div class="box">
+              <strong>VENDOR:</strong><br/>
+              ${itemDetails.suppliers ? itemDetails.suppliers.name : 'Unknown Vendor'}<br/>
+              Supplier ID: ${itemDetails.supplier_id}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Description</th>
+                <th>Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${itemDetails.sku}</td>
+                <td>${selectedOrder.title}</td>
+                <td>${selectedOrder.quantity || 1}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="notes">
+            <strong>Notes:</strong>
+            <ol style="margin-top: 10px; margin-bottom: 0; padding-left: 20px;">
+              <li>Please check that the items received match the details listed above.</li>
+              <li>Please report any discrepancies or damage to the goods within 48 hours of receipt.</li>
+            </ol>
+          </div>
+          
+          <div style="margin-top: 50px; text-align: center; color: #64748b; font-size: 14px;">
+            This is a computer generated document. No signature is required.
+          </div>
+          
+          <div style="margin-top: 30px; text-align: center;">
+            <button onclick="window.print()" style="padding: 10px 20px; background: #4338ca; color: white; border: none; border-radius: 4px; cursor: pointer;">Print PDF</button>
+          </div>
+        </body>
+      </html>
+    `);
+    docWindow.document.close();
+  };
+
+  const generateDN = () => {
+    if (!itemDetails) {
+      alert("Item details not found. Make sure this item exists in Master Data.");
+      return;
+    }
+    const docWindow = window.open('', '_blank');
+    docWindow.document.write(`
+      <html>
+        <head>
+          <title>Delivery Note - ${selectedOrder.id}</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+            .title { font-size: 28px; font-weight: 800; color: #4338ca; }
+            .details { display: flex; justify-content: space-between; margin-bottom: 40px; }
+            .box { padding: 20px; background: #f8fafc; border-radius: 8px; width: 45%; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+            th { background-color: #f1f5f9; font-weight: 600; }
+            .checkbox-col { width: 80px; text-align: center; }
+            .notes { margin-top: 30px; padding: 15px; background: #f8fafc; border-radius: 8px; border-left: 4px solid #4338ca; }
+            @media print { button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">DELIVERY NOTE</div>
+            <div style="text-align: right;">
+              <div><strong>DN Number:</strong> ${selectedOrder.id}</div>
+              <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+            </div>
+          </div>
+          
+          <div class="details">
+            <div class="box">
+              <strong>BILL TO:</strong><br/>
+              ${selectedOrder.company_name}<br/>
+              Supply Chain Department
+            </div>
+            <div class="box">
+              <strong>VENDOR:</strong><br/>
+              ${itemDetails.suppliers ? itemDetails.suppliers.name : 'Unknown Vendor'}<br/>
+              Supplier ID: ${itemDetails.supplier_id}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Description</th>
+                <th>Qty</th>
+                <th class="checkbox-col">Match</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${itemDetails.sku}</td>
+                <td>${selectedOrder.title}</td>
+                <td>${selectedOrder.quantity || 1}</td>
+                <td class="checkbox-col"><div style="width: 20px; height: 20px; border: 2px solid #cbd5e1; border-radius: 4px; margin: 0 auto;"></div></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="notes">
+            <strong>Notes:</strong>
+            <ol style="margin-top: 10px; margin-bottom: 0; padding-left: 20px;">
+              <li>This document serves as formal confirmation of receipt for the goods listed above.</li>
+            </ol>
+          </div>
+          
+          <div style="margin-top: 50px; text-align: center; color: #64748b; font-size: 14px;">
+            This is a computer generated document. No signature is required.
+          </div>
+          
+          <div style="margin-top: 30px; text-align: center;">
+            <button onclick="window.print()" style="padding: 10px 20px; background: #4338ca; color: white; border: none; border-radius: 4px; cursor: pointer;">Print PDF</button>
+          </div>
+        </body>
+      </html>
+    `);
+    docWindow.document.close();
+  };
+
+  const generateInvoice = () => {
+    if (!itemDetails) {
+      alert("Item details not found. Make sure this item exists in Master Data.");
+      return;
+    }
+    const docWindow = window.open('', '_blank');
+    const totalCost = (selectedOrder.quantity || 1) * (itemDetails.unit_price || 0);
+    
+    docWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice - ${selectedOrder.id}</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+            .title { font-size: 28px; font-weight: 800; color: #4338ca; }
+            .details { display: flex; justify-content: space-between; margin-bottom: 40px; }
+            .box { padding: 20px; background: #f8fafc; border-radius: 8px; width: 45%; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+            th { background-color: #f1f5f9; font-weight: 600; }
+            .total { text-align: right; font-size: 20px; font-weight: bold; margin-top: 20px; }
+            .payment { margin-top: 30px; padding: 15px; background: #f8fafc; border-radius: 8px; border-left: 4px solid #4338ca; }
+            @media print { button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">INVOICE</div>
+            <div style="text-align: right;">
+              <div><strong>INV Number:</strong> ${selectedOrder.id}</div>
+              <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+            </div>
+          </div>
+          
+          <div class="details">
+            <div class="box">
+              <strong>BILL TO:</strong><br/>
+              ${selectedOrder.company_name}<br/>
+              Supply Chain Department
+            </div>
+            <div class="box">
+              <strong>VENDOR:</strong><br/>
+              ${itemDetails.suppliers ? itemDetails.suppliers.name : 'Unknown Vendor'}<br/>
+              Supplier ID: ${itemDetails.supplier_id}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Line Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${itemDetails.sku}</td>
+                <td>${selectedOrder.title}</td>
+                <td>${selectedOrder.quantity || 1}</td>
+                <td>$${parseFloat(itemDetails.unit_price || 0).toFixed(2)}</td>
+                <td>$${totalCost.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="total">
+            Total Amount: $${totalCost.toFixed(2)}
+          </div>
+          
+          <div class="payment">
+            <strong>Payment Info:</strong>
+            <div style="margin-top: 10px;">
+              <strong>Company Name:</strong> PT INDOTECH EXAMPLE<br/>
+              <strong>Bank:</strong> Bank Central Asia (BCA)<br/>
+              <strong>Account Number:</strong> 1234567890
+            </div>
+          </div>
+          
+          <div style="margin-top: 50px; text-align: center; color: #64748b; font-size: 14px;">
+            This is a computer generated document. No signature is required.
+          </div>
+          
+          <div style="margin-top: 30px; text-align: center;">
+            <button onclick="window.print()" style="padding: 10px 20px; background: #4338ca; color: white; border: none; border-radius: 4px; cursor: pointer;">Print PDF</button>
+          </div>
+        </body>
+      </html>
+    `);
+    docWindow.document.close();
+  };
+
   if (!selectedOrder) return null;
 
   return (
@@ -263,9 +526,20 @@ export default function OrderDrawer({ selectedOrder, setSelectedOrder, toggleChe
               </div>
             )}
 
-            <button onClick={generatePO} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content' }}>
-              <Clock size={16} /> {language === 'id' ? 'Buat Dokumen PO' : 'Generate PO Document'}
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+              <button onClick={generatePO} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content' }}>
+                <Clock size={16} /> PO
+              </button>
+              <button onClick={generateDO} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content', backgroundColor: '#3b82f6', borderColor: '#3b82f6' }}>
+                <Clock size={16} /> DO
+              </button>
+              <button onClick={generateDN} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content', backgroundColor: '#10b981', borderColor: '#10b981' }}>
+                <Clock size={16} /> DN
+              </button>
+              <button onClick={generateInvoice} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content', backgroundColor: '#f59e0b', borderColor: '#f59e0b' }}>
+                <Clock size={16} /> Invoice
+              </button>
+            </div>
           </div>
           <div className="drawer-section">
             <h4>{language === 'id' ? 'Checklist Pemenuhan & Dokumen' : 'Fulfillment Checklist & Documents'}</h4>
