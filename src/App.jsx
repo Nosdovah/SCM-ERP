@@ -150,7 +150,10 @@ function App() {
             >
               ← {language === 'id' ? 'Kembali ke Login' : 'Back to Login'}
             </button>
-            <HelpDictionary language={language} onOpenTutorial={() => setForceTutorial(true)} />
+            <HelpDictionary 
+              language={language} 
+              onOpenTutorial={() => alert(language === 'id' ? 'Anda harus masuk/login terlebih dahulu untuk menggunakan fitur Tur Interaktif.' : 'You must log in first to use the Interactive Tour feature.')} 
+            />
           </div>
         </div>
       );
