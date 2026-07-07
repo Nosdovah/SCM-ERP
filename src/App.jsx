@@ -42,6 +42,22 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (window.location.hash === '#help') {
+      setCurrentView('help');
+    }
+    
+    const handleHashChange = () => {
+      if (window.location.hash === '#help') {
+        setCurrentView('help');
+      } else if (window.location.hash === '') {
+        setCurrentView('board');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
     if (!supabase || userCompany === 'NOT ASSIGNED') return;
 
     const fetchTasks = async () => {
@@ -123,7 +139,23 @@ function App() {
   };
 
   if (!session) {
-    return <Auth />;
+    if (currentView === 'help') {
+      return (
+        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-color)' }}>
+          <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+            <button 
+              onClick={() => { setCurrentView('board'); window.location.hash = ''; }} 
+              className="btn btn-primary" 
+              style={{ marginBottom: '2rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '500' }}
+            >
+              ← {language === 'id' ? 'Kembali ke Login' : 'Back to Login'}
+            </button>
+            <HelpDictionary language={language} onOpenTutorial={() => setForceTutorial(true)} />
+          </div>
+        </div>
+      );
+    }
+    return <Auth onGoToHelp={() => { setCurrentView('help'); window.location.hash = '#help'; }} />;
   }
 
   const logAudit = async (orderId, action, details = {}) => {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Activity } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
-export default function Auth() {
+export default function Auth({ onGoToHelp }) {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup' | 'forgot_password'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -142,6 +142,14 @@ export default function Auth() {
             ) : (
               <>Back to <span onClick={() => setAuthMode('login')}>Sign In</span></>
             )}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+            <span 
+              onClick={onGoToHelp}
+              style={{ color: 'var(--primary-color)', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' }}
+            >
+              📖 View Dictionary & Help
+            </span>
           </div>
         </form>
       </div>
