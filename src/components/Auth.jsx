@@ -93,8 +93,7 @@ export default function Auth({ onGoToHelp }) {
           <div className="auth-intro-text">
             <h1>Sederhanakan<br/>rantai pasok<br/>Anda.</h1>
             <p>
-              Sistem Enterprise Resource Planning (ERP) premium yang dirancang untuk mengoptimalkan manajemen logistik. 
-              Kelola pesanan, pantau persediaan secara real-time, dan tingkatkan efisiensi operasional Anda dalam satu dasbor intuitif.
+              Sistem ERP komprehensif untuk Supply Chain dan Logistik. Mengintegrasikan manajemen pesanan, kontrol persediaan, dan pelacakan pengiriman untuk efisiensi operasional yang maksimal.
             </p>
           </div>
           
