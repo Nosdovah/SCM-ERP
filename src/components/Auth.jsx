@@ -86,6 +86,7 @@ export default function Auth({ onGoToHelp }) {
         <div className="auth-intro-content">
           <div className="auth-intro-logo-box">
             <div className="auth-intro-logo-icon">
+
             </div>
             <span style={{ fontWeight: '800', fontSize: '1rem', color: '#111' }}>MOAI ERP</span>
           </div>
@@ -93,7 +94,8 @@ export default function Auth({ onGoToHelp }) {
           <div className="auth-intro-text">
             <h1>Sederhanakan<br/>rantai pasok<br/>Anda.</h1>
             <p>
-              Sistem ERP komprehensif untuk Supply Chain dan Logistik. Mengintegrasikan manajemen pesanan, kontrol persediaan, dan pelacakan pengiriman untuk efisiensi operasional yang maksimal.
+              Sistem Enterprise Resource Planning (ERP) premium yang dirancang untuk mengoptimalkan manajemen logistik baik impor maupun lokal. 
+              Kelola pesanan, pantau persediaan secara real-time, dan tingkatkan efisiensi operasional Anda dalam satu dasbor intuitif.
             </p>
           </div>
           
