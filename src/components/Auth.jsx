@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Activity } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import warehouseBg from '../assets/warehouse_bg.png';
 
 export default function Auth({ onGoToHelp }) {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup' | 'forgot_password'
@@ -80,9 +81,46 @@ export default function Auth({ onGoToHelp }) {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <Activity size={48} className="icon" />
+      <div className="auth-intro-panel" style={{ backgroundImage: `url(${warehouseBg})` }}>
+        <div className="auth-intro-overlay"></div>
+        <div className="auth-intro-content">
+          <div className="auth-intro-logo-box">
+            <div className="auth-intro-logo-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#8B5CF6"/>
+                <path d="M2 17L12 22L22 17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="#EAB308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <span style={{ fontWeight: '800', fontSize: '1rem', color: '#111' }}>StockFlow</span>
+          </div>
+          
+          <div className="auth-intro-text">
+            <h1>Sederhanakan<br/>operasi gudang<br/>Anda.</h1>
+            <p>
+              Sistem manajemen inventaris premium yang dirancang untuk PT Erajaya Swasembada Tbk. 
+              Kelola pesanan, pantau persediaan di 5 divisi terintegrasi, dan optimalkan rantai pasok Anda dalam satu dasbor intuitif.
+            </p>
+          </div>
+          
+          <div className="auth-intro-footer">
+            <div className="copyright">
+              © 2026 Logistik StockFlow (Erajaya Group).<br/>
+              Hak Cipta Dilindungi Undang-Undang.
+            </div>
+            <div className="footer-logo">
+              <div className="erajaya-logo-placeholder">
+                <span style={{ color: '#00539c', fontStyle: 'italic', fontWeight: '800', letterSpacing: '-0.5px' }}>era<span style={{color: '#ed1c24'}}>jaya</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="auth-form-wrapper">
+        <div className="auth-card">
+          <div className="auth-header">
+            <Activity size={48} className="icon" />
           <h2>MOAI Admin</h2>
           <p>{authMode === 'login' ? 'Sign in to access the dashboard' : authMode === 'signup' ? 'Create an admin account' : 'Reset your password'}</p>
         </div>
@@ -152,6 +190,7 @@ export default function Auth({ onGoToHelp }) {
             </span>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
