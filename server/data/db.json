@@ -1,0 +1,158 @@
+{
+  "companies": [
+    {
+      "id": "comp-1",
+      "name": "MANUFACTURE",
+      "created_at": "2026-10-01T03:16:06.985Z"
+    },
+    {
+      "id": "comp-2",
+      "name": "DEFAULT",
+      "created_at": "2026-10-01T03:16:06.986Z"
+    }
+  ],
+  "company_users": [
+    {
+      "id": "cu-1",
+      "company_name": "MANUFACTURE",
+      "user_email": "admin@manufacture.com",
+      "role": "Admin",
+      "created_at": "2026-10-01T03:16:06.986Z"
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "sup-1",
+      "name": "Ju Teng International",
+      "company_name": "MANUFACTURE",
+      "created_at": "2026-10-01T03:16:06.986Z"
+    },
+    {
+      "id": "sup-2",
+      "name": "Foxconn",
+      "company_name": "MANUFACTURE",
+      "created_at": "2026-10-01T03:16:06.986Z"
+    },
+    {
+      "id": "sup-3",
+      "name": "Catcher Technology",
+      "company_name": "MANUFACTURE",
+      "created_at": "2026-10-01T03:16:06.986Z"
+    },
+    {
+      "id": "sup-4",
+      "name": "Wistron",
+      "company_name": "MANUFACTURE",
+      "created_at": "2026-10-01T03:16:06.986Z"
+    },
+    {
+      "id": "sup-5",
+      "name": "Pegatron",
+      "company_name": "MANUFACTURE",
+      "created_at": "2026-10-01T03:16:06.986Z"
+    },
+    {
+      "id": "sup-6",
+      "name": "Compal Electronics",
+      "company_name": "MANUFACTURE",
+      "created_at": "2026-10-01T03:16:06.986Z"
+    }
+  ],
+  "items": [
+    {
+      "id": "item-1",
+      "sku": "CHA-OFF-L01",
+      "name": "MSI Modern Series (Low): Full Polycarbonate, Slim Bezel",
+      "category": "Chassis",
+      "supplier_id": "sup-1",
+      "company_name": "MANUFACTURE",
+      "unit_price": 18,
+      "stock_on_hand": 10000,
+      "created_at": "2026-10-01T03:16:06.986Z"
+    },
+    {
+      "id": "item-2",
+      "sku": "CHA-OFF-L02",
+      "name": "ASUS Vivobook Go (Low): Plastic Composite, Antimicrobial Guard",
+      "category": "Chassis",
+      "supplier_id": "sup-2",
+      "company_name": "MANUFACTURE",
+      "unit_price": 19.5,
+      "stock_on_hand": 10000,
+      "created_at": "2026-10-01T03:16:06.986Z"
+    },
+    {
+      "id": "item-3",
+      "sku": "CHA-OFF-M01",
+      "name": "Acer Swift Go (Mid): Anodized Aluminum Top, Plastic Base",
+      "category": "Chassis",
+      "supplier_id": "sup-3",
+      "company_name": "MANUFACTURE",
+      "unit_price": 35,
+      "stock_on_hand": 10000,
+      "created_at": "2026-10-01T03:16:06.986Z"
+    },
+    {
+      "id": "item-4",
+      "sku": "CHA-OFF-M02",
+      "name": "Lenovo IdeaPad Slim 5 (Mid): Half-Aluminum Chassis, Military Grade Std",
+      "category": "Chassis",
+      "supplier_id": "sup-4",
+      "company_name": "MANUFACTURE",
+      "unit_price": 38,
+      "stock_on_hand": 10000,
+      "created_at": "2026-10-01T03:16:06.986Z"
+    },
+    {
+      "id": "item-5",
+      "sku": "CHA-OFF-H01",
+      "name": "ASUS Zenbook S Series (High): Ceraluminum / Magnesium-Lithium Alloy",
+      "category": "Chassis",
+      "supplier_id": "sup-2",
+      "company_name": "MANUFACTURE",
+      "unit_price": 85,
+      "stock_on_hand": 10000,
+      "created_at": "2026-10-01T03:16:06.986Z"
+    },
+    {
+      "id": "item-6",
+      "sku": "CHA-OFF-H02",
+      "name": "Acer Swift Edge (High): Ultra-Light Magnesium-Aluminum Alloy",
+      "category": "Chassis",
+      "supplier_id": "sup-3",
+      "company_name": "MANUFACTURE",
+      "unit_price": 78,
+      "stock_on_hand": 10000,
+      "created_at": "2026-10-01T03:16:06.986Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "ORD-8942",
+      "title": "MSI Modern Series (Low): Full Polycarbonate, Slim Bezel",
+      "stage": "cpo_esta",
+      "system": "boq",
+      "priority": "High",
+      "assignee": "Budi Santoso",
+      "checklistState": {},
+      "company_name": "MANUFACTURE",
+      "quantity": 50,
+      "created_at": "2026-10-01T03:16:06.986Z",
+      "updated_at": "2026-10-01T03:16:06.986Z"
+    }
+  ],
+  "order_history": [
+    {
+      "id": "hist-1",
+      "order_id": "ORD-8942",
+      "user_email": "admin@manufacture.com",
+      "action": "Created Order",
+      "details": {
+        "title": "MSI Modern Series (Low): Full Polycarbonate, Slim Bezel",
+        "assignee": "Budi Santoso"
+      },
+      "company_name": "MANUFACTURE",
+      "created_at": "2026-10-01T03:16:06.986Z"
+    }
+  ]
+}

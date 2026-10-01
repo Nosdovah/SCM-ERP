@@ -1,0 +1,51 @@
+name: CI/CD Pipeline - MOAI SCM ERP
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # -------------------------------------------------------------
+  # 1. Continuous Integration: Code Quality & Build Validation
+  # -------------------------------------------------------------
+  ci-quality-and-build:
+    name: Lint & Build Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Verify Vite Production Build
+        run: npm run build
+        env:
+          VITE_API_URL: '/api'
+
+      - name: Test REST API Server Boot & Healthcheck
+        run: |
+          node server/server.js &
+          SERVER_PID=$!
+          sleep 3
+          curl --fail http://localhost:5000/api/health || exit 1
+          kill $SERVER_PID
+
+  # -------------------------------------------------------------
+  # 2. Continuous Delivery: Automated Deploy via Vercel (Production)
+  # -------------------------------------------------------------
+  # Catatan: Jika menggunakan Vercel GitHub App, Vercel secara otomatis
+  # meng-handle Preview Deployment pada Pull Request dan Production Deployment
+  # saat merge ke branch main setelah CI di atas dinyatakan PASS.
