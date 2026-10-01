@@ -14,6 +14,20 @@ A modernized, enterprise-grade, real-time Kanban dashboard designed for managing
 - **Real-Time Data Sync**: Powered by Supabase WebSockets, board updates (drag & drop, checklists, new orders) sync instantly across all authenticated clients without requiring a page refresh.
 - **Modular Codebase Architecture**: Clean, scalable React component structure separating concerns (Auth, Sidebar, KanbanBoard, Drawer, MasterData, Analytics).
 
+## 🎓 Academic Context: SAP-Inspired Digital Transformation
+
+This project was developed as a technical solution for the **SAP-Inspired Digital Transformation Proposal** assignment. It serves as the functional prototype and digital solution design for integrating Demand, Sales, and Finance.
+
+### How this system fulfills the assignment rubric:
+- **Management Dashboard**: Fully implemented via the `Analytics` module. It tracks real-time KPIs including:
+  - *Order Fulfillment* (Total Orders Tracked)
+  - *Procurement Lead Time* (Average Lead Time per Stage & Bottleneck Analysis)
+  - *Inventory Accuracy & Stockout Frequency* (Total Inventory Value & Low Stock Alerts)
+- **Digital Solution Design (Integrated Flow)**: Implemented via a custom **2-column Grid Kanban Board** that maps the demand-to-cash process across 6 distinct phases (Ordering Preparation, Material Delivery, Custom Clearance, WH Management, EID Last Mile, and 3PP Local Flow).
+- **Integration Logic & Compliance**: Enforced via a strict "100% Clarified Order Checklist". The system programmatically restricts stage progression until specific documents (e.g., Import Permits, Air Waybills) and data points (e.g., VC/WBS numbers) are provided by the correct departmental role.
+
+> **Note to Graders:** The 10-15 page consultant report, financial/operational impact analysis narratives, and the static demand-to-cash flow diagrams are maintained as separate deliverables alongside this repository.
+
 ## 🛠️ Tech Stack
 
 - **Frontend Environment**: React 18 + Vite

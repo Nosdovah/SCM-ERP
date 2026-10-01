@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Activity } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import warehouseBg from '../assets/warehouse_bg.png';
 
-export default function Auth() {
+export default function Auth({ onGoToHelp }) {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup' | 'forgot_password'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,9 +81,36 @@ export default function Auth() {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <Activity size={48} className="icon" />
+      <div className="auth-intro-panel" style={{ backgroundImage: `url(${warehouseBg})` }}>
+        <div className="auth-intro-overlay"></div>
+        <div className="auth-intro-content">
+          <div className="auth-intro-logo-box">
+            <div className="auth-intro-logo-icon">
+
+            </div>
+            <span style={{ fontWeight: '800', fontSize: '1rem', color: '#111' }}>MOAI ERP</span>
+          </div>
+          
+          <div className="auth-intro-text">
+            <h1>Sederhanakan<br/>rantai pasok<br/>Anda.</h1>
+            <p>
+              Sistem Enterprise Resource Planning (ERP) premium yang dirancang untuk mengoptimalkan manajemen logistik baik impor maupun lokal. 
+              Kelola pesanan, pantau persediaan secara real-time, dan tingkatkan efisiensi operasional Anda dalam satu dasbor intuitif.
+            </p>
+          </div>
+          
+          <div className="auth-intro-footer">
+            <div className="copyright">
+              © 2026 MOAI Systems.<br/>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="auth-form-wrapper">
+        <div className="auth-card">
+          <div className="auth-header">
+            <Activity size={48} className="icon" />
           <h2>MOAI Admin</h2>
           <p>{authMode === 'login' ? 'Sign in to access the dashboard' : authMode === 'signup' ? 'Create an admin account' : 'Reset your password'}</p>
         </div>
@@ -143,7 +171,16 @@ export default function Auth() {
               <>Back to <span onClick={() => setAuthMode('login')}>Sign In</span></>
             )}
           </div>
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+            <span 
+              onClick={onGoToHelp}
+              style={{ color: 'var(--primary-color)', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' }}
+            >
+              📖 View Dictionary & Help
+            </span>
+          </div>
         </form>
+        </div>
       </div>
     </div>
   );

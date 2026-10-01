@@ -42,6 +42,22 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (window.location.hash === '#help') {
+      setCurrentView('help');
+    }
+    
+    const handleHashChange = () => {
+      if (window.location.hash === '#help') {
+        setCurrentView('help');
+      } else if (window.location.hash === '') {
+        setCurrentView('board');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
     if (!supabase || userCompany === 'NOT ASSIGNED') return;
 
     const fetchTasks = async () => {
@@ -100,7 +116,7 @@ function App() {
 
   // New Order State
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
-  const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium', quantity: '' });
+  const [newOrderForm, setNewOrderForm] = useState({ title: '', assignee: '', priority: 'Medium', quantity: '', orderType: 'import' });
 
   // Revert Order State
   const [revertPrompt, setRevertPrompt] = useState(null);
@@ -123,7 +139,26 @@ function App() {
   };
 
   if (!session) {
-    return <Auth />;
+    if (currentView === 'help') {
+      return (
+        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-color)' }}>
+          <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+            <button 
+              onClick={() => { setCurrentView('board'); window.location.hash = ''; }} 
+              className="btn btn-primary" 
+              style={{ marginBottom: '2rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '500' }}
+            >
+              ← {language === 'id' ? 'Kembali ke Login' : 'Back to Login'}
+            </button>
+            <HelpDictionary 
+              language={language} 
+              onOpenTutorial={() => alert(language === 'id' ? 'Anda harus masuk/login terlebih dahulu untuk menggunakan fitur Tur Interaktif.' : 'You must log in first to use the Interactive Tour feature.')} 
+            />
+          </div>
+        </div>
+      );
+    }
+    return <Auth onGoToHelp={() => { setCurrentView('help'); window.location.hash = '#help'; }} />;
   }
 
   const logAudit = async (orderId, action, details = {}) => {
@@ -180,7 +215,12 @@ function App() {
       const currentIndex = flatStages.indexOf(draggedTask.stage);
       const targetIndex = flatStages.indexOf(stageId);
 
-      if (targetIndex < currentIndex) {
+      // Exception: 3PP (Proc 6) going back to WH (Proc 4) is a normal forward local flow
+      const isLocalReturnToWH = 
+        processes[5].stages.some(s => s.id === draggedTask.stage) && 
+        processes[3].stages.some(s => s.id === stageId);
+
+      if (targetIndex < currentIndex && !isLocalReturnToWH) {
         setRevertPrompt({ task: draggedTask, targetStage: stageId });
         setDraggedTask(null);
         return;
@@ -304,7 +344,12 @@ function App() {
     const currentIndex = flatStages.indexOf(task.stage);
     const targetIndex = flatStages.indexOf(stageId);
 
-    if (targetIndex < currentIndex) {
+    // Exception: 3PP (Proc 6) going back to WH (Proc 4) is a normal forward local flow
+    const isLocalReturnToWH = 
+      processes[5].stages.some(s => s.id === task.stage) && 
+      processes[3].stages.some(s => s.id === stageId);
+
+    if (targetIndex < currentIndex && !isLocalReturnToWH) {
       setRevertPrompt({ task: task, targetStage: stageId });
       return;
     }
@@ -388,7 +433,7 @@ function App() {
     const newTask = {
       id: newId,
       title: newOrderForm.title || 'New Unnamed Order',
-      stage: 'cpo_esta',
+      stage: newOrderForm.orderType === 'local' ? 'tpp_request' : 'cpo_esta',
       system: 'boq',
       priority: newOrderForm.priority,
       assignee: newOrderForm.assignee || 'Unassigned',
@@ -400,7 +445,7 @@ function App() {
     // Optimistic UI update
     setTasks([newTask, ...tasks]);
     setShowNewOrderModal(false);
-    setNewOrderForm({ title: '', assignee: '', priority: 'Medium', quantity: '' });
+    setNewOrderForm({ title: '', assignee: '', priority: 'Medium', quantity: '', orderType: 'import' });
 
     if (supabase) {
       try {

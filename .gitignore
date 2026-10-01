@@ -24,6 +24,8 @@ document
 *.sln
 *.sw?
 migration_data.sql
+pdf_content.txt
+Consultant_Report.md
 
 # Environment variables
 .env
