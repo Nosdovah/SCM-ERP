@@ -2,6 +2,34 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
+import fs from 'fs';
+import path from 'path';
+
+// Auto-load .env file if it exists at project root
+const envPath = path.resolve(process.cwd(), '.env');
+if (fs.existsSync(envPath)) {
+  try {
+    const envData = fs.readFileSync(envPath, 'utf8');
+    envData.split(/\r?\n/).forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const match = trimmed.match(/^([\w.-]+)\s*=\s*(.*)?$/);
+        if (match) {
+          const key = match[1];
+          let value = (match[2] || '').trim();
+          if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+          }
+          if (!process.env[key]) {
+            process.env[key] = value;
+          }
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Error reading .env file:', err);
+  }
+}
 
 const app = express();
 
@@ -33,6 +61,34 @@ if (supabase) {
 } else {
   console.warn(`[REST API] Warning: SUPABASE_URL / VITE_SUPABASE_URL not found. Please provide credentials in .env or Vercel dashboard.`);
 }
+
+// Local in-memory fallback stores (used when offline or when Supabase keys are not set)
+let fallbackOrders = [
+  {
+    id: 'ORD-8942',
+    title: 'MSI Modern Series (Low): Full Polycarbonate, Slim Bezel',
+    stage: 'cpo_esta',
+    system: 'boq',
+    priority: 'High',
+    assignee: 'Budi Santoso',
+    checklistState: {},
+    company_name: 'MANUFACTURE',
+    quantity: 50,
+    created_at: new Date().toISOString()
+  }
+];
+
+let fallbackHistory = [
+  {
+    id: 'hist-1',
+    order_id: 'ORD-8942',
+    user_email: 'admin@manufacture.com',
+    action: 'Created Order',
+    details: { title: 'MSI Modern Series (Low): Full Polycarbonate, Slim Bezel', assignee: 'Budi Santoso' },
+    company_name: 'MANUFACTURE',
+    created_at: new Date().toISOString()
+  }
+];
 
 // -------------------------------------------------------------
 // 1. AUTHENTICATION & USER PROFILE ENDPOINTS
@@ -292,7 +348,11 @@ app.get('/api/orders', async (req, res) => {
     }
     return res.json(result);
   }
-  res.json([]);
+  let localResult = fallbackOrders;
+  if (company_name && company_name !== 'NOT ASSIGNED') {
+    localResult = localResult.filter(o => o.company_name === company_name);
+  }
+  res.json(localResult);
 });
 
 // GET /api/orders/:id
@@ -337,6 +397,16 @@ app.post('/api/orders', async (req, res) => {
 
     return res.status(201).json(data?.[0] || newOrder);
   }
+  fallbackOrders.unshift(newOrder);
+  fallbackHistory.unshift({
+    id: `hist-${Date.now()}`,
+    order_id: newOrder.id,
+    user_email,
+    action: 'Created Order',
+    details: { title: newOrder.title, assignee: newOrder.assignee },
+    company_name,
+    created_at: new Date().toISOString()
+  });
   res.status(201).json(newOrder);
 });
 
@@ -436,6 +506,8 @@ app.delete('/api/orders/:id', async (req, res) => {
     // Also clear associated history
     await supabase.from('order_history').delete().eq('order_id', id);
   }
+  fallbackOrders = fallbackOrders.filter(o => o.id !== id);
+  fallbackHistory = fallbackHistory.filter(h => h.order_id !== id);
   res.json({ success: true, message: 'Order deleted' });
 });
 
@@ -621,7 +693,7 @@ app.get('/api/orders/:id/history', async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
     return res.json(data);
   }
-  res.json([]);
+  res.json(fallbackHistory.filter(h => h.order_id === req.params.id));
 });
 
 // POST /api/order-history
