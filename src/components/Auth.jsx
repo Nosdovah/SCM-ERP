@@ -3,7 +3,7 @@ import { Activity } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import warehouseBg from '../assets/warehouse_bg.png';
 
-export default function Auth({ onGoToHelp }) {
+export default function Auth({ onGoToHelp, onDemoLogin }) {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup' | 'forgot_password'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -164,6 +164,39 @@ export default function Auth({ onGoToHelp }) {
           <button type="submit" className="auth-btn" disabled={authLoading}>
             {authLoading ? 'Loading...' : (authMode === 'login' ? 'Sign In' : authMode === 'signup' ? 'Sign Up' : 'Send Reset Link')}
           </button>
+          {onDemoLogin && (
+            <button 
+              type="button" 
+              onClick={() => onDemoLogin({
+                user: {
+                  email: 'admin@kompakom.co.id',
+                  user_metadata: {
+                    company_name: 'PT KOMPAKOM INTEGRASI MANDIRI',
+                    role: 'Admin'
+                  }
+                }
+              })}
+              style={{
+                width: '100%',
+                marginTop: '0.65rem',
+                padding: '0.65rem',
+                backgroundColor: '#f8fafc',
+                color: 'var(--primary-color)',
+                border: '1px dashed var(--accent-color)',
+                borderRadius: '0.5rem',
+                fontWeight: '700',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              ⚡ Quick Demo Access — PT Kompakom
+            </button>
+          )}
           <div className="auth-toggle">
             {authMode === 'login' ? (
               <>Don't have an account? <span onClick={() => setAuthMode('signup')}>Sign Up</span></>

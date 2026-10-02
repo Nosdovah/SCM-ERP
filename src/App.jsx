@@ -12,6 +12,13 @@ import OrderDrawer from './components/OrderDrawer';
 import TutorialModal from './components/TutorialModal';
 import Analytics from './components/Analytics';
 import MasterData from './components/MasterData';
+import MasterDataV2 from './components/v2/MasterDataV2';
+import InventoryManagementV2 from './components/v2/InventoryManagementV2';
+import AssemblyBOMV2 from './components/v2/AssemblyBOMV2';
+import SupplyChainV2 from './components/v2/SupplyChainV2';
+import OutboundV2 from './components/v2/OutboundV2';
+import FinanceV2 from './components/v2/FinanceV2';
+import ManagerialV2 from './components/v2/ManagerialV2';
 import KanbanBoard from './components/KanbanBoard';
 import DashboardMetrics from './components/DashboardMetrics';
 import NewOrderModal from './components/NewOrderModal';
@@ -21,7 +28,7 @@ function App() {
   const [session, setSession] = useState(null);
   const [language, setLanguage] = useState('en');
   
-  const [currentView, setCurrentView] = useState('board'); // 'board' | 'help' | 'settings' | 'analytics' | 'master_data'
+  const [currentView, setCurrentView] = useState('inventory'); // Default to v2.0 Inventory Management
   const [tasks, setTasks] = useState(initialTasks.map(t => ({ ...t, company_name: 'DEFAULT' })));
   const [masterItems, setMasterItems] = useState([]);
   const userCompany = session?.user?.user_metadata?.company_name || 'NOT ASSIGNED';
@@ -158,7 +165,12 @@ function App() {
         </div>
       );
     }
-    return <Auth onGoToHelp={() => { setCurrentView('help'); window.location.hash = '#help'; }} />;
+    return (
+      <Auth 
+        onGoToHelp={() => { setCurrentView('help'); window.location.hash = '#help'; }} 
+        onDemoLogin={(demoSession) => setSession(demoSession)} 
+      />
+    );
   }
 
   const logAudit = async (orderId, action, details = {}) => {
@@ -601,7 +613,13 @@ function App() {
           {currentView === 'help' ? <HelpDictionary language={language} onOpenTutorial={() => setForceTutorial(true)} /> :
            currentView === 'settings' ? <Settings session={session} language={language} /> :
            currentView === 'analytics' ? <Analytics session={session} language={language} /> :
-           currentView === 'master_data' ? <MasterData session={session} language={language} /> :
+           currentView === 'master_data' ? <MasterDataV2 session={session} language={language} /> :
+           currentView === 'inventory' ? <InventoryManagementV2 session={session} language={language} /> :
+           currentView === 'scm' ? <SupplyChainV2 session={session} language={language} onGoToPipeline={() => setCurrentView('board')} /> :
+           currentView === 'assembly' ? <AssemblyBOMV2 session={session} language={language} /> :
+           currentView === 'outbound' ? <OutboundV2 session={session} language={language} /> :
+           currentView === 'finance' ? <FinanceV2 session={session} language={language} /> :
+           currentView === 'managerial' ? <ManagerialV2 session={session} language={language} /> :
            (
             <>
               <div id="tour-metrics-container">
