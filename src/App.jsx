@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingCart, Settings as SettingsIcon, Bell, Search, User, Filter, Plus, ChevronRight, Activity, X, CheckSquare, BookOpen, LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Activity, X } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import './index.css';
 import { processes, clarificationChecklist, initialTasks, stageRequirements } from './data/constants';
@@ -11,7 +11,6 @@ import TopNav from './components/TopNav';
 import OrderDrawer from './components/OrderDrawer';
 import TutorialModal from './components/TutorialModal';
 import Analytics from './components/Analytics';
-import MasterData from './components/MasterData';
 import MasterDataV2 from './components/v2/MasterDataV2';
 import InventoryManagementV2 from './components/v2/InventoryManagementV2';
 import AssemblyBOMV2 from './components/v2/AssemblyBOMV2';
@@ -28,7 +27,12 @@ function App() {
   const [session, setSession] = useState(null);
   const [language, setLanguage] = useState('en');
   
-  const [currentView, setCurrentView] = useState('inventory'); // Default to v2.0 Inventory Management
+  const [currentView, setCurrentView] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#help') {
+      return 'help';
+    }
+    return 'inventory'; // Default to v2.0 Inventory Management
+  });
   const [tasks, setTasks] = useState(initialTasks.map(t => ({ ...t, company_name: 'DEFAULT' })));
   const [masterItems, setMasterItems] = useState([]);
   const userCompany = session?.user?.user_metadata?.company_name || 'NOT ASSIGNED';
@@ -49,10 +53,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (window.location.hash === '#help') {
-      setCurrentView('help');
-    }
-    
     const handleHashChange = () => {
       if (window.location.hash === '#help') {
         setCurrentView('help');
@@ -84,7 +84,9 @@ function App() {
             if (prev.find(t => t.id === payload.new.id)) return prev;
             const newItem = payload.new;
             if (typeof newItem.checklistState === 'string') {
-              try { newItem.checklistState = JSON.parse(newItem.checklistState); } catch (e) {}
+              try { newItem.checklistState = JSON.parse(newItem.checklistState); } catch {
+                // ignore parsing error
+              }
             }
             return [...prev, newItem];
           });

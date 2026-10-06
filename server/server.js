@@ -833,13 +833,12 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
-  const fileExt = req.file.originalname.split('.').pop();
   const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
   const fileName = `${req.body.order_id || 'doc'}-${Date.now()}-${safeName}`;
 
   if (supabase) {
     try {
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('documents')
         .upload(fileName, req.file.buffer, {
           contentType: req.file.mimetype,

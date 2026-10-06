@@ -1,4 +1,3 @@
-import React from 'react';
 import { Activity, Search, ShoppingCart } from 'lucide-react';
 
 export default function DashboardMetrics({ companyTasks, language }) {

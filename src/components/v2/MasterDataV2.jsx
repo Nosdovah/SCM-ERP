@@ -1,34 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
+import { useState } from 'react';
 import { 
-  Database, Plus, Search, Filter, Box, Layers, Tag, Truck, Users, 
-  Cpu, HardDrive, Monitor, ShieldCheck, CheckCircle2, AlertCircle, Barcode,
-  QrCode, ArrowUpDown, ChevronRight, MapPin
+  Database, Plus, Search, Box, Tag, Truck, Users, Barcode, MapPin
 } from 'lucide-react';
 import { 
-  initialProducts, initialWarehouses, initialZones, 
+  initialProducts, initialZones, 
   initialBins, initialBrands, initialSuppliers, initialClients 
 } from '../../data/v2Data';
 
-export default function MasterDataV2({ session, language }) {
+export default function MasterDataV2({ language }) {
   const [activeTab, setActiveTab] = useState('products'); // 'products' | 'hierarchy' | 'brands' | 'suppliers' | 'clients'
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   
   // Data states initialized with rich v2Data
   const [products, setProducts] = useState(initialProducts);
-  const [warehouses, setWarehouses] = useState(initialWarehouses);
-  const [zones, setZones] = useState(initialZones);
+  const [zones] = useState(initialZones);
   const [bins, setBins] = useState(initialBins);
-  const [brands, setBrands] = useState(initialBrands);
-  const [suppliers, setSuppliers] = useState(initialSuppliers);
-  const [clients, setClients] = useState(initialClients);
+  const [brands] = useState(initialBrands);
+  const [suppliers] = useState(initialSuppliers);
+  const [clients] = useState(initialClients);
 
   // Form Modals
   const [showProductModal, setShowProductModal] = useState(false);
   const [showBinModal, setShowBinModal] = useState(false);
-  const [showSupplierModal, setShowSupplierModal] = useState(false);
-  const [showClientModal, setShowClientModal] = useState(false);
 
   // New Product Form
   const [newProd, setNewProd] = useState({

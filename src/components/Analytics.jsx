@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { Activity, Clock, TrendingUp, AlertTriangle, CheckCircle, Package, DollarSign } from 'lucide-react';
+import { Activity, AlertTriangle, Package, DollarSign } from 'lucide-react';
 import { processes } from '../data/constants';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  BarChart, Bar, RadialBarChart, RadialBar, Cell, ReferenceLine, Legend, PieChart, Pie,
+  RadialBarChart, RadialBar, Cell, ReferenceLine, Legend, PieChart, Pie,
   AreaChart, Area
 } from 'recharts';
 
@@ -295,14 +295,6 @@ export default function Analytics({ session, language }) {
 
     fetchAnalyticsData();
   }, [userCompany]);
-
-  const formatDuration = (ms) => {
-    const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
-    const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-    if (days > 0) return `${days}d ${hours}h`;
-    if (hours > 0) return `${hours}h`;
-    return `< 1h`;
-  };
 
   const getStageTitle = (stageId) => {
     for (const proc of processes) {

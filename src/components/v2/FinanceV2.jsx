@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  DollarSign, Calculator, Receipt, CreditCard, ShieldCheck, 
-  TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft, FileText, CheckCircle
+  DollarSign, Calculator, ShieldCheck, 
+  ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
-import { initialProducts, initialSuppliers, initialClients } from '../../data/v2Data';
+import { initialProducts } from '../../data/v2Data';
 
-export default function FinanceV2({ session, language }) {
+export default function FinanceV2({ language }) {
   const [activeTab, setActiveTab] = useState('cogs'); // 'cogs' | 'ap' | 'ar' | 'warranty' | 'currency'
-  const [products, setProducts] = useState(initialProducts);
+  const [products] = useState(initialProducts);
 
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);

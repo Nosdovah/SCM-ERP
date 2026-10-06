@@ -1,5 +1,4 @@
-import React from 'react';
-import { ChevronRight, CheckSquare, User } from 'lucide-react';
+import { CheckSquare, User } from 'lucide-react';
 import { clarificationChecklist } from '../data/constants';
 
 export default function KanbanBoard({ 

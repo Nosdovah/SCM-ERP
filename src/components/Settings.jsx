@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Shield, Trash2, UserPlus } from 'lucide-react';
 
@@ -22,20 +22,21 @@ export default function Settings({ session, language }) {
   const userRole = session?.user?.user_metadata?.role || 'Viewer';
 
   useEffect(() => {
+    let ignore = false;
     if (activeTab === 'team' && userCompany) {
-      fetchTeam();
+      supabase.from('company_users').select('*').eq('company_name', userCompany).order('created_at', { ascending: false }).then(({ data }) => {
+        if (!ignore && data) setTeamMembers(data);
+      });
     }
     if (activeTab === 'profile') {
       supabase.from('companies').select('name').then(({ data }) => {
-        if (data) setCompaniesList(data);
+        if (!ignore && data) setCompaniesList(data);
       });
     }
+    return () => {
+      ignore = true;
+    };
   }, [activeTab, userCompany]);
-
-  const fetchTeam = async () => {
-    const { data } = await supabase.from('company_users').select('*').eq('company_name', userCompany).order('created_at', { ascending: false });
-    if (data) setTeamMembers(data);
-  };
 
   const handleInvite = async (e) => {
     e.preventDefault();

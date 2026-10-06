@@ -1,6 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
-import { Database, Plus, Trash2, Edit } from 'lucide-react';
+import { Database, Plus, Trash2 } from 'lucide-react';
+
+function SortableHeader({ label, sortKey, sortConfig, onSort }) {
+  return (
+    <th 
+      style={{ padding: '0.75rem', fontWeight: '600', cursor: 'pointer', userSelect: 'none' }} 
+      onClick={() => onSort(sortKey)}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {label}
+        {sortConfig.key === sortKey ? (
+          <span style={{ fontSize: '0.75rem' }}>{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>
+        ) : (
+          <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>↕</span>
+        )}
+      </div>
+    </th>
+  );
+}
 
 export default function MasterData({ session, language }) {
   const [activeTab, setActiveTab] = useState('items'); // 'items' or 'suppliers'
@@ -17,21 +35,25 @@ export default function MasterData({ session, language }) {
 
   useEffect(() => {
     if (!supabase) return;
-    fetchData();
-  }, [activeTab, userCompany]);
+    let ignore = false;
 
-  const fetchData = async () => {
-    setLoading(true);
-    // Always fetch suppliers so the dropdown is populated
-    const { data: supData } = await supabase.from('suppliers').select('*').eq('company_name', userCompany).order('created_at', { ascending: false });
-    if (supData) setSuppliers(supData);
+    async function fetchData() {
+      // Always fetch suppliers so the dropdown is populated
+      const { data: supData } = await supabase.from('suppliers').select('*').eq('company_name', userCompany).order('created_at', { ascending: false });
+      if (!ignore && supData) setSuppliers(supData);
 
-    if (activeTab === 'items') {
-      const { data: itemData } = await supabase.from('items').select('*, suppliers(name)').eq('company_name', userCompany).order('created_at', { ascending: false });
-      if (itemData) setItems(itemData);
+      if (activeTab === 'items') {
+        const { data: itemData } = await supabase.from('items').select('*, suppliers(name)').eq('company_name', userCompany).order('created_at', { ascending: false });
+        if (!ignore && itemData) setItems(itemData);
+      }
+      if (!ignore) setLoading(false);
     }
-    setLoading(false);
-  };
+
+    fetchData();
+    return () => {
+      ignore = true;
+    };
+  }, [activeTab, userCompany]);
 
   const handleAddItem = async (e) => {
     e.preventDefault();
@@ -94,7 +116,7 @@ export default function MasterData({ session, language }) {
     setSortConfig({ key, direction });
   };
 
-  const sortedData = React.useMemo(() => {
+  const sortedData = useMemo(() => {
     let sortableData = [...(activeTab === 'items' ? items : suppliers)];
     if (sortConfig.key !== null) {
       sortableData.sort((a, b) => {
@@ -124,22 +146,6 @@ export default function MasterData({ session, language }) {
     }
     return sortableData;
   }, [items, suppliers, activeTab, sortConfig]);
-
-  const SortableHeader = ({ label, sortKey }) => (
-    <th 
-      style={{ padding: '0.75rem', fontWeight: '600', cursor: 'pointer', userSelect: 'none' }} 
-      onClick={() => handleSort(sortKey)}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        {label}
-        {sortConfig.key === sortKey ? (
-          <span style={{ fontSize: '0.75rem' }}>{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>
-        ) : (
-          <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>↕</span>
-        )}
-      </div>
-    </th>
-  );
 
   return (
     <div className="help-page animate-fade-in" style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
@@ -242,15 +248,15 @@ export default function MasterData({ session, language }) {
                   <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: 'var(--text-muted)' }}>
                     {activeTab === 'items' ? (
                       <>
-                        <SortableHeader label="SKU" sortKey="sku" />
-                        <SortableHeader label={language === 'id' ? 'Nama Item' : 'Item Name'} sortKey="name" />
-                        <SortableHeader label={language === 'id' ? 'Kategori' : 'Category'} sortKey="category" />
-                        <SortableHeader label="Supplier" sortKey="suppliers.name" />
-                        <SortableHeader label={language === 'id' ? 'Harga' : 'Price'} sortKey="unit_price" />
-                        <SortableHeader label={language === 'id' ? 'Stok' : 'Stock'} sortKey="stock_on_hand" />
+                        <SortableHeader label="SKU" sortKey="sku" sortConfig={sortConfig} onSort={handleSort} />
+                        <SortableHeader label={language === 'id' ? 'Nama Item' : 'Item Name'} sortKey="name" sortConfig={sortConfig} onSort={handleSort} />
+                        <SortableHeader label={language === 'id' ? 'Kategori' : 'Category'} sortKey="category" sortConfig={sortConfig} onSort={handleSort} />
+                        <SortableHeader label="Supplier" sortKey="suppliers.name" sortConfig={sortConfig} onSort={handleSort} />
+                        <SortableHeader label={language === 'id' ? 'Harga' : 'Price'} sortKey="unit_price" sortConfig={sortConfig} onSort={handleSort} />
+                        <SortableHeader label={language === 'id' ? 'Stok' : 'Stock'} sortKey="stock_on_hand" sortConfig={sortConfig} onSort={handleSort} />
                       </>
                     ) : (
-                      <SortableHeader label={language === 'id' ? 'Nama Supplier' : 'Supplier Name'} sortKey="name" />
+                      <SortableHeader label={language === 'id' ? 'Nama Supplier' : 'Supplier Name'} sortKey="name" sortConfig={sortConfig} onSort={handleSort} />
                     )}
                     <th style={{ padding: '0.75rem', fontWeight: '600', textAlign: 'right' }}>{language === 'id' ? 'Aksi' : 'Actions'}</th>
                   </tr>

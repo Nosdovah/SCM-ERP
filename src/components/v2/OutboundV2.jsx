@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  Send, PackageCheck, Truck, CheckCircle2, AlertTriangle, 
-  FileText, Barcode, Plus, User, ArrowRight, ShieldCheck
+  Send, PackageCheck, Truck, FileText, Barcode
 } from 'lucide-react';
-import { initialSalesOrders, initialProducts, initialClients } from '../../data/v2Data';
+import { initialSalesOrders } from '../../data/v2Data';
 
-export default function OutboundV2({ session, language }) {
+export default function OutboundV2({ language }) {
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'picking' | 'packing' | 'surat_jalan'
   const [salesOrders, setSalesOrders] = useState(initialSalesOrders);
-  const [products, setProducts] = useState(initialProducts);
 
   // Delivery Note modal
   const [showSJModal, setShowSJModal] = useState(false);

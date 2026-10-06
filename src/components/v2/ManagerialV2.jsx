@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  BarChart3, TrendingUp, Users, DollarSign, Clock, Download, 
-  CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownLeft, ShieldCheck
+  BarChart3, TrendingUp, Users, DollarSign 
 } from 'lucide-react';
-import { initialProducts, initialSerials } from '../../data/v2Data';
 
-export default function ManagerialV2({ session, language }) {
+export default function ManagerialV2({ language }) {
   const [subTab, setSubTab] = useState('executive'); // 'executive' | 'aging_report' | 'worker_perf' | 'pnl'
 
   const isId = language === 'id';
-  const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 
   // Worker performance mock data from spec
   const workerKPIs = [

@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   Layers, ShoppingCart, Wrench, Send, DollarSign, Database, 
   LayoutDashboard, BookOpen, Settings as SettingsIcon, Activity, BarChart3, CheckSquare

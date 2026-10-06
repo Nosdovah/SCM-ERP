@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  Cpu, Wrench, Layers, Plus, CheckCircle2, AlertTriangle, 
-  ArrowRight, ShieldCheck, Box, RefreshCw, Barcode, ArrowDownRight, ArrowUpRight
+  Cpu, Wrench, Layers, Plus, CheckCircle2, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import { initialBOM, initialAssemblyOrders, initialProducts } from '../../data/v2Data';
 
+const generateAssemblySerial = () => `SN-ARES-PC-${Math.floor(1000 + Math.random() * 9000)}`;
+
 export default function AssemblyBOMV2({ session, language }) {
   const [activeTab, setActiveTab] = useState('boms'); // 'boms' | 'orders' | 'simulator' | 'debundle'
-  const [bom, setBom] = useState(initialBOM);
+  const [bom] = useState(initialBOM);
   const [orders, setOrders] = useState(initialAssemblyOrders);
-  const [products, setProducts] = useState(initialProducts);
+  const [products] = useState(initialProducts);
 
   // Simulation state
   const [simQty, setSimQty] = useState(5);
@@ -64,7 +65,7 @@ export default function AssemblyBOMV2({ session, language }) {
 
   // Complete Order
   const handleCompleteOrder = (orderId) => {
-    const genSerial = `SN-ARES-PC-${Math.floor(1000 + Math.random() * 9000)}`;
+    const genSerial = generateAssemblySerial();
     setOrders(orders.map(o => {
       if (o.id === orderId) {
         return {

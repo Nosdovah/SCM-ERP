@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  Package, Layers, Search, Barcode, ShieldAlert, RefreshCw, 
-  ArrowRightLeft, FileText, CheckCircle, Clock, AlertTriangle, 
-  Plus, History, Cpu, Monitor, HardDrive, ArrowUpRight, ArrowDownLeft
+  Layers, Search, Barcode, ShieldAlert, 
+  ArrowRightLeft, Clock, AlertTriangle, 
+  History
 } from 'lucide-react';
 import { 
   initialProducts, initialSerials, initialStockMovements, initialBins 
@@ -15,9 +15,9 @@ export default function InventoryManagementV2({ session, language }) {
   
   // Data states
   const [products, setProducts] = useState(initialProducts);
-  const [serials, setSerials] = useState(initialSerials);
+  const [serials] = useState(initialSerials);
   const [movements, setMovements] = useState(initialStockMovements);
-  const [bins, setBins] = useState(initialBins);
+  const [bins] = useState(initialBins);
 
   // Transfer & Adjustment Modals
   const [showTransferModal, setShowTransferModal] = useState(false);

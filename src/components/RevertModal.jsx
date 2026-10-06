@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function RevertModal({
   revertPrompt,
@@ -7,12 +7,12 @@ export default function RevertModal({
   language
 }) {
   const [reason, setReason] = useState('');
+  const [prevPrompt, setPrevPrompt] = useState(revertPrompt);
 
-  useEffect(() => {
-    if (revertPrompt) {
-      setReason('');
-    }
-  }, [revertPrompt]);
+  if (revertPrompt !== prevPrompt) {
+    setPrevPrompt(revertPrompt);
+    setReason('');
+  }
 
   if (!revertPrompt) return null;
 

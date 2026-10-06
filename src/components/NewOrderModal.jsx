@@ -1,4 +1,4 @@
-import React from 'react';
+import { useMemo } from 'react';
 
 export default function NewOrderModal({ 
   showNewOrderModal, 
@@ -9,9 +9,7 @@ export default function NewOrderModal({
   masterItems,
   language
 }) {
-  if (!showNewOrderModal) return null;
-
-  const sortedMasterItems = React.useMemo(() => {
+  const sortedMasterItems = useMemo(() => {
     return [...masterItems].sort((a, b) => {
       const nameA = (a.name || a || '').toString().toLowerCase();
       const nameB = (b.name || b || '').toString().toLowerCase();
@@ -20,6 +18,8 @@ export default function NewOrderModal({
       return 0;
     });
   }, [masterItems]);
+
+  if (!showNewOrderModal) return null;
 
   return (
     <div className="modal-overlay" onClick={() => setShowNewOrderModal(false)}>

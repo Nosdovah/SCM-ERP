@@ -1,19 +1,27 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  ShoppingCart, Truck, ShieldCheck, CheckCircle2, AlertTriangle, 
-  ArrowRight, Plus, DollarSign, Barcode, Eye, FileText, ArrowUpDown, Filter
+  ShoppingCart, Truck, ShieldCheck, AlertTriangle, DollarSign
 } from 'lucide-react';
 import { 
-  initialPurchaseOrders, initialRequisitions, initialSuppliers, 
-  initialProducts, initialStockMovements, initialSerials 
+  initialPurchaseOrders, initialRequisitions 
 } from '../../data/v2Data';
 
-export default function SupplyChainV2({ session, language, onGoToPipeline }) {
+const createPurchaseOrderFromPR = (pr) => ({
+  id: `po-${Date.now()}`,
+  po_number: `PO-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+  supplier_name: pr.supplier_name,
+  order_date: new Date().toISOString().substring(0, 10),
+  expected_date: new Date(Date.now() + 7 * 86400000).toISOString().substring(0, 10),
+  status: 'APPROVED',
+  currency: 'IDR',
+  total: pr.suggested_qty * 1850000,
+  items_count: 1
+});
+
+export default function SupplyChainV2({ language }) {
   const [tab, setTab] = useState('orders'); // 'orders' | 'reorder' | 'grn_qc' | 'price_compare' | 'rtv'
   const [purchaseOrders, setPurchaseOrders] = useState(initialPurchaseOrders);
   const [requisitions, setRequisitions] = useState(initialRequisitions);
-  const [suppliers, setSuppliers] = useState(initialSuppliers);
-  const [products, setProducts] = useState(initialProducts);
 
   // Inbound QC modal
   const [showQCModal, setShowQCModal] = useState(false);
@@ -28,17 +36,7 @@ export default function SupplyChainV2({ session, language, onGoToPipeline }) {
     const pr = requisitions.find(r => r.id === prId);
     if (!pr) return;
 
-    const newPO = {
-      id: `po-${Date.now()}`,
-      po_number: `PO-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      supplier_name: pr.supplier_name,
-      order_date: new Date().toISOString().substring(0, 10),
-      expected_date: new Date(Date.now() + 7 * 86400000).toISOString().substring(0, 10),
-      status: 'APPROVED',
-      currency: 'IDR',
-      total: pr.suggested_qty * 1850000,
-      items_count: 1
-    };
+    const newPO = createPurchaseOrderFromPR(pr);
 
     setPurchaseOrders([newPO, ...purchaseOrders]);
     setRequisitions(requisitions.map(r => r.id === prId ? { ...r, status: 'CONVERTED' } : r));
