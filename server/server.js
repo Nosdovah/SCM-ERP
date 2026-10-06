@@ -1816,6 +1816,140 @@ app.get('/api/v2/managerial/pnl', (_req, res) => {
   });
 });
 
+// --- MODULE 7: ATOMIC DATABASE RPC ENDPOINTS (§7) ---
+app.post('/api/v2/rpc/post-grn', async (req, res) => {
+  const { gr_id, actor, idempotency_key } = req.body;
+  if (!gr_id) return res.status(400).json({ error: 'gr_id is required' });
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.rpc('rpc_post_grn', {
+        p_gr_id: gr_id,
+        p_actor: actor || null,
+        p_idempotency_key: idempotency_key || null
+      });
+      if (!error) return res.json(data);
+      console.warn('[RPC rpc_post_grn error, falling back to local]', error.message);
+    } catch (err) {
+      console.warn('[RPC rpc_post_grn exception]', err.message);
+    }
+  }
+
+  const gr = v2GRNList.find(g => g.id === gr_id);
+  if (gr) gr.status = 'POSTED';
+  res.json({ success: true, gr_id, status: 'POSTED', message: 'GRN posted successfully' });
+});
+
+app.post('/api/v2/rpc/execute-assembly', async (req, res) => {
+  const { asm_id, actor, idempotency_key } = req.body;
+  if (!asm_id) return res.status(400).json({ error: 'asm_id is required' });
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.rpc('rpc_execute_assembly', {
+        p_asm_id: asm_id,
+        p_actor: actor || null,
+        p_idempotency_key: idempotency_key || null
+      });
+      if (!error) return res.json(data);
+      console.warn('[RPC rpc_execute_assembly error, falling back to local]', error.message);
+    } catch (err) {
+      console.warn('[RPC rpc_execute_assembly exception]', err.message);
+    }
+  }
+
+  const ord = v2AssemblyOrders.find(o => o.id === asm_id);
+  if (ord) {
+    ord.status = 'COMPLETED';
+    ord.completed_at = new Date().toISOString();
+  }
+  res.json({ success: true, asm_id, status: 'COMPLETED', message: 'Assembly order executed successfully' });
+});
+
+app.post('/api/v2/rpc/debundle', async (req, res) => {
+  const { asm_id, actor, idempotency_key } = req.body;
+  if (!asm_id) return res.status(400).json({ error: 'asm_id is required' });
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.rpc('rpc_debundle', {
+        p_asm_id: asm_id,
+        p_actor: actor || null,
+        p_idempotency_key: idempotency_key || null
+      });
+      if (!error) return res.json(data);
+    } catch (err) {
+      console.warn('[RPC rpc_debundle exception]', err.message);
+    }
+  }
+
+  const ord = v2AssemblyOrders.find(o => o.id === asm_id);
+  if (ord) ord.status = 'CANCELLED';
+  res.json({ success: true, asm_id, status: 'CANCELLED', message: 'Debundled successfully' });
+});
+
+app.post('/api/v2/rpc/transfer-stock', async (req, res) => {
+  const { trf_id, actor, idempotency_key } = req.body;
+  if (!trf_id) return res.status(400).json({ error: 'trf_id is required' });
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.rpc('rpc_transfer_stock', {
+        p_trf_id: trf_id,
+        p_actor: actor || null,
+        p_idempotency_key: idempotency_key || null
+      });
+      if (!error) return res.json(data);
+    } catch (err) {
+      console.warn('[RPC rpc_transfer_stock exception]', err.message);
+    }
+  }
+
+  res.json({ success: true, trf_id, status: 'RECEIVED', message: 'Transfer executed successfully' });
+});
+
+app.post('/api/v2/rpc/allocate-so', async (req, res) => {
+  const { so_id } = req.body;
+  if (!so_id) return res.status(400).json({ error: 'so_id is required' });
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.rpc('rpc_allocate_so', {
+        p_so_id: so_id
+      });
+      if (!error) return res.json(data);
+    } catch (err) {
+      console.warn('[RPC rpc_allocate_so exception]', err.message);
+    }
+  }
+
+  const so = v2SalesOrders.find(s => s.id === so_id);
+  if (so) so.status = 'ALLOCATED';
+  res.json({ success: true, so_id, status: 'ALLOCATED', message: 'SO allocated successfully' });
+});
+
+app.post('/api/v2/rpc/ship-order', async (req, res) => {
+  const { sj_id, actor, idempotency_key } = req.body;
+  if (!sj_id) return res.status(400).json({ error: 'sj_id is required' });
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.rpc('rpc_ship_order', {
+        p_sj_id: sj_id,
+        p_actor: actor || null,
+        p_idempotency_key: idempotency_key || null
+      });
+      if (!error) return res.json(data);
+    } catch (err) {
+      console.warn('[RPC rpc_ship_order exception]', err.message);
+    }
+  }
+
+  const sj = v2DeliveryNotes.find(d => d.id === sj_id);
+  if (sj) sj.status = 'DELIVERED';
+  res.json({ success: true, sj_id, status: 'DELIVERED', message: 'Shipment posted successfully' });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',

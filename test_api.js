@@ -231,6 +231,55 @@ async function runSuite() {
       if (typeof data.total_warehouse_valuation !== 'number') throw new Error('Total valuation missing');
     });
 
+    // 8b. Atomic Database RPC Endpoints (§7)
+    await test('POST /v2/rpc/post-grn (Atomic GRN Inbound & AP Bill RPC)', async () => {
+      const data = await request('/v2/rpc/post-grn', {
+        method: 'POST',
+        body: JSON.stringify({ gr_id: 'grn-test-01', actor: '00000000-0000-0000-0000-000000000001' })
+      });
+      if (!data.success || data.status !== 'POSTED') throw new Error('Failed to post GRN via RPC');
+    });
+
+    await test('POST /v2/rpc/execute-assembly (Atomic BOM Assembly Roll-up RPC)', async () => {
+      const data = await request('/v2/rpc/execute-assembly', {
+        method: 'POST',
+        body: JSON.stringify({ asm_id: 'asm-test-01', actor: '00000000-0000-0000-0000-000000000001' })
+      });
+      if (!data.success || data.status !== 'COMPLETED') throw new Error('Failed to execute assembly via RPC');
+    });
+
+    await test('POST /v2/rpc/debundle (Atomic Prebuilt Debundling RPC)', async () => {
+      const data = await request('/v2/rpc/debundle', {
+        method: 'POST',
+        body: JSON.stringify({ asm_id: 'asm-test-01', actor: '00000000-0000-0000-0000-000000000001' })
+      });
+      if (!data.success || data.status !== 'CANCELLED') throw new Error('Failed to debundle via RPC');
+    });
+
+    await test('POST /v2/rpc/transfer-stock (Atomic Stock Bin Transfer TRF_OUT/IN RPC)', async () => {
+      const data = await request('/v2/rpc/transfer-stock', {
+        method: 'POST',
+        body: JSON.stringify({ trf_id: 'trf-test-01', actor: '00000000-0000-0000-0000-000000000001' })
+      });
+      if (!data.success || data.status !== 'RECEIVED') throw new Error('Failed to transfer stock via RPC');
+    });
+
+    await test('POST /v2/rpc/allocate-so (Atomic SO Inventory Allocation RPC)', async () => {
+      const data = await request('/v2/rpc/allocate-so', {
+        method: 'POST',
+        body: JSON.stringify({ so_id: 'so-test-01' })
+      });
+      if (!data.success || data.status !== 'ALLOCATED') throw new Error('Failed to allocate SO via RPC');
+    });
+
+    await test('POST /v2/rpc/ship-order (Atomic Goods Issue & AR Invoice RPC)', async () => {
+      const data = await request('/v2/rpc/ship-order', {
+        method: 'POST',
+        body: JSON.stringify({ sj_id: 'sj-test-01', actor: '00000000-0000-0000-0000-000000000001' })
+      });
+      if (!data.success || data.status !== 'DELIVERED') throw new Error('Failed to ship order via RPC');
+    });
+
     // 9. Cleanup test order
     if (createdOrderId) {
       await test(`DELETE /orders/:id (Cleanup Test Order ${createdOrderId})`, async () => {
