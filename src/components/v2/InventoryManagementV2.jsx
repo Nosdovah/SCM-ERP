@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Layers, Search, Barcode, ShieldAlert, 
   ArrowRightLeft, Clock, AlertTriangle, 
@@ -7,6 +7,7 @@ import {
 import { 
   initialProducts, initialSerials, initialStockMovements, initialBins 
 } from '../../data/v2Data';
+import { apiService } from '../../services/apiService';
 
 export default function InventoryManagementV2({ session, language }) {
   const [subTab, setSubTab] = useState('overview'); // 'overview' | 'serials' | 'movements' | 'operations' | 'aging' | 'rma'
@@ -97,6 +98,33 @@ export default function InventoryManagementV2({ session, language }) {
     s.sku.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // REST API Mount Fetch
+  useEffect(() => {
+    apiService.inventory.getBalances().then(data => {
+      if (data && data.products) {
+        setProducts(data.products);
+        try { localStorage.setItem('moai_v2_products', JSON.stringify(data.products)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.inventory.getSerials().then(data => {
+      if (data && Array.isArray(data)) {
+        setSerials(data);
+        try { localStorage.setItem('moai_v2_serials', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.inventory.getMovements().then(data => {
+      if (data && Array.isArray(data)) {
+        setMovements(data);
+      }
+    });
+    apiService.inventory.getRMACases().then(data => {
+      if (data && Array.isArray(data)) {
+        setRmaCases(data);
+        try { localStorage.setItem('moai_v2_rma_cases', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+  }, []);
+
   // Handle Transfer
   const handleExecuteTransfer = (e) => {
     e.preventDefault();
@@ -125,6 +153,7 @@ export default function InventoryManagementV2({ session, language }) {
     const updatedMovs = [newMovIn, newMov, ...movements];
     setMovements(updatedMovs);
     setShowTransferModal(false);
+    apiService.inventory.postTransfer(newTransfer);
     setTransferNotice(isId ? `Transfer stok ${newTransfer.qty} unit dari ${newTransfer.from_bin} ke ${newTransfer.to_bin} berhasil diposting ke ledger!` : `Stock transfer posted to ledger successfully!`);
   };
 
@@ -155,6 +184,7 @@ export default function InventoryManagementV2({ session, language }) {
     setProducts(updatedProds);
     setMovements(updatedMovs);
     setShowAdjModal(false);
+    apiService.inventory.postAdjustment(newAdj);
     setAdjNotice(isId ? `Penyesuaian stok (${movType} ${qty}) berhasil diposting ke ledger!` : `Stock adjustment posted to ledger!`);
     try {
       localStorage.setItem('moai_v2_products', JSON.stringify(updatedProds));
@@ -169,6 +199,7 @@ export default function InventoryManagementV2({ session, language }) {
     setRmaCases(updated);
     const updatedSerials = serials.map(s => s.serial_no === 'SN-ARES-PC-002' ? { ...s, status: 'WARRANTY_SERVICE' } : s);
     setSerials(updatedSerials);
+    apiService.inventory.postRMA({ rma_id: rmaId, action: 'SERVICE' });
     try {
       localStorage.setItem('moai_v2_rma_cases', JSON.stringify(updated));
       localStorage.setItem('moai_v2_serials', JSON.stringify(updatedSerials));
@@ -195,6 +226,7 @@ export default function InventoryManagementV2({ session, language }) {
       created_by: session?.user?.email || 'RMA Staff'
     };
     setMovements(prev => [newMov, ...prev]);
+    apiService.inventory.postRMA({ rma_id: rmaId, action: 'RTV' });
     try {
       localStorage.setItem('moai_v2_rma_cases', JSON.stringify(updated));
       localStorage.setItem('moai_v2_serials', JSON.stringify(updatedSerials));
@@ -219,6 +251,7 @@ export default function InventoryManagementV2({ session, language }) {
       created_by: session?.user?.email || 'Opname Lead'
     };
     setMovements(prev => [newMov, ...prev]);
+    apiService.inventory.postAdjustment({ product_sku: 'SP-SSD-990P-1T', bin_code: 'SP-SSD-B-01', reason: 'Stock Opname Variance', qty: -1, note: 'Opname OPN-2026-001' });
     setOpnameNotice(isId ? `Sesi Opname ${opnameSession.session_no} berhasil diposting! Selisih stok diposting ke ledger.` : `Stock opname posted! Variance movement recorded in ledger.`);
   };
 

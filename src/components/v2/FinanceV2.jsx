@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   DollarSign, Calculator, ShieldCheck, 
   ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
 import { initialProducts, initialApBills, initialArInvoices } from '../../data/v2Data';
+import { apiService } from '../../services/apiService';
 
 export default function FinanceV2({ language }) {
   const [activeTab, setActiveTab] = useState('cogs'); // 'cogs' | 'ap' | 'ar' | 'warranty' | 'currency'
@@ -42,6 +43,22 @@ export default function FinanceV2({ language }) {
     return initialArInvoices;
   });
 
+  // REST API Mount Fetch
+  useEffect(() => {
+    apiService.finance.getAPBills().then(data => {
+      if (data && Array.isArray(data)) {
+        setApBills(data);
+        try { localStorage.setItem('moai_v2_ap_bills', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.finance.getARInvoices().then(data => {
+      if (data && Array.isArray(data)) {
+        setArInvoices(data);
+        try { localStorage.setItem('moai_v2_ar_invoices', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+  }, []);
+
   const handlePayBill = (billId) => {
     const updatedBills = apBills.map(b => {
       if (b.id === billId) {
@@ -50,6 +67,7 @@ export default function FinanceV2({ language }) {
       return b;
     });
     setApBills(updatedBills);
+    apiService.finance.payAPBill(billId);
     try {
       localStorage.setItem('moai_v2_ap_bills', JSON.stringify(updatedBills));
     } catch (err) {
@@ -65,6 +83,7 @@ export default function FinanceV2({ language }) {
       return inv;
     });
     setArInvoices(updatedInvs);
+    apiService.finance.reconcileARInvoice(invId);
     try {
       localStorage.setItem('moai_v2_ar_invoices', JSON.stringify(updatedInvs));
     } catch (err) {

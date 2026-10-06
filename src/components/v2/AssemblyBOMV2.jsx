@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Cpu, Wrench, Layers, Plus, CheckCircle2, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import { initialBOM, initialAssemblyOrders, initialProducts } from '../../data/v2Data';
+import { apiService } from '../../services/apiService';
 
 const generateAssemblySerial = () => `SN-ARES-PC-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -64,6 +65,22 @@ export default function AssemblyBOMV2({ session, language }) {
 
   const canBuildAll = simulationResults.every(r => r.isSufficient);
 
+  // REST API Mount Fetch
+  useEffect(() => {
+    apiService.assembly.getOrders().then(data => {
+      if (data && Array.isArray(data)) {
+        setOrders(data);
+        try { localStorage.setItem('moai_v2_assembly_orders', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.masterData.getProducts().then(data => {
+      if (data && Array.isArray(data)) {
+        setProducts(data);
+        try { localStorage.setItem('moai_v2_products', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+  }, []);
+
   // Handle Execute Assembly Order
   const handleCreateOrder = (e) => {
     e.preventDefault();
@@ -84,6 +101,7 @@ export default function AssemblyBOMV2({ session, language }) {
     };
     const updated = [newOrd, ...orders];
     setOrders(updated);
+    apiService.assembly.createOrder(newOrd);
     try {
       localStorage.setItem('moai_v2_assembly_orders', JSON.stringify(updated));
     } catch (err) {
@@ -107,6 +125,7 @@ export default function AssemblyBOMV2({ session, language }) {
       return o;
     });
     setOrders(updated);
+    apiService.assembly.completeOrder(orderId);
     try {
       localStorage.setItem('moai_v2_assembly_orders', JSON.stringify(updated));
     } catch (err) {
@@ -129,6 +148,7 @@ export default function AssemblyBOMV2({ session, language }) {
     });
 
     setProducts(updatedProds);
+    apiService.assembly.debundle({ prebuilt_sku: bom.output_sku, target_serial: 'SN-ARES-PC-001' });
     try {
       localStorage.setItem('moai_v2_products', JSON.stringify(updatedProds));
     } catch (err) {

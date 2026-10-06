@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ShoppingCart, Truck, ShieldCheck, AlertTriangle, DollarSign, 
   RotateCcw, Plus, CheckCircle2
@@ -7,6 +7,7 @@ import {
   initialPurchaseOrders, initialRequisitions, initialGRNList, 
   initialInboundReturns, initialSuppliers, initialProducts, initialApBills 
 } from '../../data/v2Data';
+import { apiService } from '../../services/apiService';
 
 const createPurchaseOrderFromPR = (pr) => ({
   id: `po-${Date.now()}`,
@@ -100,6 +101,33 @@ export default function SupplyChainV2({ language }) {
 
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
+  // REST API Mount Fetch
+  useEffect(() => {
+    apiService.scm.getPurchaseOrders().then(data => {
+      if (data && Array.isArray(data)) {
+        setPurchaseOrders(data);
+        try { localStorage.setItem('moai_v2_pos', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.scm.getRequisitions().then(data => {
+      if (data && Array.isArray(data)) {
+        setRequisitions(data);
+        try { localStorage.setItem('moai_v2_requisitions', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.scm.getGoodsReceipts().then(data => {
+      if (data && Array.isArray(data)) {
+        setGrnList(data);
+        try { localStorage.setItem('moai_v2_grn', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.scm.getRTV().then(data => {
+      if (data && Array.isArray(data)) {
+        setInboundReturns(data);
+        try { localStorage.setItem('moai_v2_inbound_returns', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+  }, []);
 
   // Flow #13: Handle Create New PO
   const handleCreatePO = (e) => {
@@ -129,6 +157,7 @@ export default function SupplyChainV2({ language }) {
 
     const updatedPOs = [newPO, ...purchaseOrders];
     setPurchaseOrders(updatedPOs);
+    apiService.scm.createPurchaseOrder(newPO);
 
     // Auto-create corresponding Goods Receipt Note (GRN) in PENDING_QC status
     const grnNum = `GRN-2026-${nextNumber}`;
@@ -171,6 +200,7 @@ export default function SupplyChainV2({ language }) {
 
     setPurchaseOrders(updatedPOs);
     setRequisitions(updatedPRs);
+    apiService.scm.convertRequisition(prId);
     try {
       localStorage.setItem('moai_v2_pos', JSON.stringify(updatedPOs));
       localStorage.setItem('moai_v2_requisitions', JSON.stringify(updatedPRs));
@@ -188,6 +218,7 @@ export default function SupplyChainV2({ language }) {
 
     setPurchaseOrders(updatedPOs);
     setGrnList(updatedGRNs);
+    apiService.scm.qcAction(targetPO?.po_number || 'PO-2026-0043', { action: 'PASS', target_bin: 'SP-CPU-A-01' });
     try {
       localStorage.setItem('moai_v2_pos', JSON.stringify(updatedPOs));
       localStorage.setItem('moai_v2_grn', JSON.stringify(updatedGRNs));
@@ -219,6 +250,7 @@ export default function SupplyChainV2({ language }) {
 
     const updated = [newRet, ...inboundReturns];
     setInboundReturns(updated);
+    apiService.scm.createRTV(newRet);
     try {
       localStorage.setItem('moai_v2_inbound_returns', JSON.stringify(updated));
     } catch (err) {

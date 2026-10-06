@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Send, PackageCheck, Truck, FileText, Barcode, CheckCircle2, Plus, Receipt
 } from 'lucide-react';
@@ -6,6 +6,7 @@ import {
   initialSalesOrders, initialDeliveryNotes, initialArInvoices, 
   initialProducts, initialClients 
 } from '../../data/v2Data';
+import { apiService } from '../../services/apiService';
 
 export default function OutboundV2({ language }) {
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'picking' | 'packing' | 'surat_jalan'
@@ -81,6 +82,22 @@ export default function OutboundV2({ language }) {
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 
+  // REST API Mount Fetch
+  useEffect(() => {
+    apiService.outbound.getSalesOrders().then(data => {
+      if (data && Array.isArray(data)) {
+        setSalesOrders(data);
+        try { localStorage.setItem('moai_v2_sales_orders', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.outbound.getDeliveryNotes().then(data => {
+      if (data && Array.isArray(data)) {
+        setDeliveryNotes(data);
+        try { localStorage.setItem('moai_v2_delivery_notes', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+  }, []);
+
   // Flow #13 Order Intake Handler
   const handleCreateSO = (e) => {
     e.preventDefault();
@@ -105,6 +122,7 @@ export default function OutboundV2({ language }) {
 
     const updated = [newSO, ...salesOrders];
     setSalesOrders(updated);
+    apiService.outbound.createSalesOrder(newSO);
     try {
       localStorage.setItem('moai_v2_sales_orders', JSON.stringify(updated));
     } catch (err) {
@@ -121,6 +139,7 @@ export default function OutboundV2({ language }) {
 
   const handleStartWavePicking = () => {
     setWavePickingState('IN_PROGRESS');
+    apiService.outbound.wavePicking({ order_ids: ['so-02', 'so-03'] });
     setTimeout(() => {
       setWavePickingState('COMPLETED');
     }, 400);
@@ -139,6 +158,7 @@ export default function OutboundV2({ language }) {
       status: 'PACKED'
     };
     setPackedOrders([newPack, ...packedOrders]);
+    apiService.outbound.createPackTask(newPack);
     setPackSuccessMsg(isId ? `Paket ${newPack.pack_no} (${newPack.so_number}) berhasil disegel & siap kirim!` : `Package ${newPack.pack_no} sealed & ready to ship!`);
   };
 
@@ -177,6 +197,7 @@ export default function OutboundV2({ language }) {
 
     const updatedSJs = [newSJ, ...deliveryNotes];
     setDeliveryNotes(updatedSJs);
+    apiService.outbound.createDeliveryNote({ so_id: selectedSO.id, driver_name: sjForm.driver_name, vehicle_no: sjForm.vehicle_no, note: sjForm.note });
     try {
       localStorage.setItem('moai_v2_delivery_notes', JSON.stringify(updatedSJs));
     } catch (err) {

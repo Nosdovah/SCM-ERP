@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Database, Plus, Search, Box, Tag, Truck, Users, Barcode, MapPin
 } from 'lucide-react';
@@ -6,6 +6,7 @@ import {
   initialProducts, initialZones, 
   initialBins, initialBrands, initialSuppliers, initialClients 
 } from '../../data/v2Data';
+import { apiService } from '../../services/apiService';
 
 export default function MasterDataV2({ language }) {
   const [activeTab, setActiveTab] = useState('products'); // 'products' | 'hierarchy' | 'brands' | 'suppliers' | 'clients'
@@ -24,8 +25,8 @@ export default function MasterDataV2({ language }) {
   const [zones] = useState(initialZones);
   const [bins, setBins] = useState(initialBins);
   const [brands] = useState(initialBrands);
-  const [suppliers] = useState(initialSuppliers);
-  const [clients] = useState(initialClients);
+  const [suppliers, setSuppliers] = useState(initialSuppliers);
+  const [clients, setClients] = useState(initialClients);
 
   // Form Modals
   const [showProductModal, setShowProductModal] = useState(false);
@@ -73,6 +74,31 @@ export default function MasterDataV2({ language }) {
     return matchesSearch && matchesCat;
   });
 
+  // REST API Mount Fetch
+  useEffect(() => {
+    apiService.masterData.getProducts().then(data => {
+      if (data && Array.isArray(data)) {
+        setProducts(data);
+        try { localStorage.setItem('moai_v2_products', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.masterData.getBins().then(data => {
+      if (data && Array.isArray(data)) {
+        setBins(data);
+      }
+    });
+    apiService.masterData.getSuppliers().then(data => {
+      if (data && Array.isArray(data)) {
+        setSuppliers(data);
+      }
+    });
+    apiService.masterData.getClients().then(data => {
+      if (data && Array.isArray(data)) {
+        setClients(data);
+      }
+    });
+  }, []);
+
   const handleCreateProduct = (e) => {
     e.preventDefault();
     const created = {
@@ -84,6 +110,7 @@ export default function MasterDataV2({ language }) {
     };
     const updated = [created, ...products];
     setProducts(updated);
+    apiService.masterData.createProduct(created);
     try {
       localStorage.setItem('moai_v2_products', JSON.stringify(updated));
     } catch (err) {
@@ -108,6 +135,7 @@ export default function MasterDataV2({ language }) {
       code: generatedCode
     };
     setBins([...bins, createdBin]);
+    apiService.masterData.createBin(createdBin);
     setShowBinModal(false);
   };
 
