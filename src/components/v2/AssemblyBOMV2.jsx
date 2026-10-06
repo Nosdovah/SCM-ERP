@@ -9,8 +9,24 @@ const generateAssemblySerial = () => `SN-ARES-PC-${Math.floor(1000 + Math.random
 export default function AssemblyBOMV2({ session, language }) {
   const [activeTab, setActiveTab] = useState('boms'); // 'boms' | 'orders' | 'simulator' | 'debundle'
   const [bom] = useState(initialBOM);
-  const [orders, setOrders] = useState(initialAssemblyOrders);
-  const [products] = useState(initialProducts);
+  const [orders, setOrders] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_assembly_orders');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load assembly orders', e);
+    }
+    return initialAssemblyOrders;
+  });
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_products');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load products', e);
+    }
+    return initialProducts;
+  });
 
   // Simulation state
   const [simQty, setSimQty] = useState(5);
@@ -18,6 +34,11 @@ export default function AssemblyBOMV2({ session, language }) {
   // New Order State
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [newOrderQty, setNewOrderQty] = useState(1);
+  const [newOrderTargetBin, setNewOrderTargetBin] = useState('PB-A-1-01');
+  const [newOrderNote, setNewOrderNote] = useState('Perakitan PC batch reguler');
+
+  // De-bundling state
+  const [debundleSuccess, setDebundleSuccess] = useState(null);
 
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
@@ -46,27 +67,35 @@ export default function AssemblyBOMV2({ session, language }) {
   // Handle Execute Assembly Order
   const handleCreateOrder = (e) => {
     e.preventDefault();
+    const qty = Number(newOrderQty) || 1;
     const newOrd = {
       id: `asm-${Date.now()}`,
       assembly_number: `ASM-ORD-2026-${String(orders.length + 1).padStart(3, '0')}`,
       product_name: bom.product_name,
       sku: bom.output_sku,
-      qty_to_build: Number(newOrderQty),
+      qty_to_build: qty,
       status: 'ISSUED',
-      target_bin: 'PB-A-1-01',
+      target_bin: newOrderTargetBin,
       created_by: session?.user?.email || 'Bambang Assembly',
       completed_at: null,
       serial_generated: null,
-      total_cost: totalUnitHPP * Number(newOrderQty)
+      total_cost: totalUnitHPP * qty,
+      note: newOrderNote
     };
-    setOrders([newOrd, ...orders]);
+    const updated = [newOrd, ...orders];
+    setOrders(updated);
+    try {
+      localStorage.setItem('moai_v2_assembly_orders', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Failed to save to localStorage', err);
+    }
     setShowOrderModal(false);
   };
 
   // Complete Order
   const handleCompleteOrder = (orderId) => {
     const genSerial = generateAssemblySerial();
-    setOrders(orders.map(o => {
+    const updated = orders.map(o => {
       if (o.id === orderId) {
         return {
           ...o,
@@ -76,8 +105,42 @@ export default function AssemblyBOMV2({ session, language }) {
         };
       }
       return o;
-    }));
+    });
+    setOrders(updated);
+    try {
+      localStorage.setItem('moai_v2_assembly_orders', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Failed to save orders to localStorage', err);
+    }
     alert(isId ? `Perakitan selesai! Unit masuk ke zona Prebuilt dengan Serial Number: ${genSerial}` : `Assembly completed! Output unit received in Prebuilt zone with SN: ${genSerial}`);
+  };
+
+  // Execute De-bundling (Disassembly)
+  const handleExecuteDebundle = () => {
+    const updatedProds = products.map(p => {
+      if (p.sku === bom.output_sku) {
+        return { ...p, stock: Math.max(0, p.stock - 1) };
+      }
+      const comp = bom.components.find(c => c.sku === p.sku);
+      if (comp) {
+        return { ...p, stock: p.stock + comp.qty };
+      }
+      return p;
+    });
+
+    setProducts(updatedProds);
+    try {
+      localStorage.setItem('moai_v2_products', JSON.stringify(updatedProds));
+    } catch (err) {
+      console.error('Failed to save products to localStorage', err);
+    }
+
+    setDebundleSuccess({
+      serial: 'SN-ARES-PC-001',
+      sku: bom.output_sku,
+      time: new Date().toLocaleTimeString(),
+      components_restored: bom.components.length
+    });
   };
 
   return (
@@ -90,7 +153,7 @@ export default function AssemblyBOMV2({ session, language }) {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-color)', fontWeight: '700', fontSize: '0.875rem' }}>
-            <Wrench size={18} /> MODUL 4 — BILL OF MATERIALS (BOM) & ASSEMBLY ENGINE
+            <Wrench size={18} /> MODUL 1.3 — BILL OF MATERIALS (BOM) & ASSEMBLY ENGINE
           </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary-color)', margin: '0.25rem 0 0 0' }}>
             {isId ? 'Perakitan Komputer (Prebuilt) & Kanibalisasi (De-bundling)' : 'PC Assembly (Bundling) & De-bundling Engine'}
@@ -196,6 +259,16 @@ export default function AssemblyBOMV2({ session, language }) {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                id="btn-create-assembly-order-tab1"
+                onClick={() => setShowOrderModal(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.55rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                <Plus size={16} /> Buat Assembly Order Baru
+              </button>
             </div>
           </div>
         </div>
@@ -388,16 +461,27 @@ export default function AssemblyBOMV2({ session, language }) {
           <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '1rem' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.5rem' }}>Pilih Unit Prebuilt untuk Dibongkar:</div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <select style={{ padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', minWidth: '320px' }}>
-                <option>MOAI Ares Elite Gaming PC (SN-ARES-PC-001) · PB-A-1-01</option>
+              <select id="select-debundle-unit" style={{ padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', minWidth: '320px' }}>
+                <option value="SN-ARES-PC-001">MOAI Ares Elite Gaming PC (SN-ARES-PC-001) · PB-A-1-01</option>
               </select>
               <button 
-                onClick={() => alert(isId ? 'Unit Prebuilt berhasil dibongkar! 7 komponen spare parts dikembalikan ke rak SP-* dengan movement ASM_IN.' : 'Unit disassembled! Components returned to SP rack with ASM_IN movements.')}
+                id="btn-execute-debundle"
+                type="button"
+                onClick={handleExecuteDebundle}
                 style={{ backgroundColor: '#dc2626', color: '#ffffff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.375rem', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 Eksekusi De-bundling (Bongkar Komponen)
               </button>
             </div>
+            {debundleSuccess && (
+              <div id="debundle-success-banner" style={{ marginTop: '1rem', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', padding: '1rem', borderRadius: '0.5rem', color: '#047857', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <CheckCircle2 size={22} color="#047857" />
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>De-bundling Berhasil Dieksekusi!</div>
+                  <div style={{ fontSize: '0.85rem' }}>Unit <strong>{debundleSuccess.serial}</strong> berhasil dibongkar. {debundleSuccess.components_restored} komponen suku cadang telah dikembalikan ke rak Spare Parts dengan movement ASM_IN.</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -407,20 +491,30 @@ export default function AssemblyBOMV2({ session, language }) {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', width: '480px', maxWidth: '90%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
             <h3 style={{ margin: '0 0 1rem 0', color: 'var(--primary-color)' }}>Buat Perintah Perakitan (Assembly Order)</h3>
-            <form onSubmit={handleCreateOrder} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <form id="form-assembly-order" onSubmit={handleCreateOrder} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Produk Target Hasil Rakitan</label>
-                <input type="text" disabled value={`${bom.product_name} (${bom.output_sku})`} style={{ width: '100%', padding: '0.45rem', backgroundColor: '#f1f5f9', border: '1px solid var(--border-color)', borderRadius: '0.375rem', fontSize: '0.85rem' }} />
+                <label htmlFor="assembly-order-product" style={{ fontSize: '0.75rem', fontWeight: '600' }}>Produk Target Hasil Rakitan</label>
+                <select id="assembly-order-product" name="product_sku" value={bom.output_sku} readOnly style={{ width: '100%', padding: '0.45rem', backgroundColor: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '0.375rem', fontSize: '0.85rem' }}>
+                  <option value={bom.output_sku}>{bom.product_name} ({bom.output_sku})</option>
+                </select>
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Jumlah Unit yang Dirakit</label>
-                <input type="number" required min="1" max="50" value={newOrderQty} onChange={e => setNewOrderQty(e.target.value)} style={{ width: '100%', padding: '0.45rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', fontSize: '0.85rem' }} />
+                <label htmlFor="assembly-order-qty" style={{ fontSize: '0.75rem', fontWeight: '600' }}>Jumlah Unit yang Dirakit</label>
+                <input id="assembly-order-qty" name="qty_to_build" type="number" required min="1" max="50" value={newOrderQty} onChange={e => setNewOrderQty(e.target.value)} style={{ width: '100%', padding: '0.45rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', fontSize: '0.85rem' }} />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Bin Target Output (Zona Prebuilt)</label>
-                <input type="text" disabled value="PB-A-1-01 (Zona Prebuilt)" style={{ width: '100%', padding: '0.45rem', backgroundColor: '#f1f5f9', border: '1px solid var(--border-color)', borderRadius: '0.375rem', fontSize: '0.85rem' }} />
+                <label htmlFor="assembly-order-bin" style={{ fontSize: '0.75rem', fontWeight: '600' }}>Bin Target Output (Zona Prebuilt)</label>
+                <select id="assembly-order-bin" name="target_bin" value={newOrderTargetBin} onChange={e => setNewOrderTargetBin(e.target.value)} style={{ width: '100%', padding: '0.45rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', fontSize: '0.85rem' }}>
+                  <option value="PB-A-1-01">PB-A-1-01 (Zona Rak Prebuilt A-01)</option>
+                  <option value="PB-A-1-02">PB-A-1-02 (Zona Rak Prebuilt A-02)</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="assembly-order-note" style={{ fontSize: '0.75rem', fontWeight: '600' }}>Catatan Perintah Perakitan</label>
+                <input id="assembly-order-note" name="note" type="text" value={newOrderNote} onChange={e => setNewOrderNote(e.target.value)} placeholder="Catatan instruksi perakitan teknisi..." style={{ width: '100%', padding: '0.45rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', fontSize: '0.85rem' }} />
               </div>
 
               <div style={{ backgroundColor: '#eff6ff', padding: '0.75rem', borderRadius: '0.375rem', fontSize: '0.8rem', color: '#1e40af' }}>
@@ -429,7 +523,7 @@ export default function AssemblyBOMV2({ session, language }) {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <button type="button" onClick={() => setShowOrderModal(false)} style={{ padding: '0.5rem 1rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', backgroundColor: 'transparent', cursor: 'pointer' }}>Batal</button>
-                <button type="submit" style={{ padding: '0.5rem 1.25rem', border: 'none', borderRadius: '0.375rem', backgroundColor: 'var(--accent-color)', color: '#ffffff', fontWeight: '600', cursor: 'pointer' }}>Terbitkan Perintah Rakit</button>
+                <button id="btn-submit-assembly-order" type="submit" style={{ padding: '0.5rem 1.25rem', border: 'none', borderRadius: '0.375rem', backgroundColor: 'var(--accent-color)', color: '#ffffff', fontWeight: '600', cursor: 'pointer' }}>Terbitkan Perintah Rakit</button>
               </div>
             </form>
           </div>

@@ -3,26 +3,74 @@ import {
   DollarSign, Calculator, ShieldCheck, 
   ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
-import { initialProducts } from '../../data/v2Data';
+import { initialProducts, initialApBills, initialArInvoices } from '../../data/v2Data';
 
 export default function FinanceV2({ language }) {
   const [activeTab, setActiveTab] = useState('cogs'); // 'cogs' | 'ap' | 'ar' | 'warranty' | 'currency'
-  const [products] = useState(initialProducts);
+  const [products] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_products');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load products', e);
+    }
+    return initialProducts;
+  });
 
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 
-  // Mock AP Bills
-  const apBills = [
-    { id: 'ap-01', bill_no: 'BILL-2026-0031', vendor: 'PT Synnex Metrodata Indonesia', due_date: '2026-10-15', amount: 88500000, status: 'unpaid', term: 'NET 30' },
-    { id: 'ap-02', bill_no: 'BILL-2026-0032', vendor: 'Silicon Tech Global Ltd', due_date: '2026-10-04', amount: 194060000, currency: 'USD', usd_val: 12400, status: 'unpaid', term: 'NET 14' }
-  ];
+  // AP Bills state
+  const [apBills, setApBills] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_ap_bills');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load AP bills', e);
+    }
+    return initialApBills;
+  });
 
-  // Mock AR Invoices
-  const arInvoices = [
-    { id: 'ar-01', inv_no: 'INV-2026-0089', client: 'PT Telko Solusi Nusantara', due_date: '2026-10-28', amount: 49000000, status: 'unpaid', term: 'NET 30' },
-    { id: 'ar-02', inv_no: 'INV-2026-0088', client: 'Dinas Komunikasi & Informatika Pemprov DKI', due_date: '2026-11-15', amount: 168000000, status: 'partial', paid: 68000000, term: 'NET 45' }
-  ];
+  // AR Invoices state
+  const [arInvoices, setArInvoices] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_ar_invoices');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load AR invoices', e);
+    }
+    return initialArInvoices;
+  });
+
+  const handlePayBill = (billId) => {
+    const updatedBills = apBills.map(b => {
+      if (b.id === billId) {
+        return { ...b, status: 'paid', paid_at: new Date().toISOString() };
+      }
+      return b;
+    });
+    setApBills(updatedBills);
+    try {
+      localStorage.setItem('moai_v2_ap_bills', JSON.stringify(updatedBills));
+    } catch (err) {
+      console.error('Failed to save AP bills to localStorage', err);
+    }
+  };
+
+  const handleReconcileInvoice = (invId) => {
+    const updatedInvs = arInvoices.map(inv => {
+      if (inv.id === invId) {
+        return { ...inv, status: 'paid', paid_at: new Date().toISOString() };
+      }
+      return inv;
+    });
+    setArInvoices(updatedInvs);
+    try {
+      localStorage.setItem('moai_v2_ar_invoices', JSON.stringify(updatedInvs));
+    } catch (err) {
+      console.error('Failed to save AR invoices to localStorage', err);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -172,17 +220,26 @@ export default function FinanceV2({ language }) {
                       {b.currency === 'USD' && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>${b.usd_val?.toLocaleString()} USD</div>}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '0.75rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem' }}>
+                      <span style={{ 
+                        backgroundColor: b.status.toLowerCase() === 'paid' ? '#ecfdf5' : '#fee2e2', 
+                        color: b.status.toLowerCase() === 'paid' ? '#047857' : '#991b1b', 
+                        fontSize: '0.75rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem' 
+                      }}>
                         {b.status.toUpperCase()}
                       </span>
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <button 
-                        onClick={() => alert(isId ? `Pembayaran untuk ${b.bill_no} berhasil diproses via transfer bank.` : `Payment processed for ${b.bill_no}.`)}
-                        style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
-                      >
-                        Bayar via Transfer
-                      </button>
+                      {b.status.toLowerCase() !== 'paid' ? (
+                        <button 
+                          id={`btn-pay-${b.id}`}
+                          onClick={() => handlePayBill(b.id)}
+                          style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+                        >
+                          Bayar via Transfer
+                        </button>
+                      ) : (
+                        <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.75rem' }}>✓ Lunas (Paid)</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -219,19 +276,24 @@ export default function FinanceV2({ language }) {
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <span style={{ 
                         fontSize: '0.75rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem',
-                        backgroundColor: inv.status === 'paid' ? '#ecfdf5' : '#fef3c7',
-                        color: inv.status === 'paid' ? '#047857' : '#b45309'
+                        backgroundColor: inv.status.toLowerCase() === 'paid' ? '#ecfdf5' : '#fef3c7',
+                        color: inv.status.toLowerCase() === 'paid' ? '#047857' : '#b45309'
                       }}>
                         {inv.status.toUpperCase()}
                       </span>
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <button 
-                        onClick={() => alert(isId ? `Penerimaan kas dicatat untuk ${inv.inv_no}!` : `Receipt recorded for ${inv.inv_no}!`)}
-                        style={{ backgroundColor: '#047857', color: '#ffffff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
-                      >
-                        Rekonsiliasi Bayar
-                      </button>
+                      {inv.status.toLowerCase() !== 'paid' ? (
+                        <button 
+                          id={`btn-reconcile-${inv.id}`}
+                          onClick={() => handleReconcileInvoice(inv.id)}
+                          style={{ backgroundColor: '#047857', color: '#ffffff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+                        >
+                          Rekonsiliasi Bayar
+                        </button>
+                      ) : (
+                        <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.75rem' }}>✓ Lunas (Paid)</span>
+                      )}
                     </td>
                   </tr>
                 ))}

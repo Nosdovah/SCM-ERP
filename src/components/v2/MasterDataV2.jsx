@@ -12,8 +12,15 @@ export default function MasterDataV2({ language }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   
-  // Data states initialized with rich v2Data
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_products');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load products from localStorage', e);
+    }
+    return initialProducts;
+  });
   const [zones] = useState(initialZones);
   const [bins, setBins] = useState(initialBins);
   const [brands] = useState(initialBrands);
@@ -75,7 +82,13 @@ export default function MasterDataV2({ language }) {
       cost_price: Number(newProd.cost_price) || 0,
       stock: Number(newProd.stock) || 0
     };
-    setProducts([created, ...products]);
+    const updated = [created, ...products];
+    setProducts(updated);
+    try {
+      localStorage.setItem('moai_v2_products', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Failed to save products to localStorage', err);
+    }
     setShowProductModal(false);
     setNewProd({
       sku: '', barcode: '', name: '', category: 'Processor', item_type: 'SPARE_PART',
@@ -108,7 +121,7 @@ export default function MasterDataV2({ language }) {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-color)', fontWeight: '700', fontSize: '0.875rem' }}>
-            <Database size={18} /> MODUL 4 & 5 — MASTER DATA
+            <Database size={18} /> MODUL 5 — MASTER DATA
           </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary-color)', margin: '0.25rem 0 0 0' }}>
             {isId ? 'Katalog Produk, Tata Letak Gudang & Entitas Bisnis' : 'Product Catalog, Warehouse Layout & Business Entities'}

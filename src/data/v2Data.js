@@ -70,8 +70,8 @@ export const initialProducts = [
     uom: 'UNIT',
     is_serial: true,
     is_assembly: true,
-    unit_price: 24500000,
-    cost_price: 20250000,
+    unit_price: 29500000,
+    cost_price: 25450000,
     stock: 4,
     bin_code: 'PB-A-1-01'
   },
@@ -391,7 +391,7 @@ export const initialSerials = [
     sku: 'PB-ARES-78X',
     status: 'SOLD',
     bin_code: 'PB-A-1-01',
-    unit_cost: 20250000,
+    unit_cost: 25450000,
     received_at: '2026-09-22',
     sold_at: '2026-09-28',
     customer_warranty_end: '2027-09-28'
@@ -403,7 +403,7 @@ export const initialSerials = [
     sku: 'PB-ARES-78X',
     status: 'RMA',
     bin_code: 'RMA-HOLD-01',
-    unit_cost: 20250000,
+    unit_cost: 25450000,
     received_at: '2026-09-24',
     note: 'Customer return: blue screen saat gaming test'
   }
@@ -450,7 +450,7 @@ export const initialStockMovements = [
     qty: 1,
     bin_code: 'PB-A-1-01',
     ref_doc: 'ASM-ORD-001',
-    unit_cost: 20250000,
+    unit_cost: 25450000,
     created_at: '2026-09-22 15:40',
     created_by: 'Assembly Tech'
   },
@@ -461,7 +461,7 @@ export const initialStockMovements = [
     qty: -1,
     bin_code: 'PB-A-1-01',
     ref_doc: 'SJ-2026-0089',
-    unit_cost: 20250000,
+    unit_cost: 25450000,
     created_at: '2026-09-28 11:30',
     created_by: 'Outbound Admin'
   },
@@ -472,7 +472,7 @@ export const initialStockMovements = [
     qty: 1,
     bin_code: 'RMA-HOLD-01',
     ref_doc: 'RMA-2026-0005',
-    unit_cost: 20250000,
+    unit_cost: 25450000,
     created_at: '2026-10-01 16:10',
     created_by: 'Return Admin'
   }
@@ -509,7 +509,7 @@ export const initialAssemblyOrders = [
     created_by: 'Bambang Assembly',
     completed_at: '2026-09-22 16:00',
     serial_generated: 'SN-ARES-PC-001',
-    total_cost: 25600000
+    total_cost: 25450000
   },
   {
     id: 'asm-02',
@@ -522,7 +522,7 @@ export const initialAssemblyOrders = [
     created_by: 'Bambang Assembly',
     completed_at: null,
     serial_generated: null,
-    total_cost: 51200000
+    total_cost: 50900000
   }
 ];
 
@@ -610,3 +610,31 @@ export const initialSalesOrders = [
     items: [{ name: 'AMD Ryzen 7 7800X3D', qty: 2 }, { name: 'Kingston DDR5 32GB', qty: 5 }]
   }
 ];
+
+export const initialApBills = [
+  { id: 'ap-01', bill_no: 'BILL-2026-0031', vendor: 'PT Synnex Metrodata Indonesia', due_date: '2026-10-15', amount: 88500000, status: 'unpaid', term: 'NET 30' },
+  { id: 'ap-02', bill_no: 'BILL-2026-0032', vendor: 'Silicon Tech Global Ltd', due_date: '2026-10-04', amount: 194060000, currency: 'USD', usd_val: 12400, status: 'unpaid', term: 'NET 14' }
+];
+
+export const initialArInvoices = [
+  { id: 'ar-01', inv_no: 'INV-2026-0089', client: 'PT Telko Solusi Nusantara', due_date: '2026-10-28', amount: 49000000, status: 'unpaid', term: 'NET 30' },
+  { id: 'ar-02', inv_no: 'INV-2026-0088', client: 'Diskominfo Pemprov DKI Jakarta', due_date: '2026-11-15', amount: 168000000, status: 'partial', paid: 68000000, term: 'NET 45' }
+];
+
+export const initialGRNList = [
+  {
+    id: 'grn-01',
+    gr_number: 'GRN-2026-0043',
+    po_number: 'PO-2026-0043',
+    supplier_name: 'Silicon Tech Global Ltd',
+    description: '15 Unit AMD Ryzen & Kingston SSD',
+    status: 'PENDING_QC',
+    bin_code: 'QC-IN-01',
+    received_at: '2026-10-05 11:20'
+  }
+];
+
+export const calculateTotalValuation = (productsList) => {
+  return (productsList || []).reduce((acc, p) => acc + ((p.cost_price || 0) * (p.stock || 0)), 0);
+};
+

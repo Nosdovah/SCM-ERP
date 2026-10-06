@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-  Send, PackageCheck, Truck, FileText, Barcode
+  Send, PackageCheck, Truck, FileText, Barcode, CheckCircle2
 } from 'lucide-react';
 import { initialSalesOrders } from '../../data/v2Data';
 
@@ -13,8 +13,55 @@ export default function OutboundV2({ language }) {
   const [selectedSO, setSelectedSO] = useState(null);
   const [sjForm, setSjForm] = useState({ driver_name: 'Joko Prabowo', vehicle_no: 'B 9281 KCA', note: 'Kirim via armada internal PT Kompakom' });
 
+  // Wave Picking state
+  const [wavePickingState, setWavePickingState] = useState('IDLE');
+
+  // Packing Station state
+  const [packedOrders, setPackedOrders] = useState([
+    {
+      id: 'pack-01',
+      pack_no: 'PACK-2026-0052',
+      so_number: 'SO-2026-0102',
+      client: 'Diskominfo Pemprov DKI Jakarta',
+      items: '10x Lenovo ThinkPad E14 Gen 5',
+      box_count: 2,
+      weight_kg: 18.5,
+      status: 'PACKED'
+    }
+  ]);
+  const [currentPackForm, setCurrentPackForm] = useState({
+    so_number: 'SO-2026-0103',
+    box_count: 1,
+    weight_kg: 4.2,
+    notes: 'Segel QC utuh'
+  });
+  const [packSuccessMsg, setPackSuccessMsg] = useState(null);
+
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
+
+  const handleStartWavePicking = () => {
+    setWavePickingState('IN_PROGRESS');
+    setTimeout(() => {
+      setWavePickingState('COMPLETED');
+    }, 400);
+  };
+
+  const handleExecutePacking = (e) => {
+    e.preventDefault();
+    const newPack = {
+      id: `pack-${Date.now()}`,
+      pack_no: `PACK-2026-00${packedOrders.length + 53}`,
+      so_number: currentPackForm.so_number,
+      client: currentPackForm.so_number === 'SO-2026-0103' ? 'Toko Jaya Makmur Komputer' : 'Diskominfo Pemprov DKI Jakarta',
+      items: currentPackForm.so_number === 'SO-2026-0103' ? '2x AMD Ryzen 7 7800X3D, 5x Kingston DDR5 32GB' : '10x Lenovo ThinkPad E14 Gen 5',
+      box_count: currentPackForm.box_count,
+      weight_kg: currentPackForm.weight_kg,
+      status: 'PACKED'
+    };
+    setPackedOrders([newPack, ...packedOrders]);
+    setPackSuccessMsg(isId ? `Paket ${newPack.pack_no} (${newPack.so_number}) berhasil disegel & siap kirim!` : `Package ${newPack.pack_no} sealed & ready to ship!`);
+  };
 
   const handleCreateSJ = (e) => {
     e.preventDefault();
@@ -180,16 +227,151 @@ export default function OutboundV2({ language }) {
             <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
               <div>Wave Batch: <strong>WAVE-BATCH-09</strong> (4 SO Retail)</div>
               <div>Total Komponen: 12x RAM 32GB + 8x SSD 1TB</div>
-              <button style={{ marginTop: '0.5rem', backgroundColor: '#6d28d9', color: '#ffffff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}>
-                Mulai Wave Picking Teragregasi
-              </button>
+              <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button 
+                  id="btn-wave-picking"
+                  onClick={handleStartWavePicking}
+                  style={{ backgroundColor: wavePickingState === 'COMPLETED' ? '#047857' : '#6d28d9', color: '#ffffff', border: 'none', padding: '0.45rem 0.85rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  {wavePickingState === 'IDLE' ? 'Mulai Wave Picking Teragregasi' : wavePickingState === 'IN_PROGRESS' ? 'Memproses Pengambilan...' : '✓ Wave Picking Selesai (Staging)'}
+                </button>
+              </div>
+              {wavePickingState !== 'IDLE' && (
+                <div id="wave-picking-status" style={{ marginTop: '0.5rem', color: wavePickingState === 'COMPLETED' ? '#047857' : '#6d28d9', fontWeight: '700', fontSize: '0.75rem' }}>
+                  {wavePickingState === 'COMPLETED' ? '✓ Batch selesai dipilah ke keranjang staging put-to-light' : 'Sedang memindai bin teragregasi di rak SP-*'}
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: SURAT JALAN & GI */}
+      {/* TAB 3: PACKING STATION */}
+      {/* ========================================================================= */}
+      {activeTab === 'packing' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Packing form & Station info */}
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <span style={{ backgroundColor: '#f0fdf4', color: '#166534', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: '700' }}>
+                  MEJA PACKING 01 (AKTIF)
+                </span>
+                <h3 style={{ margin: '0.4rem 0 0 0', color: 'var(--primary-color)' }}>
+                  Packing Station & Verifikasi Barcode Dus
+                </h3>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Verifikasi fisik unit hasil picking, cetak barcode packing list, input jumlah koli/dus, dan penimbangan berat total sebelum Surat Jalan terbit.
+                </p>
+              </div>
+            </div>
+
+            {packSuccessMsg && (
+              <div id="pack-success-alert" style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.75rem 1rem', borderRadius: '0.5rem', color: '#047857', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+                <CheckCircle2 size={18} />
+                <span>{packSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleExecutePacking} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr) auto', gap: '1rem', alignItems: 'flex-end', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Nomor Sales Order</label>
+                <select 
+                  id="pack-select-so"
+                  value={currentPackForm.so_number} 
+                  onChange={e => setCurrentPackForm({ ...currentPackForm, so_number: e.target.value })}
+                  style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                >
+                  <option value="SO-2026-0103">SO-2026-0103 (Toko Jaya Makmur)</option>
+                  <option value="SO-2026-0102">SO-2026-0102 (Diskominfo DKI)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Jumlah Koli / Box</label>
+                <input 
+                  id="pack-box-count"
+                  type="number" 
+                  min="1" 
+                  value={currentPackForm.box_count}
+                  onChange={e => setCurrentPackForm({ ...currentPackForm, box_count: Number(e.target.value) })}
+                  style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Berat Total (Kg)</label>
+                <input 
+                  id="pack-weight"
+                  type="number" 
+                  step="0.1" 
+                  value={currentPackForm.weight_kg}
+                  onChange={e => setCurrentPackForm({ ...currentPackForm, weight_kg: Number(e.target.value) })}
+                  style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Kondisi / Segel</label>
+                <input 
+                  id="pack-notes"
+                  type="text" 
+                  value={currentPackForm.notes}
+                  onChange={e => setCurrentPackForm({ ...currentPackForm, notes: e.target.value })}
+                  style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                />
+              </div>
+
+              <button 
+                id="btn-confirm-pack"
+                type="submit"
+                style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.55rem 1rem', borderRadius: '0.375rem', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', height: 'fit-content' }}
+              >
+                Segel Dus & Cetak Label
+              </button>
+            </form>
+          </div>
+
+          {/* Packing History Table */}
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+            <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)', fontWeight: '700', color: 'var(--primary-color)' }}>
+              Daftar Paket Siap Kirim (Packing Completed)
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '0.75rem 1rem' }}>No. Pack</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>No. Sales Order</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Klien</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Rincian Barang</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Koli & Berat</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {packedOrders.map(p => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: '700', color: 'var(--primary-color)' }}>{p.pack_no}</td>
+                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace' }}>{p.so_number}</td>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>{p.client}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{p.items}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{p.box_count} Dus ({p.weight_kg} kg)</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: '700' }}>
+                        ✓ {p.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: SURAT JALAN & GI */}
       {/* ========================================================================= */}
       {activeTab === 'surat_jalan' && (
         <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>

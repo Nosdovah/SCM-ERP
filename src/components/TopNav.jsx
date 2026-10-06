@@ -58,9 +58,38 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
     return rtf.format(Math.round(diff / 86400000), 'day');
   };
 
+  const getViewTitle = () => {
+    switch (currentView) {
+      case 'inventory':
+        return language === 'id' ? '1. Modul Inventory & Serial Number' : '1. Inventory & Serial Management';
+      case 'scm':
+        return language === 'id' ? '2. Supply Chain Management & QC Gate' : '2. SCM & Inbound QC Gate';
+      case 'assembly':
+        return language === 'id' ? '3. Bill of Materials (BOM) & Perakitan' : '3. BOM & Assembly Engine';
+      case 'outbound':
+        return language === 'id' ? '4. Outbound, Picking & Surat Jalan' : '4. Outbound & Delivery Notes';
+      case 'finance':
+        return language === 'id' ? '5. Keuangan, HPP & Utang-Piutang' : '5. Finance, COGS & AP/AR';
+      case 'master_data':
+        return language === 'id' ? '6. Manajemen Data Induk v2.0' : '6. Master Data Management v2.0';
+      case 'board':
+        return language === 'id' ? 'Alur Rantai Pasokan Kanban' : 'SCM Pipeline Board';
+      case 'managerial':
+        return language === 'id' ? 'Laporan Manajerial & Kinerja Staf' : 'Managerial & Worker Performance';
+      case 'analytics':
+        return language === 'id' ? 'Lead Time Analytics Dashboard' : 'Lead Time Analytics Dashboard';
+      case 'help':
+        return language === 'id' ? 'Kamus Terminologi & Panduan Sistem' : 'Dictionary & Help Center';
+      case 'settings':
+        return language === 'id' ? 'Pengaturan Sistem & Profil' : 'System & Profile Settings';
+      default:
+        return language === 'id' ? 'Pengaturan Profil' : 'Profile Settings';
+    }
+  };
+
   return (
     <header className="top-nav">
-      <div className="page-title">{currentView === 'board' ? (language === 'id' ? 'Alur Rantai Pasokan End-to-End' : 'End-to-End Supply Chain Workflow') : currentView === 'help' ? (language === 'id' ? 'Bantuan & Terminologi Sistem' : 'System Help & Terminology') : currentView === 'analytics' ? (language === 'id' ? 'Dasbor Analitik' : 'Analytics Dashboard') : currentView === 'master_data' ? (language === 'id' ? 'Manajemen Data Induk' : 'Master Data Management') : (language === 'id' ? 'Pengaturan Profil' : 'Profile Settings')}</div>
+      <div className="page-title">{getViewTitle()}</div>
       <div className="user-profile" id="tour-top-profile" style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
         
         {/* Language Toggle */}

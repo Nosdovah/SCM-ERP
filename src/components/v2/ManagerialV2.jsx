@@ -2,11 +2,24 @@ import { useState } from 'react';
 import { 
   BarChart3, TrendingUp, Users, DollarSign 
 } from 'lucide-react';
+import { initialProducts, calculateTotalValuation } from '../../data/v2Data';
 
 export default function ManagerialV2({ language }) {
   const [subTab, setSubTab] = useState('executive'); // 'executive' | 'aging_report' | 'worker_perf' | 'pnl'
 
+  const [products] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_products');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load products', e);
+    }
+    return initialProducts;
+  });
+
   const isId = language === 'id';
+  const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
+  const totalValuation = calculateTotalValuation(products);
 
   // Worker performance mock data from spec
   const workerKPIs = [
@@ -77,7 +90,7 @@ export default function ManagerialV2({ language }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
             <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>Total Valuasi Gudang (HPP)</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary-color)', marginTop: '0.25rem' }}>Rp 612.450.000</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary-color)', marginTop: '0.25rem' }}>{formatIDR(totalValuation)}</div>
               <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.25rem' }}>↑ 12% dari bulan lalu</div>
             </div>
 

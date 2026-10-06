@@ -22,9 +22,18 @@ import KanbanBoard from './components/KanbanBoard';
 import DashboardMetrics from './components/DashboardMetrics';
 import NewOrderModal from './components/NewOrderModal';
 import RevertModal from './components/RevertModal';
+import { initialProducts } from './data/v2Data';
 
 function App() {
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_auth_session');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse saved session', e);
+    }
+    return null;
+  });
   const [language, setLanguage] = useState('en');
   
   const [currentView, setCurrentView] = useState(() => {
@@ -51,6 +60,16 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (session) {
+      localStorage.setItem('moai_auth_session', JSON.stringify(session));
+      localStorage.setItem('moai_auth_token', session.token || session.access_token || 'moai_demo_token');
+    } else {
+      localStorage.removeItem('moai_auth_session');
+      localStorage.removeItem('moai_auth_token');
+    }
+  }, [session]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -132,10 +151,28 @@ function App() {
 
   // Fetch master items when modal opens
   useEffect(() => {
-    if (showNewOrderModal && supabase) {
-      supabase.from('items').select('name, stock_on_hand').eq('company_name', userCompany).then(({ data }) => {
-        if (data) setMasterItems(data);
-      });
+    if (showNewOrderModal) {
+      const loadV2Fallback = () => {
+        try {
+          const saved = localStorage.getItem('moai_v2_products');
+          const prods = saved ? JSON.parse(saved) : initialProducts;
+          setMasterItems(prods.map(p => ({ name: p.name, stock_on_hand: p.stock })));
+        } catch {
+          setMasterItems(initialProducts.map(p => ({ name: p.name, stock_on_hand: p.stock })));
+        }
+      };
+
+      if (supabase && userCompany !== 'NOT ASSIGNED') {
+        supabase.from('items').select('name, stock_on_hand').eq('company_name', userCompany).then(({ data, error }) => {
+          if (!error && data && data.length > 0) {
+            setMasterItems(data);
+          } else {
+            loadV2Fallback();
+          }
+        });
+      } else {
+        loadV2Fallback();
+      }
     }
   }, [showNewOrderModal, userCompany]);
 
@@ -144,7 +181,12 @@ function App() {
   const [filterPriority, setFilterPriority] = useState('All');
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    setSession(null);
+    localStorage.removeItem('moai_auth_session');
+    localStorage.removeItem('moai_auth_token');
   };
 
   if (!session) {
@@ -170,7 +212,16 @@ function App() {
     return (
       <Auth 
         onGoToHelp={() => { setCurrentView('help'); window.location.hash = '#help'; }} 
-        onDemoLogin={(demoSession) => setSession(demoSession)} 
+        onDemoLogin={(demoSession) => {
+          const sessionWithToken = {
+            ...demoSession,
+            token: 'moai_token_' + Date.now(),
+            access_token: 'moai_token_' + Date.now()
+          };
+          setSession(sessionWithToken);
+          localStorage.setItem('moai_auth_session', JSON.stringify(sessionWithToken));
+          localStorage.setItem('moai_auth_token', sessionWithToken.token);
+        }} 
       />
     );
   }

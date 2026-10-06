@@ -3,7 +3,7 @@ import {
   ShoppingCart, Truck, ShieldCheck, AlertTriangle, DollarSign
 } from 'lucide-react';
 import { 
-  initialPurchaseOrders, initialRequisitions 
+  initialPurchaseOrders, initialRequisitions, initialGRNList 
 } from '../../data/v2Data';
 
 const createPurchaseOrderFromPR = (pr) => ({
@@ -20,8 +20,33 @@ const createPurchaseOrderFromPR = (pr) => ({
 
 export default function SupplyChainV2({ language }) {
   const [tab, setTab] = useState('orders'); // 'orders' | 'reorder' | 'grn_qc' | 'price_compare' | 'rtv'
-  const [purchaseOrders, setPurchaseOrders] = useState(initialPurchaseOrders);
-  const [requisitions, setRequisitions] = useState(initialRequisitions);
+  const [purchaseOrders, setPurchaseOrders] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_pos');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load purchase orders', e);
+    }
+    return initialPurchaseOrders;
+  });
+  const [requisitions, setRequisitions] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_requisitions');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load requisitions', e);
+    }
+    return initialRequisitions;
+  });
+  const [grnList, setGrnList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_grn');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load GRN list', e);
+    }
+    return initialGRNList;
+  });
 
   // Inbound QC modal
   const [showQCModal, setShowQCModal] = useState(false);
@@ -37,19 +62,39 @@ export default function SupplyChainV2({ language }) {
     if (!pr) return;
 
     const newPO = createPurchaseOrderFromPR(pr);
+    const updatedPOs = [newPO, ...purchaseOrders];
+    const updatedPRs = requisitions.map(r => r.id === prId ? { ...r, status: 'CONVERTED' } : r);
 
-    setPurchaseOrders([newPO, ...purchaseOrders]);
-    setRequisitions(requisitions.map(r => r.id === prId ? { ...r, status: 'CONVERTED' } : r));
+    setPurchaseOrders(updatedPOs);
+    setRequisitions(updatedPRs);
+    try {
+      localStorage.setItem('moai_v2_pos', JSON.stringify(updatedPOs));
+      localStorage.setItem('moai_v2_requisitions', JSON.stringify(updatedPRs));
+    } catch (err) {
+      console.error('Failed to save to localStorage', err);
+    }
     alert(isId ? `Purchase Requisition berhasil dikonversi menjadi Purchase Order: ${newPO.po_number}!` : `PR converted to PO: ${newPO.po_number}!`);
   };
 
   const handleExecuteQC = (e) => {
     e.preventDefault();
-    if (selectedPO) {
-      setPurchaseOrders(purchaseOrders.map(p => p.id === selectedPO.id ? { ...p, status: 'FULL' } : p));
-      setShowQCModal(false);
-      alert(isId ? `QC Inspection lolos! Unit dipindahkan dari zona QUARANTINE ke rak kategori via movement QC_RELEASE.` : `QC passed! Goods put away to category rack via QC_RELEASE.`);
+    const updatedPOs = selectedPO 
+      ? purchaseOrders.map(p => p.id === selectedPO.id ? { ...p, status: 'FULL' } : p)
+      : purchaseOrders.map(p => p.po_number === 'PO-2026-0043' ? { ...p, status: 'FULL' } : p);
+
+    const updatedGRNs = grnList.map(g => g.gr_number === 'GRN-2026-0043' ? { ...g, status: 'QC_RELEASED' } : g);
+
+    setPurchaseOrders(updatedPOs);
+    setGrnList(updatedGRNs);
+    try {
+      localStorage.setItem('moai_v2_pos', JSON.stringify(updatedPOs));
+      localStorage.setItem('moai_v2_grn', JSON.stringify(updatedGRNs));
+    } catch (err) {
+      console.error('Failed to save QC state to localStorage', err);
     }
+
+    setShowQCModal(false);
+    alert(isId ? `QC Inspection lolos! Unit dipindahkan dari zona QUARANTINE ke rak kategori via movement QC_RELEASE.` : `QC passed! Goods put away to category rack via QC_RELEASE.`);
   };
 
   return (
@@ -240,22 +285,43 @@ export default function SupplyChainV2({ language }) {
 
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.25rem' }}>
             <h4 style={{ margin: '0 0 1rem 0', fontWeight: '700', color: 'var(--primary-color)' }}>
-              Inspeksi QC Menunggu Tindakan
+              Daftar Barang Masuk & Status Inspeksi QC (Inbound Receiving)
             </h4>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-              <div>
-                <span style={{ backgroundColor: '#fef3c7', color: '#92400e', fontSize: '0.7rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem' }}>
-                  ZONA KARANTINA (QC-IN-01)
-                </span>
-                <div style={{ fontWeight: '700', fontSize: '1.05rem', marginTop: '0.35rem' }}>GRN-2026-0043 (Ref: PO-2026-0043)</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Pemasok: Silicon Tech Global Ltd · 15 Unit AMD Ryzen & Kingston SSD</div>
-              </div>
-              <button
-                onClick={() => { setSelectedPO(purchaseOrders[1]); setShowQCModal(true); }}
-                style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                Mulai Inspeksi QC & Putaway
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {grnList.map(grn => {
+                const isPassed = grn.status === 'QC_RELEASED';
+                return (
+                  <div key={grn.id} id={`grn-card-${grn.id}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: isPassed ? '#f0fdf4' : '#f8fafc', borderRadius: '0.5rem', border: `1px solid ${isPassed ? '#bbf7d0' : '#e2e8f0'}` }}>
+                    <div>
+                      <span style={{ backgroundColor: isPassed ? '#dcfce7' : '#fef3c7', color: isPassed ? '#166534' : '#92400e', fontSize: '0.7rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem' }}>
+                        {isPassed ? 'LOLOS QC (RAK SP-CPU-A-01)' : 'ZONA KARANTINA (QC-IN-01)'}
+                      </span>
+                      <div style={{ fontWeight: '700', fontSize: '1.05rem', marginTop: '0.35rem' }}>{grn.gr_number} (Ref: {grn.po_number})</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Pemasok: {grn.supplier_name} · {grn.description}</div>
+                      {isPassed && (
+                        <div style={{ fontSize: '0.75rem', color: '#166534', fontWeight: '600', marginTop: '0.25rem' }}>
+                          ✓ Status: QC_RELEASED — Stok telah ditambahkan ke inventory utama & AP Bill telah terbit.
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      {!isPassed ? (
+                        <button
+                          id="btn-start-qc"
+                          onClick={() => { setSelectedPO(purchaseOrders[1] || purchaseOrders[0]); setShowQCModal(true); }}
+                          style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                        >
+                          Mulai Inspeksi QC & Putaway
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#166534', padding: '0.4rem 0.8rem', backgroundColor: '#dcfce7', borderRadius: '0.375rem' }}>
+                          Selesai Diproses
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

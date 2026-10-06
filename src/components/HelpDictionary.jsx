@@ -38,6 +38,12 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
       titleID: "Alur Kondisional Lokal: 3PP",
       definitionTerm: "Conditional Local Flow: 3PP",
       terms: ["3PP"]
+    },
+    {
+      titleEN: "v2.0 Distributor & Computer Integrator Operations",
+      titleID: "v2.0 Operasional Distributor & Integrator Komputer",
+      definitionTerm: null,
+      terms: ["BOM (Bill of Materials)", "SN / IMEI Tracking", "GRN & Inbound QC", "RMA & Defective Quarantine", "COGS Roll-up", "RTV (Return to Vendor)"]
     }
   ];
 

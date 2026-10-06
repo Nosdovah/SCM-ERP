@@ -14,7 +14,15 @@ export default function InventoryManagementV2({ session, language }) {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Data states
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_products');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load products from localStorage', e);
+    }
+    return initialProducts;
+  });
   const [serials] = useState(initialSerials);
   const [movements, setMovements] = useState(initialStockMovements);
   const [bins] = useState(initialBins);
@@ -136,6 +144,8 @@ export default function InventoryManagementV2({ session, language }) {
             return (
               <button
                 key={tab.id}
+                id={`tab-${tab.id}`}
+                data-testid={`tab-${tab.id}`}
                 onClick={() => setSubTab(tab.id)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -160,7 +170,7 @@ export default function InventoryManagementV2({ session, language }) {
         <div style={{ backgroundColor: '#ffffff', padding: '1rem 1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>Total Valuasi Stok Aktif</div>
           <div style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--primary-color)', marginTop: '0.25rem' }}>{formatIDR(totalValuation)}</div>
-          <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.2rem' }}>11 SKU Produk Tersedia</div>
+          <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.2rem' }}>{products.length} SKU Produk Tersedia</div>
         </div>
 
         <div style={{ backgroundColor: '#ffffff', padding: '1rem 1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
