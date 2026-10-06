@@ -35,8 +35,8 @@ export default function AssemblyBOMV2({ session, language }) {
   // New Order State
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [newOrderQty, setNewOrderQty] = useState(1);
-  const [newOrderTargetBin, setNewOrderTargetBin] = useState('PB-A-1-01');
-  const [newOrderNote, setNewOrderNote] = useState('Perakitan PC batch reguler');
+  const [newOrderTargetBin, setNewOrderTargetBin] = useState('');
+  const [newOrderNote, setNewOrderNote] = useState('');
 
   // De-bundling state
   const [debundleSuccess, setDebundleSuccess] = useState(null);
@@ -45,8 +45,8 @@ export default function AssemblyBOMV2({ session, language }) {
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 
   // Calculate BOM costs
-  const materialCost = bom.components.reduce((acc, c) => acc + (c.cost * c.qty), 0);
-  const totalUnitHPP = materialCost + bom.labor_cost + bom.overhead_cost;
+  const materialCost = (bom.components || []).reduce((acc, c) => acc + ((c.cost || 0) * (c.qty || 0)), 0);
+  const totalUnitHPP = materialCost + (bom.labor_cost || 0) + (bom.overhead_cost || 0);
 
   // Assembly Simulator calculation
   const simulationResults = bom.components.map(c => {

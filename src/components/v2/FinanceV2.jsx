@@ -336,18 +336,8 @@ export default function FinanceV2({ language }) {
             </p>
           </div>
 
-          <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: '700' }}>Tiket Servis: SRV-2026-0012 (RMA-2026-0005)</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Unit: MOAI Ares Elite Gaming PC (SN-ARES-PC-002) · Klien: PT Telko Solusi Nusantara</div>
-              <div style={{ fontSize: '0.8rem', color: '#92400e', marginTop: '0.25rem' }}>Tindakan: Penggantian modul RAM DDR5 32GB (Biaya part: Rp 1.650.000 + Jasa teknisi: Rp 150.000)</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status Klaim Vendor:</div>
-              <span style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: '700' }}>
-                Klaim Vendor Disetujui (Kingston)
-              </span>
-            </div>
+          <div style={{ backgroundColor: '#f8fafc', padding: '2rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            Belum ada rekaman klaim biaya garansi atau tiket servis aktif yang tercatat.
           </div>
         </div>
       )}

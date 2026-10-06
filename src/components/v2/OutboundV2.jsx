@@ -3,8 +3,7 @@ import {
   Send, PackageCheck, Truck, FileText, Barcode, CheckCircle2, Plus, Receipt
 } from 'lucide-react';
 import { 
-  initialSalesOrders, initialDeliveryNotes, initialArInvoices, 
-  initialProducts, initialClients 
+  initialSalesOrders, initialDeliveryNotes, initialArInvoices 
 } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
 
@@ -33,16 +32,18 @@ export default function OutboundV2({ language }) {
     return initialDeliveryNotes;
   });
 
+  const [products, setProducts] = useState([]);
+
   // Order Intake (Flow #13 / F13) state
   const [showNewSOModal, setShowNewSOModal] = useState(false);
   const [soSuccessBanner, setSoSuccessBanner] = useState(null);
   const [newSoForm, setNewSoForm] = useState({
-    client_name: initialClients[0]?.name || 'PT Telko Solusi Nusantara',
-    sku: 'PB-ARES-78X',
-    qty: 2,
-    unit_price: 28500000,
-    priority: 'High',
-    notes: 'Pengiriman batch 1 kantor pusat'
+    client_name: '',
+    sku: '',
+    qty: 1,
+    unit_price: 0,
+    priority: 'Normal',
+    notes: ''
   });
 
   // Delivery Note modal
@@ -50,32 +51,21 @@ export default function OutboundV2({ language }) {
   const [selectedSO, setSelectedSO] = useState(null);
   const [sjSuccessBanner, setSjSuccessBanner] = useState(null);
   const [sjForm, setSjForm] = useState({ 
-    driver_name: 'Joko Prabowo', 
-    vehicle_no: 'B 9281 KCA', 
-    note: 'Kirim via armada internal PT Kompakom' 
+    driver_name: '', 
+    vehicle_no: '', 
+    note: '' 
   });
 
   // Wave Picking state
   const [wavePickingState, setWavePickingState] = useState('IDLE');
 
   // Packing Station state
-  const [packedOrders, setPackedOrders] = useState([
-    {
-      id: 'pack-01',
-      pack_no: 'PACK-2026-0052',
-      so_number: 'SO-2026-0102',
-      client: 'Diskominfo Pemprov DKI Jakarta',
-      items: '10x Lenovo ThinkPad E14 Gen 5',
-      box_count: 2,
-      weight_kg: 18.5,
-      status: 'PACKED'
-    }
-  ]);
+  const [packedOrders, setPackedOrders] = useState([]);
   const [currentPackForm, setCurrentPackForm] = useState({
-    so_number: 'SO-2026-0103',
+    so_number: '',
     box_count: 1,
-    weight_kg: 4.2,
-    notes: 'Segel QC utuh'
+    weight_kg: 0,
+    notes: ''
   });
   const [packSuccessMsg, setPackSuccessMsg] = useState(null);
 
@@ -96,6 +86,9 @@ export default function OutboundV2({ language }) {
         try { localStorage.setItem('moai_v2_delivery_notes', JSON.stringify(data)); } catch (err) { console.debug(err); }
       }
     });
+    apiService.masterData.getProducts().then(data => {
+      if (data && Array.isArray(data)) setProducts(data);
+    });
   }, []);
 
   // Flow #13 Order Intake Handler
@@ -105,7 +98,7 @@ export default function OutboundV2({ language }) {
     const unitPrice = Number(newSoForm.unit_price) || 0;
     const total = qty * unitPrice;
 
-    const foundProd = initialProducts.find(p => p.sku === newSoForm.sku);
+    const foundProd = products.find(p => p.sku === newSoForm.sku);
     const prodName = foundProd ? foundProd.name : newSoForm.sku;
 
     const nextNumber = String(salesOrders.length + 104).padStart(4, '0');
@@ -674,7 +667,7 @@ export default function OutboundV2({ language }) {
                     value={newSoForm.sku}
                     onChange={e => {
                       const selSku = e.target.value;
-                      const prod = initialProducts.find(p => p.sku === selSku);
+                      const prod = products.find(p => p.sku === selSku);
                       setNewSoForm({ 
                         ...newSoForm, 
                         sku: selSku, 
@@ -683,9 +676,10 @@ export default function OutboundV2({ language }) {
                     }}
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
                   >
-                    {initialProducts.map(p => (
+                    <option value="">-- Pilih Produk --</option>
+                    {products.map(p => (
                       <option key={p.id} value={p.sku}>
-                        {p.sku} — {p.name} (Stok: {p.stock})
+                        {p.sku} — {p.name} (Stok: {p.stock ?? p.stock_on_hand ?? 0})
                       </option>
                     ))}
                   </select>

@@ -37,27 +37,27 @@ export default function MasterDataV2({ language }) {
     sku: '',
     barcode: '',
     name: '',
-    category: 'Processor',
+    category: 'Hardware',
     item_type: 'SPARE_PART',
-    brand: 'AMD',
+    brand: '',
     uom: 'PCS',
     unit_price: '',
     cost_price: '',
-    stock: 10,
-    is_serial: true,
+    stock: 0,
+    is_serial: false,
     is_assembly: false,
-    bin_code: 'SP-CPU-A-01'
+    bin_code: ''
   });
 
   // New Bin Form
   const [newBin, setNewBin] = useState({
-    warehouse_id: 'wh-01',
-    zone_id: 'zone-sp',
-    rack: 'Rack-E',
-    shelf: 'Shelf-1',
-    level: '01',
+    warehouse_id: '',
+    zone_id: '',
+    rack: '',
+    shelf: '',
+    level: '',
     bin_type: 'storage',
-    capacity: 100
+    capacity: 50
   });
 
   const isId = language === 'id';

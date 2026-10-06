@@ -4,13 +4,7 @@ import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
-import { 
-  initialWarehouses, initialZones, initialBins, initialBrands, 
-  initialProducts, initialSuppliers, initialClients, initialSerials, 
-  initialStockMovements, initialBOM, initialAssemblyOrders, 
-  initialPurchaseOrders, initialRequisitions, initialSalesOrders,
-  initialApBills, initialArInvoices, initialGRNList, calculateTotalValuation
-} from '../src/data/v2Data.js';
+import { calculateTotalValuation } from '../src/data/v2Data.js';
 
 // Auto-load .env file if it exists at project root
 const envPath = path.resolve(process.cwd(), '.env');
@@ -70,32 +64,8 @@ if (supabase) {
 }
 
 // Local in-memory fallback stores (used when offline or when Supabase keys are not set)
-let fallbackOrders = [
-  {
-    id: 'ORD-8942',
-    title: 'MSI Modern Series (Low): Full Polycarbonate, Slim Bezel',
-    stage: 'cpo_esta',
-    system: 'boq',
-    priority: 'High',
-    assignee: 'Budi Santoso',
-    checklistState: {},
-    company_name: 'MANUFACTURE',
-    quantity: 50,
-    created_at: new Date().toISOString()
-  }
-];
-
-let fallbackHistory = [
-  {
-    id: 'hist-1',
-    order_id: 'ORD-8942',
-    user_email: 'admin@manufacture.com',
-    action: 'Created Order',
-    details: { title: 'MSI Modern Series (Low): Full Polycarbonate, Slim Bezel', assignee: 'Budi Santoso' },
-    company_name: 'MANUFACTURE',
-    created_at: new Date().toISOString()
-  }
-];
+let fallbackOrders = [];
+let fallbackHistory = [];
 
 // -------------------------------------------------------------
 // 0. HEALTHCHECK ENDPOINT
@@ -974,148 +944,65 @@ app.get('/api/sync/all', async (req, res) => {
 // Domain: Computer Distributor & Integrator (Prebuilt, Barebone, Spare Parts)
 // -------------------------------------------------------------
 
-let v2Products = initialProducts.map(p => ({ ...p }));
-let v2Warehouses = initialWarehouses.map(w => ({ ...w }));
-let v2Zones = initialZones.map(z => ({ ...z }));
-let v2Bins = initialBins.map(b => ({ ...b }));
-let v2Brands = initialBrands.map(b => ({ ...b }));
-let v2Suppliers = initialSuppliers.map(s => ({ ...s }));
-let v2Clients = initialClients.map(c => ({ ...c }));
-let v2Serials = initialSerials.map(s => ({ ...s }));
-let v2Movements = initialStockMovements.map(m => ({ ...m }));
-let v2BOM = { ...initialBOM, components: initialBOM.components.map(c => ({ ...c })) };
-let v2AssemblyOrders = initialAssemblyOrders.map(a => ({ ...a }));
-let v2PurchaseOrders = initialPurchaseOrders.map(p => ({ ...p }));
-let v2Requisitions = initialRequisitions.map(r => ({ ...r }));
-let v2SalesOrders = initialSalesOrders.map(s => ({ ...s }));
-let v2ApBills = initialApBills.map(b => ({ ...b }));
-let v2ArInvoices = initialArInvoices.map(i => ({ ...i }));
-let v2GRNList = initialGRNList.map(g => ({ ...g }));
+let v2Products = [];
+let v2Warehouses = [];
+let v2Zones = [];
+let v2Bins = [];
+let v2Brands = [];
+let v2Suppliers = [];
+let v2Clients = [];
+let v2Serials = [];
+let v2Movements = [];
+let v2BOM = { target_product_id: '', target_sku: '', name: '', version: '1.0', components: [] };
+let v2AssemblyOrders = [];
+let v2PurchaseOrders = [];
+let v2Requisitions = [];
+let v2SalesOrders = [];
+let v2ApBills = [];
+let v2ArInvoices = [];
+let v2GRNList = [];
 
-let v2QCInspections = [
-  {
-    id: 'qc-01',
-    inspection_number: 'QC-2026-0012',
-    gr_id: 'grn-01',
-    gr_number: 'GRN-2026-0043',
-    warehouse_id: 'wh-01',
-    inspector: 'Budi Inspector',
-    status: 'PENDING',
-    qty_inspected: 15,
-    qty_pass: 15,
-    qty_fail: 0,
-    created_at: new Date().toISOString()
-  }
-];
-
-let v2Payments = [
-  {
-    id: 'pay-01',
-    payment_number: 'PAY-2026-0011',
-    type: 'AP',
-    ref_bill_id: 'ap-01',
-    amount: 88500000,
-    currency: 'IDR',
-    method: 'transfer',
-    paid_at: '2026-09-30',
-    note: 'Pembayaran PO Synnex via BCA Virtual Account'
-  }
-];
-
-let v2PickTasks = [
-  {
-    id: 'pick-01',
-    pick_number: 'PICK-2026-0081',
-    so_id: 'so-02',
-    so_number: 'SO-2026-0102',
-    warehouse_id: 'wh-01',
-    type: 'single',
-    status: 'IN_PROGRESS',
-    assigned_to: 'Ahmad Outbound',
-    items_count: 10,
-    started_at: '2026-10-01 10:00'
-  }
-];
-
-let v2PackTasks = [
-  {
-    id: 'pack-01',
-    pack_number: 'PACK-2026-0052',
-    pick_task_id: 'pick-01',
-    so_id: 'so-02',
-    status: 'PACKING',
-    packed_by: 'Siti Logistik',
-    box_count: 2,
-    total_weight_kg: 18.5,
-    created_at: '2026-10-01 14:00'
-  }
-];
-
-let v2DeliveryNotes = [
-  {
-    id: 'sj-01',
-    sj_number: 'SJ-2026-0089',
-    so_id: 'so-01',
-    so_number: 'SO-2026-0101',
-    client_name: 'PT Telko Solusi Nusantara',
-    driver_name: 'Joko Prabowo',
-    vehicle_no: 'B 9281 KCA',
-    status: 'DELIVERED',
-    delivered_at: '2026-09-28 14:30',
-    received_by: 'Pak Doni (IT Telko)'
-  }
-];
-
-let v2RTVCases = [
-  {
-    id: 'rtv-01',
-    rtv_number: 'RTV-2026-0004',
-    supplier_name: 'PT Asus Technology Indonesia',
-    product_name: 'ASUS TUF GAMING B650-PLUS WIFI',
-    qty: 1,
-    serial_no: 'SN-ASUS-MB-009',
-    reason: 'Defective audio chip upon receiving QC',
-    status: 'SHIPPED',
-    shipped_at: '2026-09-29'
-  }
-];
-
-let v2RMACases = [
-  {
-    id: 'rma-01',
-    rma_number: 'RMA-2026-0005',
-    direction: 'CUSTOMER_RETURN',
-    client_name: 'PT Telko Solusi Nusantara',
-    serial_no: 'SN-ARES-PC-002',
-    product_name: 'MOAI Ares Elite Gaming PC',
-    qty: 1,
-    reason: 'defective',
-    status: 'INSPECTING',
-    opened_at: '2026-10-01 16:10',
-    disposition: 'pending'
-  }
-];
-
-let v2WorkerActivities = [
-  { worker: 'Ahmad Outbound', role: 'Admin Picking', lines_picked: 142, units: 280, accuracy: '99.4%', avg_time_task: '4.2 min' },
-  { worker: 'Siti Logistik', role: 'Admin Packing', orders_packed: 68, units: 195, accuracy: '99.8%', avg_time_order: '6.5 min' },
-  { worker: 'Doni Return', role: 'Admin Return (RMA)', returns_processed: 12, resolved_value: 48500000, avg_time_res: '1.2 days' },
-  { worker: 'Bambang Perakitan', role: 'Assembly & QC', units_built: 8, components_issued: 56, bom_accuracy: '100%', defect_rate: '0.0%' }
-];
+let v2QCInspections = [];
+let v2Payments = [];
+let v2PickTasks = [];
+let v2PackTasks = [];
+let v2DeliveryNotes = [];
+let v2RTVCases = [];
+let v2RMACases = [];
+let v2WorkerActivities = [];
 
 // --- MODULE 5: MASTER DATA ENDPOINTS ---
 app.get('/api/v2/master/products', async (req, res) => {
-  const { category, item_type, search } = req.query;
+  const { category, item_type, search, company_name } = req.query;
   if (supabase) {
     try {
-      let q = supabase.from('products').select('*');
+      let q = supabase.from('items').select('*');
       if (category) q = q.eq('category', category);
-      if (item_type) q = q.eq('item_type', item_type);
+      if (company_name && company_name !== 'NOT ASSIGNED') q = q.eq('company_name', company_name);
       if (search) q = q.ilike('name', `%${search}%`);
       const { data, error } = await q;
-      if (!error && data && data.length > 0) return res.json(data);
-    } catch {
-      // fallback to in-memory store
+      if (!error && data && data.length > 0) {
+        const mapped = data.map(item => ({
+          id: item.id,
+          sku: item.sku,
+          barcode: item.barcode || item.sku,
+          name: item.name,
+          category: item.category || 'Hardware',
+          item_type: item.item_type || (item.category === 'Chassis' ? 'PREBUILT' : 'SPARE_PART'),
+          brand: item.brand || 'General',
+          uom: item.uom || 'PCS',
+          is_serial: !!item.is_serial,
+          is_assembly: !!item.is_assembly,
+          unit_price: Number(item.unit_price) || 0,
+          cost_price: Number(item.cost_price || (item.unit_price ? item.unit_price * 0.8 : 0)),
+          stock: Number(item.stock_on_hand ?? item.stock ?? 0),
+          bin_code: item.bin_code || 'PB-A-1-01',
+          company_name: item.company_name
+        }));
+        return res.json(mapped);
+      }
+    } catch (err) {
+      console.debug('Error querying Supabase items:', err);
     }
   }
   let results = [...v2Products];
@@ -1123,7 +1010,7 @@ app.get('/api/v2/master/products', async (req, res) => {
   if (item_type) results = results.filter(p => p.item_type === item_type);
   if (search) {
     const s = search.toLowerCase();
-    results = results.filter(p => p.name.toLowerCase().includes(s) || p.sku.toLowerCase().includes(s) || p.barcode.includes(s));
+    results = results.filter(p => p.name.toLowerCase().includes(s) || p.sku.toLowerCase().includes(s) || (p.barcode && p.barcode.includes(s)));
   }
   res.json(results);
 });
@@ -1168,7 +1055,34 @@ app.post('/api/v2/master/bins', (req, res) => {
   res.status(201).json(newBin);
 });
 app.get('/api/v2/master/brands', (_req, res) => res.json(v2Brands));
-app.get('/api/v2/master/suppliers', (_req, res) => res.json(v2Suppliers));
+app.get('/api/v2/master/suppliers', async (req, res) => {
+  const { company_name } = req.query;
+  if (supabase) {
+    try {
+      let q = supabase.from('suppliers').select('*').order('created_at', { ascending: false });
+      if (company_name && company_name !== 'NOT ASSIGNED') q = q.eq('company_name', company_name);
+      const { data, error } = await q;
+      if (!error && data && data.length > 0) {
+        const mapped = data.map(s => ({
+          id: s.id,
+          code: s.code || `SUPP-${s.id.substring(0, 6).toUpperCase()}`,
+          name: s.name,
+          category: s.category || 'General Supplier',
+          country: s.country || 'Indonesia',
+          currency: s.currency || 'IDR',
+          rating: s.rating || 5.0,
+          payment_terms: s.payment_terms || 'NET 30',
+          lead_time_days: s.lead_time_days || 7,
+          company_name: s.company_name
+        }));
+        return res.json(mapped);
+      }
+    } catch (err) {
+      console.debug('Error querying Supabase suppliers:', err);
+    }
+  }
+  res.json(v2Suppliers);
+});
 app.post('/api/v2/master/suppliers', (req, res) => {
   const newSupp = { id: `supp-${Date.now()}`, ...req.body };
   v2Suppliers.unshift(newSupp);
@@ -1215,28 +1129,57 @@ app.post('/api/v2/inventory/movements', (req, res) => {
   res.status(201).json(movement);
 });
 
-app.get('/api/v2/inventory/balances', (_req, res) => {
-  const totalValuation = calculateTotalValuation(v2Products);
+app.get('/api/v2/inventory/balances', async (req, res) => {
+  let productsList = [...v2Products];
+  if (supabase && productsList.length === 0) {
+    try {
+      const { company_name } = req.query;
+      let q = supabase.from('items').select('*');
+      if (company_name && company_name !== 'NOT ASSIGNED') q = q.eq('company_name', company_name);
+      const { data, error } = await q;
+      if (!error && data && data.length > 0) {
+        productsList = data.map(item => ({
+          id: item.id,
+          sku: item.sku,
+          name: item.name,
+          item_type: item.item_type || (item.category === 'Chassis' ? 'PREBUILT' : 'SPARE_PART'),
+          stock: Number(item.stock_on_hand ?? item.stock ?? 0),
+          stock_on_hand: Number(item.stock_on_hand ?? item.stock ?? 0),
+          allocated: 0,
+          available: Number(item.stock_on_hand ?? item.stock ?? 0),
+          bin_code: item.bin_code || 'PB-A-1-01',
+          cost_price: Number(item.cost_price || (item.unit_price ? item.unit_price * 0.8 : 0)),
+          valuation: (Number(item.cost_price || (item.unit_price ? item.unit_price * 0.8 : 0))) * (Number(item.stock_on_hand ?? item.stock ?? 0)),
+          company_name: item.company_name
+        }));
+      }
+    } catch (err) {
+      console.debug('Error getting inventory items for balances:', err);
+    }
+  }
+
+  const totalValuation = calculateTotalValuation(productsList);
   const byCategory = {
-    PREBUILT: v2Products.filter(p => p.item_type === 'PREBUILT').reduce((acc, p) => acc + (p.cost_price * p.stock), 0),
-    BAREBONE: v2Products.filter(p => p.item_type === 'BAREBONE').reduce((acc, p) => acc + (p.cost_price * p.stock), 0),
-    SPARE_PART: v2Products.filter(p => p.item_type === 'SPARE_PART').reduce((acc, p) => acc + (p.cost_price * p.stock), 0)
+    PREBUILT: productsList.filter(p => p.item_type === 'PREBUILT').reduce((acc, p) => acc + ((p.cost_price || 0) * (p.stock || p.stock_on_hand || 0)), 0),
+    BAREBONE: productsList.filter(p => p.item_type === 'BAREBONE').reduce((acc, p) => acc + ((p.cost_price || 0) * (p.stock || p.stock_on_hand || 0)), 0),
+    SPARE_PART: productsList.filter(p => p.item_type === 'SPARE_PART').reduce((acc, p) => acc + ((p.cost_price || 0) * (p.stock || p.stock_on_hand || 0)), 0)
   };
+
   res.json({
-    total_sku: v2Products.length,
+    total_sku: productsList.length,
     total_valuation: totalValuation,
     by_category: byCategory,
-    products: v2Products.map(p => ({
+    products: productsList.map(p => ({
       id: p.id,
       sku: p.sku,
       name: p.name,
       item_type: p.item_type,
-      stock_on_hand: p.stock,
-      allocated: 2,
-      available: Math.max(0, p.stock - 2),
-      bin_code: p.bin_code,
-      cost_price: p.cost_price,
-      valuation: p.cost_price * p.stock
+      stock_on_hand: p.stock_on_hand ?? p.stock ?? 0,
+      allocated: p.allocated ?? 0,
+      available: p.available ?? p.stock ?? 0,
+      bin_code: p.bin_code || 'PB-A-1-01',
+      cost_price: p.cost_price || 0,
+      valuation: (p.cost_price || 0) * (p.stock_on_hand ?? p.stock ?? 0)
     }))
   });
 });
@@ -1832,26 +1775,23 @@ app.post('/api/v2/finance/payments', (req, res) => {
 });
 
 app.get('/api/v2/finance/warranty-tickets', (_req, res) => {
-  res.json([
-    { ticket_no: 'SRV-2026-0012', client: 'PT Telko Solusi', issue: 'RTX 4070 Fan Rattling', part_cost: 0, labor_cost: 250000, status: 'REPAIRED', claim_vendor: true }
-  ]);
+  res.json([]);
 });
 
 app.get('/api/v2/finance/exchange-rates', (_req, res) => {
-  res.json({ base: 'IDR', rates: { USD: 15650, SGD: 11800, EUR: 16800 }, date: '2026-10-06' });
+  res.json({ base: 'IDR', rates: { USD: 15650, SGD: 11800, EUR: 16800 }, date: new Date().toISOString().split('T')[0] });
 });
 
 // --- MODULE 6: MANAGERIAL, BILLING & WORKER ANALYTICS ENDPOINTS ---
 app.get('/api/v2/managerial/executive-dashboard', (_req, res) => {
   const totalValuation = calculateTotalValuation(v2Products);
   const totalSales = v2SalesOrders.reduce((sum, s) => sum + (s.total || 0), 0);
-  const idleCapital = 45700000;
   res.json({
     currency: 'IDR',
     total_warehouse_valuation: totalValuation,
     total_sales_revenue: totalSales,
-    idle_capital: idleCapital,
-    gross_margin_pct: 18.4,
+    idle_capital: 0,
+    gross_margin_pct: totalSales > 0 ? 15.0 : 0,
     total_skus: v2Products.length,
     active_sales_orders: v2SalesOrders.length,
     active_purchase_orders: v2PurchaseOrders.length
@@ -1861,15 +1801,18 @@ app.get('/api/v2/managerial/executive-dashboard', (_req, res) => {
 app.get('/api/v2/managerial/worker-performance', (_req, res) => res.json(v2WorkerActivities));
 
 app.get('/api/v2/managerial/pnl', (_req, res) => {
+  const totalSales = v2SalesOrders.reduce((sum, s) => sum + (s.total || 0), 0);
+  const totalCogs = v2SalesOrders.reduce((sum, s) => sum + ((s.total || 0) * 0.8), 0);
+  const grossProfit = totalSales - totalCogs;
   res.json({
-    period: 'October 2026',
+    period: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
     currency: 'IDR',
-    gross_revenue: 240500000,
-    cogs: 196248000,
-    gross_profit: 44252000,
-    operating_expenses: 12500000,
-    warranty_service_deduction: 750000,
-    net_operating_profit: 31002000
+    gross_revenue: totalSales,
+    cogs: totalCogs,
+    gross_profit: grossProfit,
+    operating_expenses: 0,
+    warranty_service_deduction: 0,
+    net_operating_profit: grossProfit
   });
 });
 

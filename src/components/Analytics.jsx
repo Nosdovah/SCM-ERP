@@ -166,8 +166,8 @@ export default function Analytics({ session, language }) {
           inventoryValue = v2Prods.reduce((acc, p) => acc + ((p.cost_price || p.price || 0) * (p.stock || p.stock_on_hand || 0)), 0);
           lowStockItems = v2Prods.filter(p => (p.stock || p.stock_on_hand || 0) <= (p.min_stock || 5)).length;
         } catch {
-          inventoryValue = 844150000;
-          lowStockItems = 2;
+          inventoryValue = 0;
+          lowStockItems = 0;
         }
       }
 
@@ -175,19 +175,16 @@ export default function Analytics({ session, language }) {
         try {
           const v2Pos = JSON.parse(localStorage.getItem('moai_v2_pos') || 'null') || [];
           activeCapEx = v2Pos.reduce((acc, po) => acc + (po.total || 0), 0);
-          if (activeCapEx === 0) activeCapEx = 78500000;
         } catch {
-          activeCapEx = 78500000;
+          activeCapEx = 0;
         }
       }
 
       // Calculate Turnover Ratio
-      let turnoverRatio = inventoryValue > 0 && cogs > 0 ? (cogs / inventoryValue).toFixed(1) : '8.4';
-      if (parseFloat(turnoverRatio) === 0) turnoverRatio = '8.4';
+      let turnoverRatio = inventoryValue > 0 && cogs > 0 ? (cogs / inventoryValue).toFixed(1) : '0.0';
 
       // Calculate OFR (Order Fulfillment Rate)
-      let ofrRate = totalOrdersCount > 0 ? ((completedOrdersCount / totalOrdersCount) * 100).toFixed(1) : '98.5';
-      if (parseFloat(ofrRate) === 0) ofrRate = '98.5';
+      let ofrRate = totalOrdersCount > 0 ? ((completedOrdersCount / totalOrdersCount) * 100).toFixed(1) : '0.0';
 
       // Calculate average lead time for whole order (DSO proxy)
       let totalOrderDurationMs = 0;
@@ -217,7 +214,7 @@ export default function Analytics({ session, language }) {
         }
       });
 
-      const avgDsoDays = completedCount > 0 ? Math.round(totalOrderDurationMs / (1000 * 60 * 60 * 24)) : 34;
+      const avgDsoDays = completedCount > 0 ? Math.round(totalOrderDurationMs / (1000 * 60 * 60 * 24)) : 0;
       const avgInvoiceCycleHrs = finalStageCount > 0 ? (totalFinalStageMs / (1000 * 60 * 60)).toFixed(1) : '13.5';
 
       // Generate dynamic chart data based on EXACT real numbers from the database

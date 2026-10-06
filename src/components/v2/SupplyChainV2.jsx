@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { 
   initialPurchaseOrders, initialRequisitions, initialGRNList, 
-  initialInboundReturns, initialSuppliers, initialProducts, initialApBills 
+  initialInboundReturns, initialApBills 
 } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
 
@@ -65,38 +65,41 @@ export default function SupplyChainV2({ language }) {
     return initialInboundReturns;
   });
 
+  const [suppliers, setSuppliers] = useState([]);
+  const [products, setProducts] = useState([]);
+
   // Form states
   const [showNewPOModal, setShowNewPOModal] = useState(false);
   const [poSuccessBanner, setPoSuccessBanner] = useState(null);
   const [newPoForm, setNewPoForm] = useState({
-    supplier_name: initialSuppliers[0]?.name || 'PT Synnex Metrodata Indonesia',
-    sku: 'SP-CPU-7800X3D',
-    qty: 10,
-    unit_price: 5900000,
+    supplier_name: '',
+    sku: '',
+    qty: 1,
+    unit_price: 0,
     currency: 'IDR',
-    exchange_rate: 16200,
-    expected_date: '2026-10-15'
+    exchange_rate: 1,
+    expected_date: ''
   });
 
   // Inbound Return Form state
   const [returnSuccessBanner, setReturnSuccessBanner] = useState(null);
   const [newReturnForm, setNewReturnForm] = useState({
-    po_reference: 'PO-2026-0043',
-    supplier_name: 'Silicon Tech Global Ltd',
-    item_name: 'AMD Ryzen 7 7800X3D (SN-AMD-78X-005)',
+    po_reference: '',
+    supplier_name: '',
+    item_name: '',
     qty: 1,
-    reason: 'Bent Pin / Reject QC Fisik Karantina',
-    refund_amount: 5900000
+    reason: '',
+    refund_amount: 0
   });
 
   // Inbound QC modal
   const [showQCModal, setShowQCModal] = useState(false);
   const [selectedPO, setSelectedPO] = useState(null);
   const [qcForm, setQcForm] = useState({ 
-    serialsScanned: 'SN-AMD-78X-004\nSN-AMD-78X-005', 
-    passCount: 2, 
+    serialsScanned: '', 
+    passCount: 0, 
     failCount: 0, 
-    note: 'Kondisi segel utuh, lolos uji boot' 
+    note: '' 
   });
 
   const isId = language === 'id';
@@ -127,6 +130,12 @@ export default function SupplyChainV2({ language }) {
         try { localStorage.setItem('moai_v2_inbound_returns', JSON.stringify(data)); } catch (err) { console.debug(err); }
       }
     });
+    apiService.masterData.getSuppliers().then(data => {
+      if (data && Array.isArray(data)) setSuppliers(data);
+    });
+    apiService.masterData.getProducts().then(data => {
+      if (data && Array.isArray(data)) setProducts(data);
+    });
   }, []);
 
   // Flow #13: Handle Create New PO
@@ -138,7 +147,7 @@ export default function SupplyChainV2({ language }) {
     const nextNumber = String(purchaseOrders.length + 44).padStart(4, '0');
     const poNum = `PO-2026-${nextNumber}`;
 
-    const foundProd = initialProducts.find(p => p.sku === newPoForm.sku);
+    const foundProd = products.find(p => p.sku === newPoForm.sku);
     const prodName = foundProd ? foundProd.name : newPoForm.sku;
 
     const newPO = {
@@ -796,8 +805,9 @@ export default function SupplyChainV2({ language }) {
                   onChange={e => setNewPoForm({ ...newPoForm, supplier_name: e.target.value })}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
                 >
-                  {initialSuppliers.map(s => (
-                    <option key={s.id} value={s.name}>{s.name} ({s.country})</option>
+                  <option value="">-- Pilih Supplier --</option>
+                  {suppliers.map(s => (
+                    <option key={s.id} value={s.name}>{s.name} {s.country ? `(${s.country})` : ''}</option>
                   ))}
                 </select>
               </div>
@@ -810,16 +820,17 @@ export default function SupplyChainV2({ language }) {
                     value={newPoForm.sku}
                     onChange={e => {
                       const selSku = e.target.value;
-                      const prod = initialProducts.find(p => p.sku === selSku);
+                      const prod = products.find(p => p.sku === selSku);
                       setNewPoForm({ 
                         ...newPoForm, 
                         sku: selSku, 
-                        unit_price: prod ? prod.cost_price : newPoForm.unit_price 
+                        unit_price: prod ? (prod.cost_price || prod.unit_price) : newPoForm.unit_price 
                       });
                     }}
                     style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
                   >
-                    {initialProducts.map(p => (
+                    <option value="">-- Pilih Komponen / SKU --</option>
+                    {products.map(p => (
                       <option key={p.id} value={p.sku}>
                         {p.sku} — {p.name}
                       </option>

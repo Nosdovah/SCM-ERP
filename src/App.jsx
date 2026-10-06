@@ -98,6 +98,23 @@ function App() {
   }, [session]);
 
   useEffect(() => {
+    // Purge legacy mock data cache if present
+    try {
+      const rawProds = localStorage.getItem('moai_v2_products') || localStorage.getItem('moai_v2_stock_balances');
+      if (rawProds && rawProds.includes('PB-ARES-78X')) {
+        const mockKeys = [
+          'moai_v2_products', 'moai_v2_stock_balances', 'moai_v2_serials', 'moai_v2_movements',
+          'moai_v2_rma_cases', 'moai_v2_rma', 'moai_v2_pos', 'moai_v2_purchase_orders',
+          'moai_v2_requisitions', 'moai_v2_grn', 'moai_v2_grn_list', 'moai_v2_inbound_returns',
+          'moai_v2_sales_orders', 'moai_v2_delivery_notes', 'moai_v2_ap_bills', 'moai_v2_ar_invoices',
+          'moai_v2_bins', 'moai_v2_suppliers', 'moai_v2_clients', 'moai_v2_assembly_orders', 'moai_v2_bom'
+        ];
+        mockKeys.forEach(k => localStorage.removeItem(k));
+      }
+    } catch (err) {
+      console.debug('Cache cleanup error:', err);
+    }
+
     const handleHashChange = () => {
       if (window.location.hash === '#help') {
         setCurrentView('help');

@@ -41,8 +41,8 @@ export default function InventoryManagementV2({ session, language }) {
   const [showAdjModal, setShowAdjModal] = useState(false);
   const [transferNotice, setTransferNotice] = useState(null);
   const [adjNotice, setAdjNotice] = useState(null);
-  const [newTransfer, setNewTransfer] = useState({ product_sku: 'SP-RAM-DDR5-32G', from_bin: 'SP-RAM-B-01', to_bin: 'SP-RAM-B-02', qty: 5 });
-  const [newAdj, setNewAdj] = useState({ product_sku: 'SP-SSD-990P-1T', bin_code: 'SP-SSD-B-01', reason: 'damage', qty: -1, note: 'Patah saat handling gudang' });
+  const [newTransfer, setNewTransfer] = useState({ product_sku: '', from_bin: '', to_bin: '', qty: 1 });
+  const [newAdj, setNewAdj] = useState({ product_sku: '', bin_code: '', reason: 'damage', qty: 0, note: '' });
 
   // RMA State & Notices (Flow #7)
   const [rmaCases, setRmaCases] = useState(() => {
@@ -52,33 +52,17 @@ export default function InventoryManagementV2({ session, language }) {
     } catch (e) {
       console.error(e);
     }
-    return [
-      {
-        id: 'rma-01',
-        rma_number: 'RMA-2026-0005',
-        type: 'CUSTOMER_RETURN',
-        product_name: 'MOAI Ares Elite Gaming PC',
-        serial_no: 'SN-ARES-PC-002',
-        client_name: 'PT Telko Solusi Nusantara',
-        reason: 'Blue Screen saat render video',
-        status: 'OPEN',
-        bin_code: 'RMA-HOLD-01'
-      }
-    ];
+    return [];
   });
   const [rmaNotice, setRmaNotice] = useState(null);
 
   // Stock Opname Session (Flow #6)
   const [opnameSession, setOpnameSession] = useState({
     session_no: 'OPN-2026-001',
-    warehouse: 'Gudang Pusat (Central)',
-    zone: 'SPARE_PART (SP-*)',
-    status: 'COUNTING',
-    items: [
-      { sku: 'SP-RAM-DDR5-32G', name: 'Kingston Fury Beast DDR5 32GB', system_qty: 45, counted_qty: 45, variance: 0 },
-      { sku: 'SP-SSD-990P-1T', name: 'Samsung 990 PRO NVMe 1TB', system_qty: 38, counted_qty: 37, variance: -1 },
-      { sku: 'SP-GPU-RTX4070S', name: 'MSI GeForce RTX 4070 Super 12GB', system_qty: 12, counted_qty: 12, variance: 0 }
-    ]
+    warehouse: 'Gudang Pusat',
+    zone: 'ALL',
+    status: 'READY',
+    items: []
   });
   const [opnameNotice, setOpnameNotice] = useState(null);
 
