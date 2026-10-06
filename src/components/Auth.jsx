@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Activity } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import warehouseBg from '../assets/warehouse_bg.png';
+import { ERP_ROLES } from '../data/v2Data';
 
 export default function Auth({ onGoToHelp, onDemoLogin }) {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup' | 'forgot_password'
@@ -139,14 +140,11 @@ export default function Auth({ onGoToHelp, onDemoLogin }) {
           )}
           {authMode === 'signup' && (
             <div className="auth-input-group">
-              <label>Role</label>
+              <label>Role (13 Granular Roles Spec v2.0)</label>
               <select className="auth-input" value={role} onChange={e => setRole(e.target.value)} required>
-                <option value="Admin">Admin (Full Access)</option>
-                <option value="Procurement">Procurement</option>
-                <option value="Customs">Customs</option>
-                <option value="Warehouse">Warehouse</option>
-                <option value="Logistics">Logistics</option>
-                <option value="Viewer">Viewer (Read Only)</option>
+                {ERP_ROLES.map(r => (
+                  <option key={r.id} value={r.id}>{r.labelEN}</option>
+                ))}
               </select>
             </div>
           )}

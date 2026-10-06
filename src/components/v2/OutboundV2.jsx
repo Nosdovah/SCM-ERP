@@ -1,17 +1,58 @@
 import { useState } from 'react';
 import { 
-  Send, PackageCheck, Truck, FileText, Barcode, CheckCircle2
+  Send, PackageCheck, Truck, FileText, Barcode, CheckCircle2, Plus, Receipt
 } from 'lucide-react';
-import { initialSalesOrders } from '../../data/v2Data';
+import { 
+  initialSalesOrders, initialDeliveryNotes, initialArInvoices, 
+  initialProducts, initialClients 
+} from '../../data/v2Data';
 
 export default function OutboundV2({ language }) {
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'picking' | 'packing' | 'surat_jalan'
-  const [salesOrders, setSalesOrders] = useState(initialSalesOrders);
+
+  // Dynamic Sales Orders backed by localStorage
+  const [salesOrders, setSalesOrders] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_sales_orders');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load sales orders', e);
+    }
+    return initialSalesOrders;
+  });
+
+  // Dynamic Delivery Notes backed by localStorage
+  const [deliveryNotes, setDeliveryNotes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_delivery_notes');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load delivery notes', e);
+    }
+    return initialDeliveryNotes;
+  });
+
+  // Order Intake (Flow #13 / F13) state
+  const [showNewSOModal, setShowNewSOModal] = useState(false);
+  const [soSuccessBanner, setSoSuccessBanner] = useState(null);
+  const [newSoForm, setNewSoForm] = useState({
+    client_name: initialClients[0]?.name || 'PT Telko Solusi Nusantara',
+    sku: 'PB-ARES-78X',
+    qty: 2,
+    unit_price: 28500000,
+    priority: 'High',
+    notes: 'Pengiriman batch 1 kantor pusat'
+  });
 
   // Delivery Note modal
   const [showSJModal, setShowSJModal] = useState(false);
   const [selectedSO, setSelectedSO] = useState(null);
-  const [sjForm, setSjForm] = useState({ driver_name: 'Joko Prabowo', vehicle_no: 'B 9281 KCA', note: 'Kirim via armada internal PT Kompakom' });
+  const [sjSuccessBanner, setSjSuccessBanner] = useState(null);
+  const [sjForm, setSjForm] = useState({ 
+    driver_name: 'Joko Prabowo', 
+    vehicle_no: 'B 9281 KCA', 
+    note: 'Kirim via armada internal PT Kompakom' 
+  });
 
   // Wave Picking state
   const [wavePickingState, setWavePickingState] = useState('IDLE');
@@ -40,6 +81,44 @@ export default function OutboundV2({ language }) {
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 
+  // Flow #13 Order Intake Handler
+  const handleCreateSO = (e) => {
+    e.preventDefault();
+    const qty = Number(newSoForm.qty) || 1;
+    const unitPrice = Number(newSoForm.unit_price) || 0;
+    const total = qty * unitPrice;
+
+    const foundProd = initialProducts.find(p => p.sku === newSoForm.sku);
+    const prodName = foundProd ? foundProd.name : newSoForm.sku;
+
+    const nextNumber = String(salesOrders.length + 104).padStart(4, '0');
+    const newSO = {
+      id: `so-${Date.now()}`,
+      so_number: `SO-2026-${nextNumber}`,
+      client_name: newSoForm.client_name,
+      order_date: new Date().toISOString().substring(0, 10),
+      status: 'ALLOCATED',
+      priority: newSoForm.priority,
+      total: total,
+      items: [{ name: prodName, qty: qty, sku: newSoForm.sku }]
+    };
+
+    const updated = [newSO, ...salesOrders];
+    setSalesOrders(updated);
+    try {
+      localStorage.setItem('moai_v2_sales_orders', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Failed to save sales orders to localStorage', err);
+    }
+
+    setSoSuccessBanner(
+      isId
+        ? `Sales Order ${newSO.so_number} berhasil diterbitkan untuk ${newSO.client_name}! Stok teralokasi.`
+        : `Sales Order ${newSO.so_number} successfully issued for ${newSO.client_name}! Stock allocated.`
+    );
+    setShowNewSOModal(false);
+  };
+
   const handleStartWavePicking = () => {
     setWavePickingState('IN_PROGRESS');
     setTimeout(() => {
@@ -63,15 +142,75 @@ export default function OutboundV2({ language }) {
     setPackSuccessMsg(isId ? `Paket ${newPack.pack_no} (${newPack.so_number}) berhasil disegel & siap kirim!` : `Package ${newPack.pack_no} sealed & ready to ship!`);
   };
 
+  // Flow #15 Surat Jalan & Auto-draft Invoice Handler
   const handleCreateSJ = (e) => {
     e.preventDefault();
-    if (selectedSO) {
-      setSalesOrders(salesOrders.map(s => s.id === selectedSO.id ? { ...s, status: 'SHIPPED' } : s));
-      setShowSJModal(false);
-      alert(isId 
-        ? `Surat Jalan diterbitkan! Movement GI (-) resmi dicatat pada stock ledger dan status order berubah menjadi SHIPPED.` 
-        : `Surat Jalan issued! GI (-) movement posted to ledger and order status set to SHIPPED.`);
+    if (!selectedSO) return;
+
+    // 1. Update SO Status to SHIPPED
+    const updatedSOs = salesOrders.map(s => s.id === selectedSO.id ? { ...s, status: 'SHIPPED' } : s);
+    setSalesOrders(updatedSOs);
+    try {
+      localStorage.setItem('moai_v2_sales_orders', JSON.stringify(updatedSOs));
+    } catch (err) {
+      console.error('Failed to save SO to localStorage', err);
     }
+
+    // 2. Generate and prepend Delivery Note
+    const nextSjNumber = `SJ-2026-${String(deliveryNotes.length + 90).padStart(4, '0')}`;
+    const itemsSummary = selectedSO.items && selectedSO.items.length > 0
+      ? selectedSO.items.map(it => `${it.qty}x ${it.name}`).join(', ')
+      : '1x Paket Pesanan';
+
+    const newSJ = {
+      id: `dn-${Date.now()}`,
+      sj_number: nextSjNumber,
+      so_number: selectedSO.so_number,
+      client_name: selectedSO.client_name,
+      driver_name: sjForm.driver_name,
+      vehicle_no: sjForm.vehicle_no,
+      status: 'SHIPPED',
+      items_summary: itemsSummary,
+      delivered_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      note: sjForm.note || 'Pengiriman dalam proses / keluar gudang'
+    };
+
+    const updatedSJs = [newSJ, ...deliveryNotes];
+    setDeliveryNotes(updatedSJs);
+    try {
+      localStorage.setItem('moai_v2_delivery_notes', JSON.stringify(updatedSJs));
+    } catch (err) {
+      console.error('Failed to save Delivery Note to localStorage', err);
+    }
+
+    // 3. Flow #15 Auto-draft Invoice to moai_v2_ar_invoices (Finance)
+    try {
+      const rawInvoices = localStorage.getItem('moai_v2_ar_invoices');
+      const invoices = rawInvoices ? JSON.parse(rawInvoices) : initialArInvoices;
+      const nextInvNum = `INV-2026-${String(invoices.length + 90).padStart(4, '0')}`;
+      const newInvoice = {
+        id: `ar-${Date.now()}`,
+        inv_no: nextInvNum,
+        so_ref: selectedSO.so_number,
+        sj_ref: nextSjNumber,
+        client: selectedSO.client_name,
+        due_date: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
+        amount: selectedSO.total || 0,
+        status: 'unpaid',
+        term: 'NET 30',
+        created_from_sj: true
+      };
+      localStorage.setItem('moai_v2_ar_invoices', JSON.stringify([newInvoice, ...invoices]));
+    } catch (err) {
+      console.error('Failed to save auto-draft invoice', err);
+    }
+
+    setSjSuccessBanner(
+      isId
+        ? `Surat Jalan ${nextSjNumber} resmi diterbitkan! Movement GI (-) dicatat dan Draf Faktur Piutang (AR) otomatis terbit ke Finance.`
+        : `Delivery Note ${nextSjNumber} issued! GI (-) movement posted and draft AR invoice created.`
+    );
+    setShowSJModal(false);
   };
 
   return (
@@ -109,6 +248,7 @@ export default function OutboundV2({ language }) {
             return (
               <button
                 key={t.id}
+                id={`tab-outbound-${t.id}`}
                 onClick={() => setActiveTab(t.id)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -128,10 +268,48 @@ export default function OutboundV2({ language }) {
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: SALES ORDERS */}
+      {/* TAB 1: SALES ORDERS (ORDER INTAKE - FLOW #13) */}
       {/* ========================================================================= */}
       {activeTab === 'orders' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Header Action Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: '0.85rem 1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--primary-color)' }}>
+                {isId ? 'Daftar Pesanan Penjualan (Sales Orders)' : 'Sales Orders List'}
+              </h3>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                {isId ? 'Flow #13: Order intake klien dan alokasi stok terkomitmen' : 'Flow #13: Client order intake & committed stock allocation'}
+              </span>
+            </div>
+            <button
+              id="btn-create-sales-order"
+              onClick={() => setShowNewSOModal(true)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                backgroundColor: 'var(--accent-color)', color: '#ffffff',
+                border: 'none', padding: '0.55rem 1.15rem', borderRadius: '0.5rem',
+                fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer'
+              }}
+            >
+              <Plus size={16} /> {isId ? '+ Buat Sales Order Baru' : '+ Create Sales Order'}
+            </button>
+          </div>
+
+          {soSuccessBanner && (
+            <div id="so-success-banner" style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.85rem 1.25rem', borderRadius: '0.5rem', color: '#047857', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>
+              <CheckCircle2 size={18} />
+              <span>{soSuccessBanner}</span>
+            </div>
+          )}
+
+          {sjSuccessBanner && (
+            <div id="sj-success-banner" style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '0.85rem 1.25rem', borderRadius: '0.5rem', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>
+              <CheckCircle2 size={18} />
+              <span>{sjSuccessBanner}</span>
+            </div>
+          )}
+
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
               <thead>
@@ -147,12 +325,17 @@ export default function OutboundV2({ language }) {
               </thead>
               <tbody>
                 {salesOrders.map(so => (
-                  <tr key={so.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={so.id} id={`so-row-${so.so_number}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: '700', color: 'var(--primary-color)' }}>
                       {so.so_number}
                     </td>
                     <td style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>
                       {so.client_name}
+                      {so.items && so.items.length > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
+                          {so.items.map(it => `${it.qty}x ${it.name}`).join(', ')}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>{so.order_date}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>
@@ -177,13 +360,20 @@ export default function OutboundV2({ language }) {
                       </span>
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      {so.status === 'PICKING' && (
-                        <button
-                          onClick={() => { setSelectedSO(so); setShowSJModal(true); }}
-                          style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
-                        >
-                          Terbitkan Surat Jalan
-                        </button>
+                      {(so.status === 'PICKING' || so.status === 'ALLOCATED') ? (
+                        <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          <button
+                            id={`btn-issue-sj-${so.so_number}`}
+                            onClick={() => { setSelectedSO(so); setShowSJModal(true); }}
+                            style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+                          >
+                            Terbitkan Surat Jalan
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#047857', fontWeight: '700' }}>
+                          ✓ Selesai / Terkirim
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -283,8 +473,9 @@ export default function OutboundV2({ language }) {
                   onChange={e => setCurrentPackForm({ ...currentPackForm, so_number: e.target.value })}
                   style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
                 >
-                  <option value="SO-2026-0103">SO-2026-0103 (Toko Jaya Makmur)</option>
-                  <option value="SO-2026-0102">SO-2026-0102 (Diskominfo DKI)</option>
+                  {salesOrders.map(so => (
+                    <option key={so.id} value={so.so_number}>{so.so_number} ({so.client_name})</option>
+                  ))}
                 </select>
               </div>
 
@@ -371,32 +562,172 @@ export default function OutboundV2({ language }) {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: SURAT JALAN & GI */}
+      {/* TAB 4: SURAT JALAN & GI (FLOW #15) */}
       {/* ========================================================================= */}
       {activeTab === 'surat_jalan' && (
         <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', padding: '1rem', borderRadius: '0.5rem', color: '#047857', fontSize: '0.85rem' }}>
-            <strong>Aturan Bisnis Kritis:</strong> Penerbitan Surat Jalan (Delivery Note) adalah satu-satunya pemicu resmi pengeluaran stok <strong>GI (Goods Issue)</strong> dari ledger. Dokumen ini juga otomatis menerbitkan draf Invoice (Faktur Piutang) ke modul Finance.
+            <strong>Aturan Bisnis Flow #15:</strong> Penerbitan Surat Jalan (Delivery Note) adalah satu-satunya pemicu resmi pengeluaran stok <strong>GI (Goods Issue)</strong> dari ledger. Dokumen ini juga otomatis menerbitkan draf Invoice (Faktur Piutang AR) ke modul Finance.
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-              <div>
-                <span style={{ backgroundColor: '#ecfdf5', color: '#047857', fontSize: '0.7rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem' }}>
-                  TERKIRIM (DELIVERED)
-                </span>
-                <div style={{ fontWeight: '700', fontSize: '1.05rem', marginTop: '0.35rem' }}>SJ-2026-0089 (Ref: SO-2026-0101)</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Penerima: PT Telko Solusi Nusantara · Driver: Joko Prabowo (B 9281 KCA)</div>
+            {deliveryNotes.map(dn => (
+              <div 
+                key={dn.id} 
+                id={`sj-card-${dn.sj_number}`} 
+                style={{ 
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                  padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem', 
+                  border: '1px solid #e2e8f0' 
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ 
+                      backgroundColor: dn.status === 'DELIVERED' ? '#ecfdf5' : '#eff6ff', 
+                      color: dn.status === 'DELIVERED' ? '#047857' : '#1d4ed8', 
+                      fontSize: '0.7rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem' 
+                    }}>
+                      {dn.status}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Tgl: {dn.delivered_at}
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: '700', fontSize: '1.05rem', marginTop: '0.35rem', color: 'var(--primary-color)' }}>
+                    {dn.sj_number} <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>(Ref: {dn.so_number})</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#1e293b', marginTop: '0.2rem' }}>
+                    Klien: <strong>{dn.client_name}</strong> · Pengemudi: <strong>{dn.driver_name}</strong> ({dn.vehicle_no})
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Barang: {dn.items_summary}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#047857', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'flex-end' }}>
+                    <Receipt size={14} /> Draf AR Invoice Terhubung
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Ledger: Movement GI (-) Tercatat
+                  </div>
+                </div>
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#047857', fontWeight: '700' }}>
-                ✓ Tanda tangan penerima tercatat
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* MODAL: SURAT JALAN */}
+      {/* ========================================================================= */}
+      {/* MODAL: BUAT SALES ORDER BARU (FLOW #13 ORDER INTAKE) */}
+      {/* ========================================================================= */}
+      {showNewSOModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', width: '540px', maxWidth: '90%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>
+              {isId ? 'Buat Pesanan Penjualan Baru (Sales Order)' : 'Create New Sales Order'}
+            </h3>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              {isId ? 'Entri pesanan pelanggan baru untuk memicu proses outbound (Flow #13).' : 'Customer order intake to initiate outbound fulfillment flow.'}
+            </p>
+
+            <form onSubmit={handleCreateSO} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Nama Klien / Pembeli</label>
+                <input
+                  id="so-client-name"
+                  type="text"
+                  required
+                  value={newSoForm.client_name}
+                  onChange={e => setNewSoForm({ ...newSoForm, client_name: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Pilih Produk</label>
+                  <select
+                    id="so-sku-select"
+                    value={newSoForm.sku}
+                    onChange={e => {
+                      const selSku = e.target.value;
+                      const prod = initialProducts.find(p => p.sku === selSku);
+                      setNewSoForm({ 
+                        ...newSoForm, 
+                        sku: selSku, 
+                        unit_price: prod ? prod.unit_price : newSoForm.unit_price 
+                      });
+                    }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                  >
+                    {initialProducts.map(p => (
+                      <option key={p.id} value={p.sku}>
+                        {p.sku} — {p.name} (Stok: {p.stock})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Kuantitas (Qty)</label>
+                  <input
+                    id="so-qty"
+                    type="number"
+                    min="1"
+                    required
+                    value={newSoForm.qty}
+                    onChange={e => setNewSoForm({ ...newSoForm, qty: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Harga Satuan (IDR)</label>
+                  <input
+                    id="so-unit-price"
+                    type="number"
+                    required
+                    value={newSoForm.unit_price}
+                    onChange={e => setNewSoForm({ ...newSoForm, unit_price: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Prioritas</label>
+                  <select
+                    id="so-priority"
+                    value={newSoForm.priority}
+                    onChange={e => setNewSoForm({ ...newSoForm, priority: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                  >
+                    <option value="High">Tinggi (High)</option>
+                    <option value="Medium">Sedang (Medium)</option>
+                    <option value="Low">Rendah (Low)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.375rem', fontSize: '0.8rem', border: '1px solid #e2e8f0' }}>
+                Total Nilai Order: <strong>{formatIDR((Number(newSoForm.qty) || 1) * (Number(newSoForm.unit_price) || 0))}</strong>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button type="button" onClick={() => setShowNewSOModal(false)} style={{ padding: '0.5rem 1rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', backgroundColor: 'transparent', cursor: 'pointer' }}>Batal</button>
+                <button id="btn-submit-so" type="submit" style={{ padding: '0.5rem 1.25rem', border: 'none', borderRadius: '0.375rem', backgroundColor: 'var(--accent-color)', color: '#ffffff', fontWeight: '700', cursor: 'pointer' }}>Terbitkan Sales Order</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: TERBITKAN SURAT JALAN (FLOW #15) */}
+      {/* ========================================================================= */}
       {showSJModal && selectedSO && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', width: '500px', maxWidth: '90%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
@@ -404,26 +735,26 @@ export default function OutboundV2({ language }) {
             <form onSubmit={handleCreateSJ} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Nama Pengemudi / Driver</label>
-                <input type="text" required value={sjForm.driver_name} onChange={e => setSjForm({ ...sjForm, driver_name: e.target.value })} style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
+                <input id="sj-driver-name" type="text" required value={sjForm.driver_name} onChange={e => setSjForm({ ...sjForm, driver_name: e.target.value })} style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
               </div>
 
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Nomor Polisi Kendaraan</label>
-                <input type="text" required value={sjForm.vehicle_no} onChange={e => setSjForm({ ...sjForm, vehicle_no: e.target.value })} style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
+                <input id="sj-vehicle-no" type="text" required value={sjForm.vehicle_no} onChange={e => setSjForm({ ...sjForm, vehicle_no: e.target.value })} style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
               </div>
 
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Catatan Pengiriman</label>
-                <input type="text" value={sjForm.note} onChange={e => setSjForm({ ...sjForm, note: e.target.value })} style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
+                <input id="sj-note" type="text" value={sjForm.note} onChange={e => setSjForm({ ...sjForm, note: e.target.value })} style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
               </div>
 
               <div style={{ backgroundColor: '#eff6ff', padding: '0.75rem', borderRadius: '0.375rem', fontSize: '0.8rem', color: '#1e40af' }}>
-                Konfirmasi ini akan memicu posting mutasi <strong>GI (-)</strong> pada stock movements dan memperbarui status serial number menjadi <strong>SOLD</strong>.
+                Konfirmasi ini akan memicu posting mutasi <strong>GI (-)</strong> pada stock movements, sinkronisasi ke tabel Delivery Notes, dan auto-draft Faktur Piutang (AR) ke Finance.
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <button type="button" onClick={() => setShowSJModal(false)} style={{ padding: '0.5rem 1rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', backgroundColor: 'transparent', cursor: 'pointer' }}>Batal</button>
-                <button type="submit" style={{ padding: '0.5rem 1.25rem', border: 'none', borderRadius: '0.375rem', backgroundColor: 'var(--accent-color)', color: '#ffffff', fontWeight: '600', cursor: 'pointer' }}>Konfirmasi & Terbitkan</button>
+                <button id="btn-confirm-sj" type="submit" style={{ padding: '0.5rem 1.25rem', border: 'none', borderRadius: '0.375rem', backgroundColor: 'var(--accent-color)', color: '#ffffff', fontWeight: '600', cursor: 'pointer' }}>Konfirmasi & Terbitkan</button>
               </div>
             </form>
           </div>

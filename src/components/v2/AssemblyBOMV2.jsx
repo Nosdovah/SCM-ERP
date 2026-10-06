@@ -153,7 +153,7 @@ export default function AssemblyBOMV2({ session, language }) {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-color)', fontWeight: '700', fontSize: '0.875rem' }}>
-            <Wrench size={18} /> MODUL 1.3 — BILL OF MATERIALS (BOM) & ASSEMBLY ENGINE
+            <Wrench size={18} /> MODUL 3 — BILL OF MATERIALS (BOM) & ASSEMBLY ENGINE
           </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary-color)', margin: '0.25rem 0 0 0' }}>
             {isId ? 'Perakitan Komputer (Prebuilt) & Kanibalisasi (De-bundling)' : 'PC Assembly (Bundling) & De-bundling Engine'}

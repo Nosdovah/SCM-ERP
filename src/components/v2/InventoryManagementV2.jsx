@@ -23,15 +23,63 @@ export default function InventoryManagementV2({ session, language }) {
     }
     return initialProducts;
   });
-  const [serials] = useState(initialSerials);
+  const [serials, setSerials] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_serials');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return initialSerials;
+  });
   const [movements, setMovements] = useState(initialStockMovements);
   const [bins] = useState(initialBins);
 
-  // Transfer & Adjustment Modals
+  // Transfer & Adjustment Modals & Notices
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showAdjModal, setShowAdjModal] = useState(false);
-  const [newTransfer, setNewTransfer] = useState({ product_sku: 'SP-RAM-DDR5-32G', from_bin: 'SP-RAM-B-01', to_bin: 'SP-RAM-B-01', qty: 5 });
+  const [transferNotice, setTransferNotice] = useState(null);
+  const [adjNotice, setAdjNotice] = useState(null);
+  const [newTransfer, setNewTransfer] = useState({ product_sku: 'SP-RAM-DDR5-32G', from_bin: 'SP-RAM-B-01', to_bin: 'SP-RAM-B-02', qty: 5 });
   const [newAdj, setNewAdj] = useState({ product_sku: 'SP-SSD-990P-1T', bin_code: 'SP-SSD-B-01', reason: 'damage', qty: -1, note: 'Patah saat handling gudang' });
+
+  // RMA State & Notices (Flow #7)
+  const [rmaCases, setRmaCases] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_rma_cases');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [
+      {
+        id: 'rma-01',
+        rma_number: 'RMA-2026-0005',
+        type: 'CUSTOMER_RETURN',
+        product_name: 'MOAI Ares Elite Gaming PC',
+        serial_no: 'SN-ARES-PC-002',
+        client_name: 'PT Telko Solusi Nusantara',
+        reason: 'Blue Screen saat render video',
+        status: 'OPEN',
+        bin_code: 'RMA-HOLD-01'
+      }
+    ];
+  });
+  const [rmaNotice, setRmaNotice] = useState(null);
+
+  // Stock Opname Session (Flow #6)
+  const [opnameSession, setOpnameSession] = useState({
+    session_no: 'OPN-2026-001',
+    warehouse: 'Gudang Pusat (Central)',
+    zone: 'SPARE_PART (SP-*)',
+    status: 'COUNTING',
+    items: [
+      { sku: 'SP-RAM-DDR5-32G', name: 'Kingston Fury Beast DDR5 32GB', system_qty: 45, counted_qty: 45, variance: 0 },
+      { sku: 'SP-SSD-990P-1T', name: 'Samsung 990 PRO NVMe 1TB', system_qty: 38, counted_qty: 37, variance: -1 },
+      { sku: 'SP-GPU-RTX4070S', name: 'MSI GeForce RTX 4070 Super 12GB', system_qty: 12, counted_qty: 12, variance: 0 }
+    ]
+  });
+  const [opnameNotice, setOpnameNotice] = useState(null);
 
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
@@ -74,9 +122,10 @@ export default function InventoryManagementV2({ session, language }) {
       bin_code: newTransfer.to_bin
     };
 
-    setMovements([newMovIn, newMov, ...movements]);
+    const updatedMovs = [newMovIn, newMov, ...movements];
+    setMovements(updatedMovs);
     setShowTransferModal(false);
-    alert(isId ? `Transfer stok ${newTransfer.qty} unit berhasil diposting ke ledger!` : 'Stock transfer posted to ledger successfully!');
+    setTransferNotice(isId ? `Transfer stok ${newTransfer.qty} unit dari ${newTransfer.from_bin} ke ${newTransfer.to_bin} berhasil diposting ke ledger!` : `Stock transfer posted to ledger successfully!`);
   };
 
   // Handle Adjustment
@@ -101,10 +150,76 @@ export default function InventoryManagementV2({ session, language }) {
       note: `${newAdj.reason}: ${newAdj.note}`
     };
 
-    setProducts(products.map(p => p.sku === prod.sku ? { ...p, stock: Math.max(0, p.stock + qty) } : p));
-    setMovements([newMov, ...movements]);
+    const updatedProds = products.map(p => p.sku === prod.sku ? { ...p, stock: Math.max(0, p.stock + qty) } : p);
+    const updatedMovs = [newMov, ...movements];
+    setProducts(updatedProds);
+    setMovements(updatedMovs);
     setShowAdjModal(false);
-    alert(isId ? `Penyesuaian stok (${movType} ${qty}) berhasil diposting ke ledger!` : 'Stock adjustment posted to ledger!');
+    setAdjNotice(isId ? `Penyesuaian stok (${movType} ${qty}) berhasil diposting ke ledger!` : `Stock adjustment posted to ledger!`);
+    try {
+      localStorage.setItem('moai_v2_products', JSON.stringify(updatedProds));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // RMA Handlers (Flow #7)
+  const handleSendToService = (rmaId) => {
+    const updated = rmaCases.map(c => c.id === rmaId ? { ...c, status: 'SERVICE_TICKET_CREATED' } : c);
+    setRmaCases(updated);
+    const updatedSerials = serials.map(s => s.serial_no === 'SN-ARES-PC-002' ? { ...s, status: 'WARRANTY_SERVICE' } : s);
+    setSerials(updatedSerials);
+    try {
+      localStorage.setItem('moai_v2_rma_cases', JSON.stringify(updated));
+      localStorage.setItem('moai_v2_serials', JSON.stringify(updatedSerials));
+    } catch (e) {
+      console.error(e);
+    }
+    setRmaNotice(isId ? 'Kasus RMA dialihkan ke Tiket Servis Garansi! Status Serial berubah menjadi WARRANTY_SERVICE.' : 'RMA transferred to Service Ticket! Serial status set to WARRANTY_SERVICE.');
+  };
+
+  const handleReturnToVendor = (rmaId) => {
+    const updated = rmaCases.map(c => c.id === rmaId ? { ...c, status: 'RETURNED_VENDOR' } : c);
+    setRmaCases(updated);
+    const updatedSerials = serials.map(s => s.serial_no === 'SN-ARES-PC-002' ? { ...s, status: 'RETURNED_VENDOR' } : s);
+    setSerials(updatedSerials);
+    const newMov = {
+      id: `mov-${Date.now()}`,
+      movement_type: 'RTV_OUT',
+      product_name: 'MOAI Ares Elite Gaming PC',
+      qty: -1,
+      bin_code: 'RMA-HOLD-01',
+      ref_doc: 'RTV-2026-0005',
+      unit_cost: 25450000,
+      created_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      created_by: session?.user?.email || 'RMA Staff'
+    };
+    setMovements(prev => [newMov, ...prev]);
+    try {
+      localStorage.setItem('moai_v2_rma_cases', JSON.stringify(updated));
+      localStorage.setItem('moai_v2_serials', JSON.stringify(updatedSerials));
+    } catch (e) {
+      console.error(e);
+    }
+    setRmaNotice(isId ? 'Barang diproses Return to Vendor (RTV)! Movement RTV_OUT (-1) resmi dicatat pada stock ledger.' : 'Return to Vendor (RTV) processed! RTV_OUT (-1) posted to stock ledger.');
+  };
+
+  // Stock Opname Handler (Flow #6)
+  const handlePostOpname = () => {
+    setOpnameSession(prev => ({ ...prev, status: 'POSTED' }));
+    const newMov = {
+      id: `mov-${Date.now()}`,
+      movement_type: 'OPN_OUT',
+      product_name: 'Samsung 990 PRO NVMe 1TB',
+      qty: -1,
+      bin_code: 'SP-SSD-B-01',
+      ref_doc: opnameSession.session_no,
+      unit_cost: 1650000,
+      created_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      created_by: session?.user?.email || 'Opname Lead'
+    };
+    setMovements(prev => [newMov, ...prev]);
+    setOpnameNotice(isId ? `Sesi Opname ${opnameSession.session_no} berhasil diposting! Selisih stok diposting ke ledger.` : `Stock opname posted! Variance movement recorded in ledger.`);
   };
 
   return (
@@ -454,58 +569,148 @@ export default function InventoryManagementV2({ session, language }) {
             </table>
           </div>
         </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* SUBTAB 4: OPERATIONS (TRANSFER & ADJUSTMENT) */}
+      )}      {/* ========================================================================= */}
+      {/* SUBTAB 4: OPERATIONS (TRANSFER, ADJUSTMENT & STOCK OPNAME) */}
       {/* ========================================================================= */}
       {subTab === 'operations' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-          {/* Transfer Card */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '1.15rem', fontWeight: '700' }}>
-                  {isId ? 'Transfer Stok Antar-Bin / Gudang' : 'Stock Transfer Between Bins'}
-                </h3>
-                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Posting transaksi atomik: 1 pasang TRF_OUT (-) dan TRF_IN (+).
-                </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Notifications */}
+          {transferNotice && (
+            <div id="transfer-success-banner" style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem' }}>
+              ✓ {transferNotice}
+            </div>
+          )}
+          {adjNotice && (
+            <div id="adj-success-banner" style={{ backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem' }}>
+              ✓ {adjNotice}
+            </div>
+          )}
+          {opnameNotice && (
+            <div id="opname-success-banner" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem' }}>
+              ✓ {opnameNotice}
+            </div>
+          )}
+
+          {/* Action Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+            {/* Transfer Card */}
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '1.15rem', fontWeight: '700' }}>
+                    {isId ? 'Transfer Stok Antar-Bin / Gudang' : 'Stock Transfer Between Bins'}
+                  </h3>
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Posting transaksi atomik: 1 pasang TRF_OUT (-) dan TRF_IN (+).
+                  </p>
+                </div>
+                <button
+                  id="btn-create-transfer"
+                  onClick={() => setShowTransferModal(true)}
+                  style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  + Buat Transfer
+                </button>
               </div>
-              <button
-                onClick={() => setShowTransferModal(true)}
-                style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
-              >
-                + Buat Transfer
-              </button>
+
+              <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Alur Status: <strong>DRAFT → PENDING → APPROVED → IN_TRANSIT → RECEIVED → CLOSED</strong>
+              </div>
             </div>
 
-            <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Alur Status: <strong>DRAFT → PENDING → APPROVED → IN_TRANSIT → RECEIVED → CLOSED</strong>
+            {/* Adjustment Card */}
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '1.15rem', fontWeight: '700' }}>
+                    {isId ? 'Penyesuaian Stok (Quantity Adjustment)' : 'Quantity Adjustment'}
+                  </h3>
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Koreksi ad-hoc: barang rusak, hilang, atau ditemukan (Segregation of Duties).
+                  </p>
+                </div>
+                <button
+                  id="btn-create-adjustment"
+                  onClick={() => setShowAdjModal(true)}
+                  style={{ backgroundColor: '#d97706', color: '#ffffff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  + Koreksi Stok
+                </button>
+              </div>
+
+              <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Alur Status: <strong>DRAFT → PENDING_APPROVAL → APPROVED → POSTED</strong>
+              </div>
             </div>
           </div>
 
-          {/* Adjustment Card */}
+          {/* Stock Opname Section (Flow #6) */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '1.15rem', fontWeight: '700' }}>
-                  {isId ? 'Penyesuaian Stok (Quantity Adjustment)' : 'Quantity Adjustment'}
-                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h3 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '1.15rem', fontWeight: '700' }}>
+                    Sesi Stock Opname Fisik ({opnameSession.session_no})
+                  </h3>
+                  <span style={{ 
+                    fontSize: '0.75rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem',
+                    backgroundColor: opnameSession.status === 'POSTED' ? '#ecfdf5' : '#fef3c7',
+                    color: opnameSession.status === 'POSTED' ? '#047857' : '#b45309'
+                  }}>
+                    {opnameSession.status}
+                  </span>
+                </div>
                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Koreksi ad-hoc: barang rusak, hilang, atau ditemukan (Segregation of Duties).
+                  Lokasi: {opnameSession.warehouse} · Zona: {opnameSession.zone} · Metode: Blind Count dengan Rekonsiliasi Otomatis
                 </p>
               </div>
-              <button
-                onClick={() => setShowAdjModal(true)}
-                style={{ backgroundColor: '#d97706', color: '#ffffff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
-              >
-                + Koreksi Stok
-              </button>
+              <div>
+                {opnameSession.status !== 'POSTED' ? (
+                  <button
+                    id="btn-post-opname"
+                    onClick={handlePostOpname}
+                    style={{ backgroundColor: '#047857', color: '#ffffff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
+                  >
+                    Posting Variance ke Ledger
+                  </button>
+                ) : (
+                  <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.85rem' }}>
+                    ✓ Hasil Opname Selesai Diposting (CLOSED)
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Alur Status: <strong>DRAFT → PENDING_APPROVAL → APPROVED → POSTED</strong>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '0.75rem 1rem' }}>SKU & Nama Komponen</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Saldo Sistem</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Hitung Fisik (Counted)</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Selisih (Variance)</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Tindakan Ledger</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {opnameSession.items.map((item, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>
+                        <div>{item.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{item.sku}</div>
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem' }}>{item.system_qty} Unit</td>
+                      <td style={{ padding: '0.75rem 1rem', fontWeight: '700' }}>{item.counted_qty} Unit</td>
+                      <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: item.variance === 0 ? '#047857' : '#dc2626' }}>
+                        {item.variance === 0 ? '0 (Sesuai)' : `${item.variance} Unit`}
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {item.variance === 0 ? 'Saldo Akurat' : opnameSession.status === 'POSTED' ? 'OPN_OUT Diposting (-1)' : 'Menunggu Posting'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -565,26 +770,56 @@ export default function InventoryManagementV2({ session, language }) {
             <strong>Prinsip Penting:</strong> Barang RMA / Defective <strong>TIDAK PERNAH</strong> masuk ke saldo stok siap jual. Unit disimpan secara terisolasi di <strong>Zone RMA (RMA-HOLD-01)</strong> sampai selesai inspeksi teknis.
           </div>
 
+          {rmaNotice && (
+            <div id="rma-success-banner" style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem' }}>
+              ✓ {rmaNotice}
+            </div>
+          )}
+
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.25rem' }}>
             <h4 style={{ margin: '0 0 1rem 0', fontWeight: '700', color: 'var(--primary-color)' }}>
               Kasus RMA Aktif
             </h4>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-              <div>
-                <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '0.7rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem' }}>
-                  CUSTOMER RETURN
-                </span>
-                <div style={{ fontWeight: '700', marginTop: '0.35rem' }}>RMA-2026-0005 — MOAI Ares Elite Gaming PC (SN-ARES-PC-002)</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Klien: PT Telko Solusi Nusantara · Alasan: Blue Screen saat render video</div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button style={{ backgroundColor: '#047857', color: '#ffffff', border: 'none', padding: '0.4rem 0.85rem', borderRadius: '0.375rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer' }}>
-                  Kirim ke Servis (Tiket)
-                </button>
-                <button style={{ backgroundColor: '#dc2626', color: '#ffffff', border: 'none', padding: '0.4rem 0.85rem', borderRadius: '0.375rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer' }}>
-                  Return ke Vendor (RTV)
-                </button>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {rmaCases.map(c => (
+                <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <div>
+                    <span style={{ 
+                      backgroundColor: c.status === 'SERVICE_TICKET_CREATED' ? '#eff6ff' : c.status === 'RETURNED_VENDOR' ? '#fef3c7' : '#fee2e2', 
+                      color: c.status === 'SERVICE_TICKET_CREATED' ? '#1d4ed8' : c.status === 'RETURNED_VENDOR' ? '#b45309' : '#991b1b', 
+                      fontSize: '0.7rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem' 
+                    }}>
+                      {c.type} · {c.status}
+                    </span>
+                    <div style={{ fontWeight: '700', marginTop: '0.35rem' }}>{c.rma_number} — {c.product_name} ({c.serial_no})</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Klien: {c.client_name} · Alasan: {c.reason}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {c.status === 'OPEN' ? (
+                      <>
+                        <button 
+                          id={`btn-rma-service-${c.id}`}
+                          onClick={() => handleSendToService(c.id)}
+                          style={{ backgroundColor: '#047857', color: '#ffffff', border: 'none', padding: '0.4rem 0.85rem', borderRadius: '0.375rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer' }}
+                        >
+                          Kirim ke Servis (Tiket)
+                        </button>
+                        <button 
+                          id={`btn-rma-rtv-${c.id}`}
+                          onClick={() => handleReturnToVendor(c.id)}
+                          style={{ backgroundColor: '#dc2626', color: '#ffffff', border: 'none', padding: '0.4rem 0.85rem', borderRadius: '0.375rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer' }}
+                        >
+                          Return ke Vendor (RTV)
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.8rem' }}>
+                        ✓ {c.status === 'SERVICE_TICKET_CREATED' ? 'Dialihkan ke Servis Garansi' : 'RTV Out Diposting'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

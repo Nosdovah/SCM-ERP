@@ -634,6 +634,53 @@ export const initialGRNList = [
   }
 ];
 
+export const initialDeliveryNotes = [
+  {
+    id: 'dn-01',
+    sj_number: 'SJ-2026-0089',
+    so_number: 'SO-2026-0101',
+    client_name: 'PT Telko Solusi Nusantara',
+    driver_name: 'Joko Prabowo',
+    vehicle_no: 'B 9281 KCA',
+    status: 'DELIVERED',
+    items_summary: '2x MOAI Ares Elite Gaming PC',
+    delivered_at: '2026-09-30 14:15',
+    note: 'Tanda tangan penerima tercatat resmi'
+  }
+];
+
+export const initialInboundReturns = [
+  {
+    id: 'ret-in-01',
+    ret_number: 'RET-IN-2026-001',
+    po_reference: 'PO-2026-0043',
+    supplier_name: 'Silicon Tech Global Ltd',
+    item_name: 'AMD Ryzen 7 7800X3D (SN-AMD-78X-005)',
+    qty: 1,
+    reason: 'Bent Pin / Gagal QC Karantina Fisik',
+    status: 'SHIPPED',
+    shipped_at: '2026-10-05 15:30',
+    refund_amount: 5900000,
+    credit_note_no: 'CN-SILICON-992'
+  }
+];
+
+export const ERP_ROLES = [
+  { id: 'COMPANY_ADMIN', labelEN: 'Company Admin (Full Access)', labelID: 'Admin Perusahaan (Akses Penuh)' },
+  { id: 'SCM_ADMIN', labelEN: 'SCM Admin (Procurement & PO)', labelID: 'Admin SCM (Pengadaan & PO)' },
+  { id: 'QC_INSPECTOR', labelEN: 'QC Inspector (Receiving & Gate)', labelID: 'Inspektur QC (Receiving & Gate)' },
+  { id: 'INVENTORY_ADMIN', labelEN: 'Inventory Admin (Stock & Ledger)', labelID: 'Admin Inventaris (Stok & Ledger)' },
+  { id: 'ASSEMBLY_TECH', labelEN: 'Assembly Tech (BOM & Perakitan)', labelID: 'Teknisi Perakitan (BOM & Rakit)' },
+  { id: 'OUTBOUND_ADMIN', labelEN: 'Outbound Admin (SO & Surat Jalan)', labelID: 'Admin Outbound (SO & Surat Jalan)' },
+  { id: 'PICKING_ADMIN', labelEN: 'Picking Admin (Picking Engine)', labelID: 'Admin Picking (Picking Engine)' },
+  { id: 'PACKING_ADMIN', labelEN: 'Packing Admin (Packing Station)', labelID: 'Admin Packing (Packing Station)' },
+  { id: 'RETURN_ADMIN', labelEN: 'Return Admin (RMA & Retur Vendor)', labelID: 'Admin Retur (RMA & RTV)' },
+  { id: 'FINANCE_ADMIN', labelEN: 'Finance Admin (COGS, AP/AR & P&L)', labelID: 'Admin Keuangan (HPP, AP/AR & P&L)' },
+  { id: 'SALES', labelEN: 'Sales Representative (SO Client)', labelID: 'Sales (Pesanan Klien)' },
+  { id: 'SUPER_ADMIN', labelEN: 'Super Admin (Multi-Tenant Platform)', labelID: 'Super Admin (Lintas Tenant)' },
+  { id: 'VIEWER', labelEN: 'Viewer (Read Only)', labelID: 'Pengamat (Hanya Baca)' }
+];
+
 export const calculateTotalValuation = (productsList) => {
   return (productsList || []).reduce((acc, p) => acc + ((p.cost_price || 0) * (p.stock || 0)), 0);
 };

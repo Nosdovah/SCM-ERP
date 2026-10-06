@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Shield, Trash2, UserPlus } from 'lucide-react';
+import { ERP_ROLES } from '../data/v2Data';
 
 export default function Settings({ session, language }) {
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'team'
@@ -151,12 +152,9 @@ export default function Settings({ session, language }) {
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)', fontSize: '0.875rem' }}>{language === 'id' ? 'Tetapkan Peran Sistem (RBAC)' : 'Assign System Role (RBAC)'}</label>
           <select value={newRole} onChange={e => setNewRole(e.target.value)} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', width: '100%', outline: 'none' }}>
             <option value="">{language === 'id' ? 'Biarkan kosong untuk mempertahankan saat ini' : 'Leave blank to keep current'}</option>
-            <option value="Admin">{language === 'id' ? 'Admin (Akses Penuh)' : 'Admin (Full Access)'}</option>
-            <option value="Procurement">{language === 'id' ? 'Pengadaan' : 'Procurement'}</option>
-            <option value="Customs">{language === 'id' ? 'Pabean' : 'Customs'}</option>
-            <option value="Warehouse">{language === 'id' ? 'Gudang' : 'Warehouse'}</option>
-            <option value="Logistics">{language === 'id' ? 'Logistik' : 'Logistics'}</option>
-            <option value="Viewer">{language === 'id' ? 'Pengamat (Hanya Baca)' : 'Viewer (Read Only)'}</option>
+            {ERP_ROLES.map(r => (
+              <option key={r.id} value={r.id}>{language === 'id' ? r.labelID : r.labelEN}</option>
+            ))}
           </select>
         </div>
         <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', padding: '0.75rem 1.5rem' }}>{language === 'id' ? 'Perbarui Profil' : 'Update Profile'}</button>
@@ -177,12 +175,9 @@ export default function Settings({ session, language }) {
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>{language === 'id' ? 'Peran Akses' : 'Access Role'}</label>
                   <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)' }}>
-                    <option value="Admin">Admin</option>
-                    <option value="Procurement">{language === 'id' ? 'Pengadaan' : 'Procurement'}</option>
-                    <option value="Warehouse">{language === 'id' ? 'Gudang' : 'Warehouse'}</option>
-                    <option value="Logistics">{language === 'id' ? 'Logistik' : 'Logistics'}</option>
-                    <option value="Customs">{language === 'id' ? 'Pabean' : 'Customs'}</option>
-                    <option value="Viewer">{language === 'id' ? 'Pengamat' : 'Viewer'}</option>
+                    {ERP_ROLES.map(r => (
+                      <option key={r.id} value={r.id}>{language === 'id' ? r.labelID : r.labelEN}</option>
+                    ))}
                   </select>
                 </div>
                 <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>{language === 'id' ? 'Tambahkan ke Direktori' : 'Add to Directory'}</button>

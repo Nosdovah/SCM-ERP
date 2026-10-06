@@ -43,19 +43,48 @@ function App() {
     return 'inventory'; // Default to v2.0 Inventory Management
   });
   const [tasks, setTasks] = useState(initialTasks.map(t => ({ ...t, company_name: 'DEFAULT' })));
-  const [masterItems, setMasterItems] = useState([]);
+  const [masterItems, setMasterItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_products');
+      const prods = saved ? JSON.parse(saved) : initialProducts;
+      return prods.map(p => ({ name: p.name, stock_on_hand: p.stock }));
+    } catch {
+      return initialProducts.map(p => ({ name: p.name, stock_on_hand: p.stock }));
+    }
+  });
   const userCompany = session?.user?.user_metadata?.company_name || 'NOT ASSIGNED';
   const userRole = session?.user?.user_metadata?.role || 'Admin';
+
+  const handleLogout = async () => {
+    localStorage.removeItem('moai_auth_session');
+    localStorage.removeItem('moai_auth_token');
+    localStorage.removeItem('moai_demo_mode');
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.error('Error signing out:', e);
+      }
+    }
+    setSession(null);
+  };
 
   useEffect(() => {
     if (!supabase) return;
     
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    supabase.auth.getSession().then(({ data: { session: remoteSession } }) => {
+      // Only set session if a valid remote session exists; do NOT overwrite valid local demo session with null
+      if (remoteSession) {
+        setSession(remoteSession);
+      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, remoteSession) => {
+      if (event === 'SIGNED_OUT') {
+        handleLogout();
+      } else if (remoteSession) {
+        setSession(remoteSession);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -65,9 +94,6 @@ function App() {
     if (session) {
       localStorage.setItem('moai_auth_session', JSON.stringify(session));
       localStorage.setItem('moai_auth_token', session.token || session.access_token || 'moai_demo_token');
-    } else {
-      localStorage.removeItem('moai_auth_session');
-      localStorage.removeItem('moai_auth_token');
     }
   }, [session]);
 
@@ -180,15 +206,6 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('All');
 
-  const handleLogout = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-    setSession(null);
-    localStorage.removeItem('moai_auth_session');
-    localStorage.removeItem('moai_auth_token');
-  };
-
   if (!session) {
     if (currentView === 'help') {
       return (
@@ -219,6 +236,7 @@ function App() {
             access_token: 'moai_token_' + Date.now()
           };
           setSession(sessionWithToken);
+          localStorage.setItem('moai_demo_mode', 'true');
           localStorage.setItem('moai_auth_session', JSON.stringify(sessionWithToken));
           localStorage.setItem('moai_auth_token', sessionWithToken.token);
         }} 

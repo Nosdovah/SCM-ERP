@@ -121,7 +121,7 @@ export default function MasterDataV2({ language }) {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-color)', fontWeight: '700', fontSize: '0.875rem' }}>
-            <Database size={18} /> MODUL 5 — MASTER DATA
+            <Database size={18} /> MODUL 6 — MASTER DATA
           </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary-color)', margin: '0.25rem 0 0 0' }}>
             {isId ? 'Katalog Produk, Tata Letak Gudang & Entitas Bisnis' : 'Product Catalog, Warehouse Layout & Business Entities'}

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { 
-  ShoppingCart, Truck, ShieldCheck, AlertTriangle, DollarSign
+  ShoppingCart, Truck, ShieldCheck, AlertTriangle, DollarSign, 
+  RotateCcw, Plus, CheckCircle2
 } from 'lucide-react';
 import { 
-  initialPurchaseOrders, initialRequisitions, initialGRNList 
+  initialPurchaseOrders, initialRequisitions, initialGRNList, 
+  initialInboundReturns, initialSuppliers, initialProducts, initialApBills 
 } from '../../data/v2Data';
 
 const createPurchaseOrderFromPR = (pr) => ({
@@ -19,7 +21,8 @@ const createPurchaseOrderFromPR = (pr) => ({
 });
 
 export default function SupplyChainV2({ language }) {
-  const [tab, setTab] = useState('orders'); // 'orders' | 'reorder' | 'grn_qc' | 'price_compare' | 'rtv'
+  const [tab, setTab] = useState('orders'); // 'orders' | 'reorder' | 'grn_qc' | 'inbound_return' | 'price_compare'
+  
   const [purchaseOrders, setPurchaseOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_pos');
@@ -29,6 +32,7 @@ export default function SupplyChainV2({ language }) {
     }
     return initialPurchaseOrders;
   });
+
   const [requisitions, setRequisitions] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_requisitions');
@@ -38,6 +42,7 @@ export default function SupplyChainV2({ language }) {
     }
     return initialRequisitions;
   });
+
   const [grnList, setGrnList] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_grn');
@@ -48,13 +53,112 @@ export default function SupplyChainV2({ language }) {
     return initialGRNList;
   });
 
+  // Flow #11 Inbound Return state
+  const [inboundReturns, setInboundReturns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_inbound_returns');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load inbound returns', e);
+    }
+    return initialInboundReturns;
+  });
+
+  // Form states
+  const [showNewPOModal, setShowNewPOModal] = useState(false);
+  const [poSuccessBanner, setPoSuccessBanner] = useState(null);
+  const [newPoForm, setNewPoForm] = useState({
+    supplier_name: initialSuppliers[0]?.name || 'PT Synnex Metrodata Indonesia',
+    sku: 'SP-CPU-7800X3D',
+    qty: 10,
+    unit_price: 5900000,
+    currency: 'IDR',
+    exchange_rate: 16200,
+    expected_date: '2026-10-15'
+  });
+
+  // Inbound Return Form state
+  const [returnSuccessBanner, setReturnSuccessBanner] = useState(null);
+  const [newReturnForm, setNewReturnForm] = useState({
+    po_reference: 'PO-2026-0043',
+    supplier_name: 'Silicon Tech Global Ltd',
+    item_name: 'AMD Ryzen 7 7800X3D (SN-AMD-78X-005)',
+    qty: 1,
+    reason: 'Bent Pin / Reject QC Fisik Karantina',
+    refund_amount: 5900000
+  });
+
   // Inbound QC modal
   const [showQCModal, setShowQCModal] = useState(false);
   const [selectedPO, setSelectedPO] = useState(null);
-  const [qcForm, setQcForm] = useState({ serialsScanned: 'SN-AMD-78X-004\nSN-AMD-78X-005', passCount: 2, failCount: 0, note: 'Kondisi segel utuh, lolos uji boot' });
+  const [qcForm, setQcForm] = useState({ 
+    serialsScanned: 'SN-AMD-78X-004\nSN-AMD-78X-005', 
+    passCount: 2, 
+    failCount: 0, 
+    note: 'Kondisi segel utuh, lolos uji boot' 
+  });
 
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
+
+  // Flow #13: Handle Create New PO
+  const handleCreatePO = (e) => {
+    e.preventDefault();
+    const qty = Number(newPoForm.qty) || 1;
+    const unitPrice = Number(newPoForm.unit_price) || 0;
+    const total = qty * unitPrice;
+    const nextNumber = String(purchaseOrders.length + 44).padStart(4, '0');
+    const poNum = `PO-2026-${nextNumber}`;
+
+    const foundProd = initialProducts.find(p => p.sku === newPoForm.sku);
+    const prodName = foundProd ? foundProd.name : newPoForm.sku;
+
+    const newPO = {
+      id: `po-${Date.now()}`,
+      po_number: poNum,
+      supplier_name: newPoForm.supplier_name,
+      order_date: new Date().toISOString().substring(0, 10),
+      expected_date: newPoForm.expected_date,
+      status: 'APPROVED',
+      currency: newPoForm.currency,
+      exchange_rate: newPoForm.currency === 'USD' ? Number(newPoForm.exchange_rate) : 1,
+      total: total,
+      items_count: qty,
+      item_name: prodName
+    };
+
+    const updatedPOs = [newPO, ...purchaseOrders];
+    setPurchaseOrders(updatedPOs);
+
+    // Auto-create corresponding Goods Receipt Note (GRN) in PENDING_QC status
+    const grnNum = `GRN-2026-${nextNumber}`;
+    const newGRN = {
+      id: `grn-${Date.now()}`,
+      gr_number: grnNum,
+      po_number: poNum,
+      supplier_name: newPO.supplier_name,
+      description: `${qty} Unit ${prodName}`,
+      status: 'PENDING_QC',
+      bin_code: 'QC-IN-01',
+      received_at: new Date().toISOString().replace('T', ' ').substring(0, 16)
+    };
+    const updatedGRNs = [newGRN, ...grnList];
+    setGrnList(updatedGRNs);
+
+    try {
+      localStorage.setItem('moai_v2_pos', JSON.stringify(updatedPOs));
+      localStorage.setItem('moai_v2_grn', JSON.stringify(updatedGRNs));
+    } catch (err) {
+      console.error('Failed to save PO/GRN to localStorage', err);
+    }
+
+    setPoSuccessBanner(
+      isId
+        ? `Purchase Order ${poNum} diterbitkan untuk ${newPO.supplier_name}! Draft Penerimaan ${grnNum} otomatis terdaftar di Gerbang QC.`
+        : `Purchase Order ${poNum} issued for ${newPO.supplier_name}! Receiving ${grnNum} registered in QC Gate.`
+    );
+    setShowNewPOModal(false);
+  };
 
   // 1-Click Convert PR to PO
   const handleConvertPR = (prId) => {
@@ -73,16 +177,14 @@ export default function SupplyChainV2({ language }) {
     } catch (err) {
       console.error('Failed to save to localStorage', err);
     }
-    alert(isId ? `Purchase Requisition berhasil dikonversi menjadi Purchase Order: ${newPO.po_number}!` : `PR converted to PO: ${newPO.po_number}!`);
+    setPoSuccessBanner(isId ? `Purchase Requisition berhasil dikonversi menjadi Purchase Order: ${newPO.po_number}!` : `PR converted to PO: ${newPO.po_number}!`);
   };
 
   const handleExecuteQC = (e) => {
     e.preventDefault();
-    const updatedPOs = selectedPO 
-      ? purchaseOrders.map(p => p.id === selectedPO.id ? { ...p, status: 'FULL' } : p)
-      : purchaseOrders.map(p => p.po_number === 'PO-2026-0043' ? { ...p, status: 'FULL' } : p);
-
-    const updatedGRNs = grnList.map(g => g.gr_number === 'GRN-2026-0043' ? { ...g, status: 'QC_RELEASED' } : g);
+    const targetPO = selectedPO || purchaseOrders[0];
+    const updatedPOs = purchaseOrders.map(p => p.id === targetPO?.id ? { ...p, status: 'FULL' } : p);
+    const updatedGRNs = grnList.map(g => g.po_number === targetPO?.po_number || g.gr_number === 'GRN-2026-0043' ? { ...g, status: 'QC_RELEASED' } : g);
 
     setPurchaseOrders(updatedPOs);
     setGrnList(updatedGRNs);
@@ -97,9 +199,80 @@ export default function SupplyChainV2({ language }) {
     alert(isId ? `QC Inspection lolos! Unit dipindahkan dari zona QUARANTINE ke rak kategori via movement QC_RELEASE.` : `QC passed! Goods put away to category rack via QC_RELEASE.`);
   };
 
+  // Flow #11 Inbound Return Handlers
+  const handleCreateInboundReturn = (e) => {
+    e.preventDefault();
+    const nextRetNum = `RET-IN-2026-${String(inboundReturns.length + 1).padStart(3, '0')}`;
+    const newRet = {
+      id: `ret-in-${Date.now()}`,
+      ret_number: nextRetNum,
+      po_reference: newReturnForm.po_reference,
+      supplier_name: newReturnForm.supplier_name,
+      item_name: newReturnForm.item_name,
+      qty: Number(newReturnForm.qty) || 1,
+      reason: newReturnForm.reason,
+      status: 'DRAFT',
+      shipped_at: null,
+      refund_amount: Number(newReturnForm.refund_amount) || 0,
+      credit_note_no: null
+    };
+
+    const updated = [newRet, ...inboundReturns];
+    setInboundReturns(updated);
+    try {
+      localStorage.setItem('moai_v2_inbound_returns', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Failed to save inbound return', err);
+    }
+
+    setReturnSuccessBanner(
+      isId
+        ? `Draft Retur Pembelian ${nextRetNum} berhasil dibuat! Siap dikirimkan kembali ke supplier.`
+        : `Inbound Return ${nextRetNum} draft created! Ready to ship back to supplier.`
+    );
+  };
+
+  const handleShipInboundReturn = (retId) => {
+    const updated = inboundReturns.map(r => {
+      if (r.id === retId) {
+        return {
+          ...r,
+          status: 'SHIPPED',
+          shipped_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          credit_note_no: `CN-VEND-${Math.floor(100 + Math.random() * 900)}`
+        };
+      }
+      return r;
+    });
+
+    setInboundReturns(updated);
+    try {
+      localStorage.setItem('moai_v2_inbound_returns', JSON.stringify(updated));
+      // Optionally reduce AP Bill in Finance
+      const rawAp = localStorage.getItem('moai_v2_ap_bills');
+      const apBills = rawAp ? JSON.parse(rawAp) : initialApBills;
+      const targetRet = inboundReturns.find(r => r.id === retId);
+      if (targetRet && apBills.length > 0) {
+        const updatedAp = apBills.map(b => ({
+          ...b,
+          amount: Math.max(0, b.amount - (targetRet.refund_amount || 0))
+        }));
+        localStorage.setItem('moai_v2_ap_bills', JSON.stringify(updatedAp));
+      }
+    } catch (err) {
+      console.error('Failed to post return shipment', err);
+    }
+
+    setReturnSuccessBanner(
+      isId
+        ? `Retur Pembelian dikirim ke supplier! Movement RET_OUT (-) diposting dan Credit Note pemotong utang AP telah diterbitkan.`
+        : `Inbound Return shipped! Movement RET_OUT (-) posted and AP credit note issued.`
+    );
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Top Banner */}
+      {/* Top Banner (Modul 2) */}
       <div style={{ 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
         backgroundColor: '#ffffff', padding: '1.25rem 1.5rem', borderRadius: '0.75rem',
@@ -107,15 +280,15 @@ export default function SupplyChainV2({ language }) {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-color)', fontWeight: '700', fontSize: '0.875rem' }}>
-            <Truck size={18} /> MODUL 3 — SUPPLY CHAIN MANAGEMENT (SCM) & INBOUND
+            <Truck size={18} /> MODUL 2 — SUPPLY CHAIN MANAGEMENT (SCM) & INBOUND
           </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary-color)', margin: '0.25rem 0 0 0' }}>
             {isId ? 'Pengadaan Komponen, Inbound Receiving & Gerbang QC' : 'Procurement, Inbound Receiving & QC Gate'}
           </h1>
           <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
             {isId 
-              ? 'Saran reorder otomatis (PR), PO multi-currency, capture serial saat receiving, dan inspeksi karantina QC.' 
-              : 'Automated reorder point PR, multi-currency POs, serial capture at receiving, and quarantine QC gate.'}
+              ? 'Saran reorder otomatis (PR), PO intake, capture serial saat receiving, inspeksi karantina QC, dan retur supplier (Flow #11).' 
+              : 'Automated reorder point PR, PO intake, serial capture at receiving, quarantine QC gate, and inbound returns (Flow #11).'}
           </p>
         </div>
 
@@ -125,6 +298,7 @@ export default function SupplyChainV2({ language }) {
             { id: 'orders', label: 'Purchase Orders', icon: ShoppingCart },
             { id: 'reorder', label: isId ? 'Saran Reorder (PR)' : 'Auto Reorder', icon: AlertTriangle },
             { id: 'grn_qc', label: 'Receiving & QC Gate', icon: ShieldCheck },
+            { id: 'inbound_return', label: isId ? 'Retur Pembelian (Flow #11)' : 'Inbound Return', icon: RotateCcw },
             { id: 'price_compare', label: isId ? 'Banding Harga Supplier' : 'Price Comparison', icon: DollarSign }
           ].map(t => {
             const Icon = t.icon;
@@ -132,6 +306,7 @@ export default function SupplyChainV2({ language }) {
             return (
               <button
                 key={t.id}
+                id={`tab-scm-${t.id}`}
                 onClick={() => setTab(t.id)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -151,10 +326,41 @@ export default function SupplyChainV2({ language }) {
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: PURCHASE ORDERS */}
+      {/* TAB 1: PURCHASE ORDERS (PO INTAKE - FLOW #13) */}
       {/* ========================================================================= */}
       {tab === 'orders' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Header Action Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: '0.85rem 1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--primary-color)' }}>
+                {isId ? 'Daftar Pesanan Pembelian (Purchase Orders)' : 'Purchase Orders List'}
+              </h3>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                {isId ? 'Flow #13: PO Intake multi-currency dan integrasi otomatis ke GRN' : 'Flow #13: Multi-currency PO intake & auto GRN generation'}
+              </span>
+            </div>
+            <button
+              id="btn-create-po"
+              onClick={() => setShowNewPOModal(true)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                backgroundColor: 'var(--accent-color)', color: '#ffffff',
+                border: 'none', padding: '0.55rem 1.15rem', borderRadius: '0.5rem',
+                fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer'
+              }}
+            >
+              <Plus size={16} /> {isId ? '+ Buat PO Baru' : '+ Create New PO'}
+            </button>
+          </div>
+
+          {poSuccessBanner && (
+            <div id="po-success-banner" style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.85rem 1.25rem', borderRadius: '0.5rem', color: '#047857', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>
+              <CheckCircle2 size={18} />
+              <span>{poSuccessBanner}</span>
+            </div>
+          )}
+
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
               <thead>
@@ -169,12 +375,17 @@ export default function SupplyChainV2({ language }) {
               </thead>
               <tbody>
                 {purchaseOrders.map(po => (
-                  <tr key={po.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={po.id} id={`po-row-${po.po_number}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: '700', color: 'var(--primary-color)' }}>
                       {po.po_number}
                     </td>
                     <td style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>
                       {po.supplier_name}
+                      {po.item_name && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
+                          {po.items_count}x {po.item_name}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <div>Order: {po.order_date}</div>
@@ -200,6 +411,7 @@ export default function SupplyChainV2({ language }) {
                     <td style={{ padding: '0.75rem 1rem' }}>
                       {po.status === 'APPROVED' && (
                         <button
+                          id={`btn-receive-po-${po.po_number}`}
                           onClick={() => { setSelectedPO(po); setShowQCModal(true); }}
                           style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
                         >
@@ -221,7 +433,7 @@ export default function SupplyChainV2({ language }) {
       {tab === 'reorder' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '1rem', borderRadius: '0.75rem', color: '#1e40af', fontSize: '0.85rem' }}>
-            <strong>Deteksi Reorder Point Otomatis:</strong> Sistem secara proaktif memantau stok komponen fast-moving (seperti SSD, RAM, GPU). Ketika level stok mencapai ambang batas safety stock, saran Purchase Requisition (PR) dibuat otomatis dan dapat dikonversi ke PO dalam 1 klik.
+            <strong>Deteksi Reorder Point Otomatis:</strong> Sistem secara proaktif memantau stok komponen fast-moving. Ketika level stok mencapai ambang batas safety stock, saran Purchase Requisition (PR) dibuat otomatis dan dapat dikonversi ke PO dalam 1 klik.
           </div>
 
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
@@ -328,7 +540,140 @@ export default function SupplyChainV2({ language }) {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: MULTI-VENDOR PRICE COMPARISON */}
+      {/* TAB 4: RETUR PEMBELIAN / INBOUND RETURN (FLOW #11) */}
+      {/* ========================================================================= */}
+      {tab === 'inbound_return' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ backgroundColor: '#fff1f2', border: '1px solid #fecdd3', padding: '1rem', borderRadius: '0.75rem', color: '#9f1239', fontSize: '0.85rem' }}>
+            <strong>Alur Flow #11 (Inbound Return / RTV):</strong> Barang yang ditolak saat inspeksi QC Karantina dikembalikan langsung ke supplier pemasok. Pengiriman retur memicu movement <strong>RET_OUT (-)</strong> pada stock ledger dan penerbitan Credit Note pengurang saldo tagihan utang (AP Bill) di Finance.
+          </div>
+
+          {returnSuccessBanner && (
+            <div id="inbound-return-success-banner" style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.85rem 1.25rem', borderRadius: '0.5rem', color: '#047857', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>
+              <CheckCircle2 size={18} />
+              <span>{returnSuccessBanner}</span>
+            </div>
+          )}
+
+          {/* Form Create Inbound Return */}
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.25rem' }}>
+            <h4 style={{ margin: '0 0 1rem 0', fontWeight: '700', color: 'var(--primary-color)' }}>
+              {isId ? 'Terbitkan Retur Pembelian ke Supplier (Flow #11)' : 'Create Inbound Return Order'}
+            </h4>
+            <form onSubmit={handleCreateInboundReturn} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr) auto', gap: '0.85rem', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Referensi PO</label>
+                <select
+                  id="ret-po-ref"
+                  value={newReturnForm.po_reference}
+                  onChange={e => setNewReturnForm({ ...newReturnForm, po_reference: e.target.value })}
+                  style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                >
+                  {purchaseOrders.map(p => (
+                    <option key={p.id} value={p.po_number}>{p.po_number} ({p.supplier_name})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Pemasok (Supplier)</label>
+                <input
+                  id="ret-supplier"
+                  type="text"
+                  required
+                  value={newReturnForm.supplier_name}
+                  onChange={e => setNewReturnForm({ ...newReturnForm, supplier_name: e.target.value })}
+                  style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Alasan Retur / Cacat</label>
+                <input
+                  id="ret-reason"
+                  type="text"
+                  required
+                  value={newReturnForm.reason}
+                  onChange={e => setNewReturnForm({ ...newReturnForm, reason: e.target.value })}
+                  style={{ width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                />
+              </div>
+
+              <button
+                id="btn-create-inbound-return"
+                type="submit"
+                style={{ backgroundColor: '#be123c', color: '#ffffff', border: 'none', padding: '0.55rem 1rem', borderRadius: '0.375rem', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', height: 'fit-content' }}
+              >
+                + Buat Draft Retur
+              </button>
+            </form>
+          </div>
+
+          {/* Inbound Returns List */}
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+            <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)', fontWeight: '700', color: 'var(--primary-color)' }}>
+              Daftar Retur Pembelian ke Supplier (Flow #11 Registry)
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '0.75rem 1rem' }}>No. Retur</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Ref PO</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Supplier</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Item & Cacat</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Nilai Pengembalian</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Aksi Kirim / Ledger</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inboundReturns.map(ret => (
+                  <tr key={ret.id} id={`ret-row-${ret.ret_number}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: '700', color: 'var(--primary-color)' }}>{ret.ret_number}</td>
+                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace' }}>{ret.po_reference}</td>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>{ret.supplier_name}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <div>{ret.item_name}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#be123c' }}>{ret.reason}</div>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: '700' }}>{formatIDR(ret.refund_amount)}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span style={{ 
+                        fontSize: '0.75rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '0.25rem',
+                        backgroundColor: ret.status === 'SHIPPED' ? '#ecfdf5' : '#fef3c7',
+                        color: ret.status === 'SHIPPED' ? '#047857' : '#b45309'
+                      }}>
+                        {ret.status}
+                      </span>
+                      {ret.credit_note_no && (
+                        <div style={{ fontSize: '0.7rem', color: '#047857', marginTop: '0.2rem' }}>Ref: {ret.credit_note_no}</div>
+                      )}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      {ret.status === 'DRAFT' ? (
+                        <button
+                          id={`btn-ship-return-${ret.ret_number}`}
+                          onClick={() => handleShipInboundReturn(ret.id)}
+                          style={{ backgroundColor: '#047857', color: '#ffffff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+                        >
+                          Kirim ke Supplier & Catat RET_OUT (-)
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#047857', fontWeight: '700' }}>
+                          ✓ Dikirim ({ret.shipped_at})
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: MULTI-VENDOR PRICE COMPARISON */}
       {/* ========================================================================= */}
       {tab === 'price_compare' && (
         <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -397,11 +742,119 @@ export default function SupplyChainV2({ language }) {
         </div>
       )}
 
+      {/* ========================================================================= */}
+      {/* MODAL: BUAT PO BARU (FLOW #13 ORDER INTAKE) */}
+      {/* ========================================================================= */}
+      {showNewPOModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', width: '540px', maxWidth: '90%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>
+              {isId ? 'Buat Pesanan Pembelian Baru (Purchase Order)' : 'Create New Purchase Order'}
+            </h3>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              {isId ? 'Entri PO pengadaan komponen baru ke supplier (Flow #13).' : 'Supplier procurement PO intake to trigger inbound receiving.'}
+            </p>
+
+            <form onSubmit={handleCreatePO} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Pemasok / Supplier</label>
+                <select
+                  id="po-supplier-select"
+                  value={newPoForm.supplier_name}
+                  onChange={e => setNewPoForm({ ...newPoForm, supplier_name: e.target.value })}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                >
+                  {initialSuppliers.map(s => (
+                    <option key={s.id} value={s.name}>{s.name} ({s.country})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Pilih Komponen / SKU</label>
+                  <select
+                    id="po-sku-select"
+                    value={newPoForm.sku}
+                    onChange={e => {
+                      const selSku = e.target.value;
+                      const prod = initialProducts.find(p => p.sku === selSku);
+                      setNewPoForm({ 
+                        ...newPoForm, 
+                        sku: selSku, 
+                        unit_price: prod ? prod.cost_price : newPoForm.unit_price 
+                      });
+                    }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                  >
+                    {initialProducts.map(p => (
+                      <option key={p.id} value={p.sku}>
+                        {p.sku} — {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Jumlah Qty</label>
+                  <input
+                    id="po-qty"
+                    type="number"
+                    min="1"
+                    required
+                    value={newPoForm.qty}
+                    onChange={e => setNewPoForm({ ...newPoForm, qty: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Harga Beli Satuan</label>
+                  <input
+                    id="po-unit-price"
+                    type="number"
+                    required
+                    value={newPoForm.unit_price}
+                    onChange={e => setNewPoForm({ ...newPoForm, unit_price: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Estimasi Tiba</label>
+                  <input
+                    id="po-expected-date"
+                    type="date"
+                    required
+                    value={newPoForm.expected_date}
+                    onChange={e => setNewPoForm({ ...newPoForm, expected_date: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.375rem', fontSize: '0.8rem', border: '1px solid #e2e8f0' }}>
+                Total Komitmen Beli: <strong>{formatIDR((Number(newPoForm.qty) || 1) * (Number(newPoForm.unit_price) || 0))}</strong>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button type="button" onClick={() => setShowNewPOModal(false)} style={{ padding: '0.5rem 1rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', backgroundColor: 'transparent', cursor: 'pointer' }}>Batal</button>
+                <button id="btn-submit-po" type="submit" style={{ padding: '0.5rem 1.25rem', border: 'none', borderRadius: '0.375rem', backgroundColor: 'var(--accent-color)', color: '#ffffff', fontWeight: '700', cursor: 'pointer' }}>Terbitkan Purchase Order</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* MODAL: QC INSPECTION */}
-      {showQCModal && selectedPO && (
+      {/* ========================================================================= */}
+      {showQCModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', width: '520px', maxWidth: '90%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ margin: '0 0 1rem 0', color: 'var(--primary-color)' }}>Inspeksi QC & Putaway ({selectedPO.po_number})</h3>
+            <h3 style={{ margin: '0 0 1rem 0', color: 'var(--primary-color)' }}>Inspeksi QC & Putaway ({selectedPO?.po_number || 'PO Inbound'})</h3>
             <form onSubmit={handleExecuteQC} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Scan Serial Number / IMEI Unit yang Diterima</label>
@@ -435,7 +888,7 @@ export default function SupplyChainV2({ language }) {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <button type="button" onClick={() => setShowQCModal(false)} style={{ padding: '0.5rem 1rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', backgroundColor: 'transparent', cursor: 'pointer' }}>Batal</button>
-                <button type="submit" style={{ padding: '0.5rem 1.25rem', border: 'none', borderRadius: '0.375rem', backgroundColor: '#047857', color: '#ffffff', fontWeight: '600', cursor: 'pointer' }}>Konfirmasi QC & Putaway</button>
+                <button id="btn-confirm-qc" type="submit" style={{ padding: '0.5rem 1.25rem', border: 'none', borderRadius: '0.375rem', backgroundColor: '#047857', color: '#ffffff', fontWeight: '600', cursor: 'pointer' }}>Konfirmasi QC & Putaway</button>
               </div>
             </form>
           </div>

@@ -82,7 +82,7 @@ export default function FinanceV2({ language }) {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-color)', fontWeight: '700', fontSize: '0.875rem' }}>
-            <DollarSign size={18} /> MODUL 2 — FINANCE & COSTING
+            <DollarSign size={18} /> MODUL 5 — FINANCE & COSTING
           </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary-color)', margin: '0.25rem 0 0 0' }}>
             {isId ? 'Kalkulasi HPP / COGS, Utang-Piutang & Biaya Garansi' : 'HPP / COGS Roll-up, AP/AR & Warranty Cost Tracking'}

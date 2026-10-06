@@ -98,6 +98,18 @@ let fallbackHistory = [
 ];
 
 // -------------------------------------------------------------
+// 0. HEALTHCHECK ENDPOINT
+// -------------------------------------------------------------
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    supabase_connected: !!supabase
+  });
+});
+
+// -------------------------------------------------------------
 // 1. AUTHENTICATION & USER PROFILE ENDPOINTS
 // -------------------------------------------------------------
 
