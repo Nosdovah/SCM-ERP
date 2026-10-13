@@ -132,7 +132,15 @@ function App() {
     const fetchTasks = async () => {
       const { data, error } = await supabase.from('orders').select('*').eq('company_name', userCompany);
       if (error) console.error('Error fetching data:', error);
-      else if (data) setTasks(data);
+      else if (data) {
+        setTasks(data.map(t => {
+          let cs = t.checklistState || t.checklist_state || {};
+          if (typeof cs === 'string') {
+            try { cs = JSON.parse(cs); } catch { /* ignore */ }
+          }
+          return { ...t, checklistState: cs };
+        }));
+      }
     };
 
     fetchTasks();
@@ -144,25 +152,23 @@ function App() {
         if (payload.eventType === 'INSERT') {
           setTasks(prev => {
             if (prev.find(t => t.id === payload.new.id)) return prev;
-            const newItem = payload.new;
-            if (typeof newItem.checklistState === 'string') {
-              try { newItem.checklistState = JSON.parse(newItem.checklistState); } catch {
-                // ignore parsing error
-              }
+            const newItem = { ...payload.new };
+            let cs = newItem.checklistState || newItem.checklist_state || {};
+            if (typeof cs === 'string') {
+              try { cs = JSON.parse(cs); } catch { /* ignore */ }
             }
+            newItem.checklistState = cs;
             return [...prev, newItem];
           });
         } else if (payload.eventType === 'UPDATE') {
           setTasks(prev => prev.map(t => {
             if (t.id === payload.new.id) {
               const updated = { ...t, ...payload.new };
-              if (typeof updated.checklistState === 'string') {
-                try {
-                  updated.checklistState = JSON.parse(updated.checklistState);
-                } catch (e) {
-                  console.error('Failed to parse checklistState in UPDATE event', e);
-                }
+              let cs = updated.checklistState || updated.checklist_state || {};
+              if (typeof cs === 'string') {
+                try { cs = JSON.parse(cs); } catch { /* ignore */ }
               }
+              updated.checklistState = cs;
               return updated;
             }
             return t;
@@ -549,7 +555,15 @@ function App() {
 
     if (supabase) {
       try {
-        const { error } = await supabase.from('orders').insert([newTask]);
+        let { error } = await supabase.from('orders').insert([newTask]);
+        if (error && error.message && error.message.includes('checklistState')) {
+          // Fallback if column is named checklist_state
+          const fallbackTask = { ...newTask };
+          delete fallbackTask.checklistState;
+          fallbackTask.checklist_state = newTask.checklistState || {};
+          const res = await supabase.from('orders').insert([fallbackTask]);
+          error = res.error;
+        }
         if (error) {
           console.error("Insert failed", error);
           alert(`DATABASE ERROR: Failed to save the new order. Your database schema might be out of date. Details: ${error.message}`);
@@ -634,7 +648,13 @@ function App() {
 
     if (supabase && updatedTask) {
       supabase.from('orders').update({ checklistState: updatedTask.checklistState }).eq('id', orderId).then(({ error }) => {
-        if (error) console.error("Checklist update failed", error);
+        if (error && error.message && error.message.includes('checklistState')) {
+          supabase.from('orders').update({ checklist_state: updatedTask.checklistState }).eq('id', orderId).then(({ error: err2 }) => {
+            if (err2) console.error("Checklist fallback update failed", err2);
+          });
+        } else if (error) {
+          console.error("Checklist update failed", error);
+        }
       });
       
       const itemText = clarificationChecklist.find(c => c.id === itemId)?.text || itemId;

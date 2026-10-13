@@ -30,10 +30,16 @@ This project was developed as a technical solution for the **SAP-Inspired Digita
 
 ## 🛠️ Tech Stack
 
-- **Frontend Environment**: React 18 + Vite
+- **Frontend Environment**: React 19 + Vite
 - **Styling**: Vanilla CSS with modern Bento-style UI
 - **Icons**: Lucide React
-- **Backend & Database**: Supabase (PostgreSQL + Real-time WebSockets + Supabase Storage)
+- **Backend & Database**: Supabase (PostgreSQL 15+ + Real-time WebSockets + Supabase Storage) & Node.js Express Serverless (Vercel)
+
+## 📚 Technical Documentation
+
+- **[Infrastruktur & Spesifikasi Skema/API](INFRASTRUCTURE_ARCHITECTURE.md)**: Dokumentasi arsitektur teknis lengkap (Vercel, Express, Supabase), 55 tabel relasional database, 6 atomic RPC, serta katalog representasi endpoint API (V2 REST & PostgREST).
+- **[Panduan Pengujian API](API_DOCUMENTATION.md)**: Panduan cURL dan skrip otomatis pengujian backend REST API.
+
 
 ## 🚀 Getting Started
 
