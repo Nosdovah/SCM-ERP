@@ -22,9 +22,9 @@ export default function MasterDataV2({ language }) {
     }
     return initialProducts;
   });
-  const [zones] = useState(initialZones);
+  const [zones, setZones] = useState(initialZones);
   const [bins, setBins] = useState(initialBins);
-  const [brands] = useState(initialBrands);
+  const [brands, setBrands] = useState(initialBrands);
   const [suppliers, setSuppliers] = useState(initialSuppliers);
   const [clients, setClients] = useState(initialClients);
 
@@ -85,6 +85,16 @@ export default function MasterDataV2({ language }) {
     apiService.masterData.getBins().then(data => {
       if (data && Array.isArray(data)) {
         setBins(data);
+      }
+    });
+    apiService.masterData.getZones().then(data => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setZones(data);
+      }
+    });
+    apiService.masterData.getBrands().then(data => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setBrands(data);
       }
     });
     apiService.masterData.getSuppliers().then(data => {

@@ -5,6 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 import { calculateTotalValuation } from '../src/data/v2Data.js';
+import { bindSupabase, collection, object, ensureReady, persistAll, registerSeed, status as storeStatus } from './store.js';
+import { defaultSeed } from './seedData.js';
 
 // Auto-load .env file if it exists at project root
 const envPath = path.resolve(process.cwd(), '.env');
@@ -62,6 +64,10 @@ if (supabase) {
 } else {
   console.warn(`[REST API] Warning: SUPABASE_URL / VITE_SUPABASE_URL not found. Please provide credentials in .env or Vercel dashboard.`);
 }
+
+// Bind the durable v2 collection store (QA-01 fix) and register master-data seeds (QA-03 fix)
+bindSupabase(supabase);
+registerSeed(defaultSeed);
 
 // Local in-memory fallback stores (used when offline or when Supabase keys are not set)
 let fallbackOrders = [];
@@ -944,32 +950,93 @@ app.get('/api/sync/all', async (req, res) => {
 // Domain: Computer Distributor & Integrator (Prebuilt, Barebone, Spare Parts)
 // -------------------------------------------------------------
 
-let v2Products = [];
-let v2Warehouses = [];
-let v2Zones = [];
-let v2Bins = [];
-let v2Brands = [];
-let v2Suppliers = [];
-let v2Clients = [];
-let v2Serials = [];
-let v2Movements = [];
-let v2BOM = { target_product_id: '', target_sku: '', name: '', version: '1.0', components: [] };
-let v2AssemblyOrders = [];
-let v2PurchaseOrders = [];
-let v2Requisitions = [];
-let v2SalesOrders = [];
-let v2ApBills = [];
-let v2ArInvoices = [];
-let v2GRNList = [];
+// --- Durable v2 collections (QA-01 fix) ------------------------------------
+// Stable references hydrated from / persisted to Supabase `v2_store`.
+const v2Products = collection('products');
+const v2Warehouses = collection('warehouses');
+const v2Zones = collection('zones');
+const v2Bins = collection('bins');
+const v2Brands = collection('brands');
+const v2Suppliers = collection('suppliers');
+const v2Clients = collection('clients');
+const v2Serials = collection('serials');
+const v2Movements = collection('movements');
+const v2BOM = object('bom', { target_product_id: '', target_sku: '', name: '', version: '1.0', components: [] });
+const v2AssemblyOrders = collection('assembly_orders');
+const v2PurchaseOrders = collection('purchase_orders');
+const v2Requisitions = collection('requisitions');
+const v2SalesOrders = collection('sales_orders');
+const v2ApBills = collection('ap_bills');
+const v2ArInvoices = collection('ar_invoices');
+const v2GRNList = collection('goods_receipts');
+const v2QCInspections = collection('qc_inspections');
+const v2Payments = collection('payments');
+const v2PickTasks = collection('pick_tasks');
+const v2PackTasks = collection('pack_tasks');
+const v2DeliveryNotes = collection('delivery_notes');
+const v2RTVCases = collection('rtv_cases');
+const v2RMACases = collection('rma_cases');
+const v2WorkerActivities = collection('worker_activities');
 
-let v2QCInspections = [];
-let v2Payments = [];
-let v2PickTasks = [];
-let v2PackTasks = [];
-let v2DeliveryNotes = [];
-let v2RTVCases = [];
-let v2RMACases = [];
-let v2WorkerActivities = [];
+// --- Authentication guard for the v2 API (QA-02 fix) -----------------------
+// Requires a valid Supabase session JWT for every /api/v2 request.
+// The client-side "Quick Demo Access" session is honoured only while
+// ALLOW_DEMO_ACCESS is not set to "false".
+const DEMO_ACCESS_ALLOWED = String(process.env.ALLOW_DEMO_ACCESS ?? 'true').toLowerCase() !== 'false';
+
+async function authenticate(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : '';
+
+  // No auth backend configured (local dev / offline) -> allow.
+  if (!supabase) {
+    req.user = { email: 'local-dev', demo: true };
+    return next();
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required', code: 'NO_TOKEN' });
+  }
+
+  // Demo session issued by the client-side Quick Demo Access button.
+  if (token.startsWith('moai_demo_') || token.startsWith('moai_token_')) {
+    if (DEMO_ACCESS_ALLOWED) {
+      req.user = { email: 'demo@kompakom.co.id', demo: true };
+      return next();
+    }
+    return res.status(401).json({ error: 'Demo access is disabled', code: 'DEMO_DISABLED' });
+  }
+
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data || !data.user) {
+      return res.status(401).json({ error: 'Invalid or expired session', code: 'BAD_TOKEN' });
+    }
+    req.user = { id: data.user.id, email: data.user.email };
+    return next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Authentication failed', code: 'AUTH_ERROR' });
+  }
+}
+
+// Hydrate the cache before handling, persist it after any successful mutation.
+async function v2Persistence(req, res, next) {
+  try {
+    await ensureReady();
+  } catch (err) {
+    console.debug('[v2-store] hydrate skipped:', err?.message);
+  }
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.on('finish', () => {
+      if (res.statusCode < 400) persistAll().catch(() => {});
+    });
+  }
+  next();
+}
+
+app.use('/api/v2', authenticate);
+app.use('/api/v2', v2Persistence);
+
 
 // --- MODULE 5: MASTER DATA ENDPOINTS ---
 app.get('/api/v2/master/products', async (req, res) => {
@@ -1479,7 +1546,7 @@ app.post('/api/v2/scm/rtv', (req, res) => {
 // --- MODULE 4: BOM & PC ASSEMBLY ENGINE ENDPOINTS ---
 app.get('/api/v2/assembly/boms', (_req, res) => res.json([v2BOM]));
 app.post('/api/v2/assembly/boms', (req, res) => {
-  v2BOM = { ...v2BOM, ...req.body };
+  Object.assign(v2BOM, req.body);
   res.status(201).json(v2BOM);
 });
 

@@ -1,15 +1,33 @@
 // Centralized REST API Service for MOAI ERP v2.0 Operations Modules
 const BASE_URL = '/api';
 
+// QA-02 fix: forward the active Supabase/demo session token so the API can
+// authenticate the caller. Falls back to no header for local dev.
+const getAuthToken = () => {
+  try {
+    const token = localStorage.getItem('moai_auth_token');
+    if (token && token !== 'undefined' && token !== 'null') return token;
+  } catch (err) {
+    console.debug('[REST API] Unable to read auth token', err);
+  }
+  return null;
+};
+
 const fetchJson = async (url, options = {}) => {
   try {
+    const token = getAuthToken();
     const res = await fetch(`${BASE_URL}${url}`, {
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers || {})
       },
       ...options
     });
+    if (res.status === 401) {
+      console.warn(`[REST API] 401 Unauthorized on ${url} — session may have expired`);
+      return null;
+    }
     if (!res.ok) {
       console.warn(`[REST API] HTTP ${res.status} on ${url}`);
       return null;

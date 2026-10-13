@@ -5,83 +5,74 @@ const steps = [
   {
     titleEN: "MOAI ERP: End-to-End SCM Guide",
     titleID: "MOAI ERP: Panduan SCM End-to-End",
-    descEN: "Welcome! This interactive guide will walk you through the actual business logic of each SCM process step on our Kanban board, with detailed real-world examples.",
-    descID: "Selamat datang! Panduan interaktif ini akan membawa Anda membedah logika bisnis sesungguhnya di setiap tahapan SCM pada papan Kanban, lengkap dengan contoh kasus detail.",
+    descEN: "Welcome! This interactive guide will walk you through the actual business logic of each module in the v2.0 Supply Chain ERP, with detailed real-world examples.",
+    descID: "Selamat datang! Panduan interaktif ini akan membawa Anda membedah logika bisnis sesungguhnya di setiap modul ERP Rantai Pasok v2.0, lengkap dengan contoh kasus detail.",
     selector: null,
     placement: 'center',
-    view: 'board'
+    view: 'inventory'
   },
   {
-    titleEN: "Process 1: Ordering Preparation & Planning",
-    titleID: "Proses 1: Persiapan & Perencanaan Pesanan",
-    descEN: "Here, project orders are initiated and verified against contracts. Before moving to Process 2, you must enter commercial details (Value Contract #, WBS Project Code, and ESTA PO).\n\n💡 Example: Sourcing a motherboard for site XYZ requires linking VC-100293 and project code WBS-XYZ-99. Without these, the pipeline blocks further progression.",
-    descID: "Di sini, pesanan proyek diinisiasi dan diperiksa kelayakannya. Sebelum kartu dapat ditarik ke Proses 2, Anda wajib melengkapi data kontrak komersial (Value Contract/VC, kode proyek WBS, dan nomor ESTA PO).\n\n💡 Contoh: Pengadaan motherboard untuk proyek XYZ mewajibkan Anda mengisi nomor kontrak VC-100293 dan kode proyek WBS-XYZ-99. Tanpa data ini, sistem akan memblokir pesanan.",
-    selector: '#tour-proc-1',
-    placement: 'right',
-    view: 'board'
+    titleEN: "1. Inventory & Serial Management",
+    titleID: "1. Manajemen Persediaan & Nomor Seri",
+    descEN: "The operational core: track stock balances, serial numbers, bin locations, transfers, and stock adjustments.\n\n💡 Example: When a motherboard arrives at the warehouse, staff log a Goods Receipt and the system increments its stock balance and registers each serial number.",
+    descID: "Inti operasional: pantau saldo stok, nomor seri, lokasi bin, transfer, dan penyesuaian stok.\n\n💡 Contoh: Saat motherboard tiba di gudang, staff mencatat penerimaan barang (GR) dan sistem menambah saldo stok serta mendaftarkan setiap nomor seri.",
+    selector: null,
+    placement: 'center',
+    view: 'inventory'
   },
   {
-    titleEN: "Process 2: Material Delivery (Supplier PO)",
-    titleID: "Proses 2: Pengiriman Material (Logistik Supplier)",
-    descEN: "Once planned, the EPC team issues a formal Purchase Order (PO) to the global supplier. The vendor processes the order and provides pre-alert shipping details.\n\n💡 Example: For imports, the user must upload the Delivery Order (DO) and Packing List as official shipping proofs before proceeding to customs.",
-    descID: "Setelah perencanaan disetujui, tim EPC menerbitkan Purchase Order (PO) resmi ke supplier global. Pemasok memproses barang dan mengirimkan berkas pengiriman awal.\n\n💡 Contoh: Untuk barang impor, user wajib mengunggah dokumen Delivery Order (DO) dan Packing List resmi dari supplier sebagai bukti fisik pengapalan sebelum masuk bea cukai.",
-    selector: '#tour-proc-2',
-    placement: 'right',
-    view: 'board'
+    titleEN: "2. SCM & Inbound QC Gate",
+    titleID: "2. SCM & Gerbang QC Inbound",
+    descEN: "Raise purchase requisitions, issue Purchase Orders to suppliers, receive goods, and gate them through QC inspection.\n\n💡 Example: A requisition for 20 CPUs converts into a PO; on arrival the batch passes QC Inspection before entering stock.",
+    descID: "Buat permintaan pembelian, terbitkan Purchase Order ke supplier, terima barang, dan lewatkan melalui inspeksi QC.\n\n💡 Contoh: Permintaan 20 unit CPU dikonversi menjadi PO; saat tiba, batch melewati QC Inspection sebelum masuk stok.",
+    selector: null,
+    placement: 'center',
+    view: 'scm'
   },
   {
-    titleEN: "Process 3: Custom Clearance & Duties",
-    titleID: "Proses 3: Izin Kepabeanan (Custom Clearance)",
-    descEN: "Applies exclusively to imported cargo. The customs team coordinates code verification (HS code), duty payments, and import permit releases.\n\n💡 Example: The user uploads the official Import Permit (PDF) and enters the Air Waybill (AWB) number (e.g. AWB-889922). Once cleared, materials are released to domestic transit.",
-    descID: "Berlaku khusus untuk kargo impor dari luar negeri. Tim pabean melakukan verifikasi kode HS, pembayaran pajak/bea masuk, dan penerbitan izin rilis.\n\n💡 Contoh: User mengunggah berkas pdf Izin Impor (Import Permit) resmi dan menginput nomor pelacakan Air Waybill (AWB-889922). Setelah beres, barang baru dapat dikirim ke gudang lokal.",
-    selector: '#tour-proc-3',
-    placement: 'right',
-    view: 'board'
+    titleEN: "3. BOM & Assembly Engine",
+    titleID: "3. BOM & Mesin Perakitan",
+    descEN: "Define Bills of Materials and assemble finished goods from components, with automatic component debundling and COGS roll-up.\n\n💡 Example: Assembling one Ares Elite PC consumes 1 CPU, 1 motherboard, 1 RAM kit, 1 SSD, 1 GPU, 1 PSU and 1 case — each deducted from stock automatically.",
+    descID: "Definisikan Bill of Materials dan rakit barang jadi dari komponen, dengan debundling komponen otomatis dan akumulasi HPP.\n\n💡 Contoh: Merakit satu PC Ares Elite mengonsumsi 1 CPU, 1 motherboard, 1 RAM kit, 1 SSD, 1 GPU, 1 PSU dan 1 casing — masing-masing dikurangi dari stok secara otomatis.",
+    selector: null,
+    placement: 'center',
+    view: 'assembly'
   },
   {
-    titleEN: "Process 4: Warehouse Management & Stock GR",
-    titleID: "Proses 4: Manajemen Gudang & Penerimaan Stok (GR)",
-    descEN: "Physical receipt and storage log. When an order card lands here, the system performs a Goods Receipt (GR) and automatically increments the inventory stock in Master Data.\n\n💡 Example: Once motherboard items physically arrive at the warehouse, staff verify the inventory and sign the Goods Receipt Note (GRN). Stock increases from 0 to 150 units in the database.",
-    descID: "Fase pencatatan fisik barang masuk gudang. Begitu kartu pesanan ditarik ke kolom ini (Goods Receipt/GR), sistem secara otomatis menambahkan kuantitas persediaan barang pada Master Data.\n\n💡 Contoh: Setelah item motherboard tiba secara fisik di gudang, staff mencocokkan jumlah dan menandatangani GRN. Stok item tersebut di database akan bertambah otomatis dari 0 menjadi 150 unit.",
-    selector: '#tour-proc-4',
-    placement: 'right',
-    view: 'board'
+    titleEN: "4. Outbound & Delivery Notes",
+    titleID: "4. Outbound & Surat Jalan",
+    descEN: "Process sales orders, generate pick/pack tasks, and issue Delivery Notes (Surat Jalan) with signed proof of delivery.\n\n💡 Example: A sales order for a ThinkPad triggers a pick task in bin PB-A-1-01, a pack task, and a Delivery Note for the courier.",
+    descID: "Proses pesanan penjualan, hasilkan tugas picking/packing, dan terbitkan Surat Jalan dengan bukti pengiriman tertandatangan.\n\n💡 Contoh: Pesanan penjualan ThinkPad memicu tugas picking di bin PB-A-1-01, tugas packing, dan Surat Jalan untuk kurir.",
+    selector: null,
+    placement: 'center',
+    view: 'outbound'
   },
   {
-    titleEN: "Conditional Import Flow: EID Last Mile",
-    titleID: "Alur Kondisional Impor: EID Last Mile",
-    descEN: "The final stretch for imported goods. Materials are dispatched from the main warehouse straight to the construction site.\n\n💡 Example: A driver transports the physical motherboard to the installation site and uploads the signed Proof of Delivery (POD) document to complete the import workflow.",
-    descID: "Jalur akhir khusus pengiriman barang impor. Material yang sudah tercatat di gudang utama langsung dikirim ke lokasi proyek pembangunan.\n\n💡 Contoh: Kurir mengirimkan motherboard ke lokasi pemasangan (site) dan mengunggah dokumen Proof of Delivery (POD) yang telah ditandatangani di lokasi untuk menyelesaikan siklus impor.",
-    selector: '#tour-proc-5',
-    placement: 'right',
-    view: 'board'
+    titleEN: "5. Finance, COGS & AP/AR",
+    titleID: "5. Keuangan, HPP & Utang-Piutang",
+    descEN: "Track cost of goods sold, accounts payable bills, accounts receivable invoices, and payment settlement.\n\n💡 Example: Each delivered order rolls up its component costs into COGS, while customer invoices post to AR aging.",
+    descID: "Pantau harga pokok penjualan, tagihan utang (AP), faktur piutang (AR), dan pelunasan pembayaran.\n\n💡 Contoh: Setiap pesanan terkirim mengakumulasi biaya komponennya ke HPP, sementara faktur pelanggan masuk ke aging piutang.",
+    selector: null,
+    placement: 'center',
+    view: 'finance'
   },
   {
-    titleEN: "Conditional Local Flow: 3PP",
-    titleID: "Alur Kondisional Lokal: 3PP",
-    descEN: "Alternate bypass route for locally-sourced goods. Since local orders do not cross borders, they skip Process 2 & 3 completely, jumping directly from Process 1 to Process 6.\n\n💡 Example: A local contractor delivers materials directly to the project. After validating the delivery in Process 6, the order is pulled BACK to Process 4 to log the stock entry.",
-    descID: "Jalur khusus pengadaan lokal. Karena barang dibeli di dalam negeri, pesanan tidak membutuhkan proses pabean (skip Proses 2 & 3) dan langsung melompat dari Proses 1 ke Proses 6.\n\n💡 Contoh: Kontraktor lokal mengirim material langsung. Setelah verifikasi alur lokal di Proses 6 selesai, kartu ditarik mundur kembali ke Proses 4 Gudang untuk mencatatkan stok masuknya.",
-    selector: '#tour-proc-6',
-    placement: 'right',
-    view: 'board'
-  },
-  {
-    titleEN: "KPI Dashboard Performance",
-    titleID: "Dasbor Kinerja Utama (KPI)",
-    descEN: "Monitor aggregate SCM metrics: total active orders, completed jobs, critical/low stocks, and average lead times to catch bottlenecks early.\n\n💡 Example: If the average Lead Time in Process 3 (Customs) exceeds 10 days, managers can spot the delay here and take immediate actions with the customs broker.",
-    descID: "Pantau metrik SCM gabungan: total pesanan aktif, rasio penyelesaian, barang dengan stok kritis, serta rata-rata lead time untuk mendeteksi kendala operasional.\n\n💡 Contoh: Jika rata-rata Lead Time di Proses 3 (Pabean) membengkak hingga 10 hari, manajemen bisa langsung mendeteksi hambatan dokumen di sini dan menegur agen pialang.",
-    selector: '#tour-metrics-container',
-    placement: 'bottom',
-    view: 'board'
-  },
-  {
-    titleEN: "Master Data Registry",
-    titleID: "Pendaftaran Data Induk (Master Data)",
-    descEN: "Configure and register items, SKU categories, prices, initial stocks, and Suppliers before initiating orders.\n\n💡 Example: Add a new SKU (e.g. CPU-AMD-R7) with its price and source Supplier. This product will instantly appear in the dropdown menu when creating new transactions.",
-    descID: "Modul konfigurasi database barang dan rekanan. Sebelum membuat pesanan, pastikan Anda mendaftarkan kode SKU barang, kategori, harga unit, dan data supplier.\n\n💡 Contoh: Daftarkan SKU baru (misal CPU-AMD-R7) beserta harga dan supplier terkait. Produk tersebut akan langsung muncul di dropdown pilihan saat Anda membuat pesanan baru.",
+    titleEN: "6. Master Data Registry",
+    titleID: "6. Pendaftaran Data Induk (Master Data)",
+    descEN: "Configure products, SKUs, categories, brands, warehouses, bins, suppliers, and clients before initiating transactions.\n\n💡 Example: Add a new SKU (e.g. CPU-AMD-R7) with its price and supplier. It instantly appears in the dropdown when creating new transactions.",
+    descID: "Konfigurasi produk, SKU, kategori, merek, gudang, bin, supplier, dan klien sebelum memulai transaksi.\n\n💡 Contoh: Daftarkan SKU baru (misal CPU-AMD-R7) beserta harga dan supplier terkait. Produk tersebut langsung muncul di dropdown saat membuat transaksi baru.",
     selector: '#tour-sidebar-master',
     placement: 'right',
     view: 'master_data'
+  },
+  {
+    titleEN: "Managerial & Worker KPI",
+    titleID: "Manajerial & Kinerja Staf",
+    descEN: "Monitor aggregate metrics: active orders, completed jobs, critical/low stock, and worker productivity to catch bottlenecks early.\n\n💡 Example: If inbound QC lead time spikes, managers spot the delay here and act immediately.",
+    descID: "Pantau metrik gabungan: pesanan aktif, pekerjaan selesai, stok kritis, dan produktivitas staf untuk mendeteksi kendala operasional.\n\n💡 Contoh: Jika lead time QC inbound melonjak, manajemen bisa langsung mendeteksi hambatan di sini dan segera bertindak.",
+    selector: null,
+    placement: 'center',
+    view: 'managerial'
   }
 ];
 

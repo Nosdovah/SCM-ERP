@@ -92,36 +92,36 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
 
           <details style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
             <summary style={{ fontWeight: '600', cursor: 'pointer', fontSize: '1rem', color: 'var(--primary-color)' }}>
-              3. Supply Chain Flow: Creating a New Order
+              3. SCM & Inbound: Creating a Purchase Order
             </summary>
             <div style={{ padding: '1rem 0 0 1rem' }}>
-              <p><strong>Step 4: Create Order</strong></p>
+              <p><strong>Step 4: Create Purchase Order</strong></p>
               <ol>
-                <li>{language === 'id' ? 'Masuk ke modul Supply Chain Flow (Kanban Board).' : 'Enter the Supply Chain Flow (Kanban Board) module.'}</li>
-                <li>{language === 'id' ? 'Klik tombol New Order untuk menambahkan pesanan baru.' : 'Click the New Order button to add a new order.'}</li>
-                <li>{language === 'id' ? 'Pilih Item dari master data dan tentukan Kuantitas yang dipesan.' : 'Select an Item from the master data and specify the ordered Quantity.'}</li>
-                <li>{language === 'id' ? 'Masukkan nama Anda sebagai penanggung jawab pesanan (Assignee).' : 'Enter your name as the order assignee.'}</li>
-                <li>{language === 'id' ? 'Tentukan tingkat prioritas pesanan. Klik Create Order.' : 'Determine the order priority level. Click Create Order.'}</li>
+                <li>{language === 'id' ? 'Masuk ke modul 2. SCM & QC Inbound.' : 'Enter the 2. SCM & Inbound QC module.'}</li>
+                <li>{language === 'id' ? 'Buat Permintaan Pembelian (Requisition) lalu konversi menjadi Purchase Order.' : 'Raise a Purchase Requisition, then convert it into a Purchase Order.'}</li>
+                <li>{language === 'id' ? 'Pilih Supplier dan item dari Master Data, lalu tentukan Kuantitas yang dipesan.' : 'Select the Supplier and item from Master Data, then specify the ordered Quantity.'}</li>
+                <li>{language === 'id' ? 'Terbitkan PO dan catat penerimaan barang (Goods Receipt) saat material tiba.' : 'Issue the PO and log a Goods Receipt when the materials arrive.'}</li>
+                <li>{language === 'id' ? 'Lewatkan batch melalui QC Inspection sebelum stok masuk ke Inventory.' : 'Gate the batch through QC Inspection before stock enters Inventory.'}</li>
               </ol>
             </div>
           </details>
 
           <details open style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
             <summary style={{ fontWeight: '600', cursor: 'pointer', fontSize: '1rem', color: 'var(--primary-color)' }}>
-              4. Fulfillment Pipeline Execution (Drag & Drop)
+              4. Fulfillment Pipeline (Inventory → Assembly → Outbound)
             </summary>
             <div style={{ padding: '1rem 0 0 1rem' }}>
-              <p><em>{language === 'id' ? 'Pipeline ERP beroperasi menggunakan sistem Kanban Board. Pesanan harus menyelesaikan semua checklist prasyarat sebelum dapat dipindahkan ke tahap selanjutnya.' : 'The ERP Pipeline operates on a Kanban Board system. Orders must complete all prerequisite checklists before they can be moved to the next stage.'}</em></p>
-              
+              <p><em>{language === 'id' ? 'Pipeline ERP v2.0 beroperasi sebagai alur modul terintegrasi. Setiap modul memperbarui stok dan HPP secara otomatis melalui API v2.' : 'The ERP v2.0 Pipeline operates as an integrated module flow. Each module updates stock and COGS automatically through the v2 API.'}</em></p>
+
               <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
-                <li><strong>Step 5 (Process 1):</strong> {language === 'id' ? 'Klik pada kartu pesanan. Selesaikan prasyarat (VC, WBS, ESTA/PO, Info Partner). Setelah checklist komplit, tahan dan tarik (drag) order ke kolom selanjutnya di Process 1 secara berurutan.' : 'Click the order card. Complete the prerequisites (VC, WBS, ESTA/PO, Partner Info). Once the checklist is complete, hold and drag the order to the next column in Process 1 sequentially.'}</li>
-                <li><strong>Step 6 (Process 2):</strong> {language === 'id' ? 'Lengkapi checklist dan unggah form dokumen pengiriman (DO, Packing List, Invoice, dll) sebelum menyeret order ke Process 2.' : 'Complete the checklist and upload delivery document forms (DO, Packing List, Invoice, etc.) before dragging the order to Process 2.'}</li>
-                <li><strong>Step 7 (Process 3):</strong> {language === 'id' ? 'Selesaikan persyaratan pabean dan unggah form Izin Impor sebelum order dapat melewati tahap Custom Clearance.' : 'Complete customs requirements and upload Import Permit forms before the order can pass the Custom Clearance stage.'}</li>
-                <li><strong>Step 8 (Process 4):</strong> {language === 'id' ? 'Selesaikan checklist dokumen Gudang (GRN, Put Away List, GI) sebelum order masuk ke tahap Warehouse Management. Di sini stok akan otomatis di-update.' : 'Complete the Warehouse document checklist (GRN, Put Away List, GI) before the order enters Warehouse Management. Inventory stock updates automatically here.'}</li>
-                <li><strong>Step 9 & 10 (Conditional Flows):</strong> {language === 'id' ? 'Untuk jalur Alur Kondisional Impor (EID Last Mile) dan Alur Kondisional Lokal (3PP), ikuti pola yang sama: klik pesanan, lengkapi dokumen spesifik, lalu geser kartu hingga kolom terakhir.' : 'For Conditional Import (EID Last Mile) and Conditional Local (3PP) flows, follow the same pattern: click the order, complete specific documents, then drag the card to the final column.'}</li>
+                <li><strong>Step 5 (Inventory):</strong> {language === 'id' ? 'Pantau saldo stok, nomor seri, dan lokasi bin. Lakukan transfer antar-bin atau penyesuaian stok (stock adjustment) bila ditemukan selisih.' : 'Monitor stock balances, serial numbers, and bin locations. Perform inter-bin transfers or stock adjustments when discrepancies are found.'}</li>
+                <li><strong>Step 6 (SCM & QC):</strong> {language === 'id' ? 'Kelola Requisition, Purchase Order, Goods Receipt, QC Inspection, dan Retur ke Vendor (RTV).' : 'Manage Requisitions, Purchase Orders, Goods Receipts, QC Inspections, and Return-to-Vendor (RTV) cases.'}</li>
+                <li><strong>Step 7 (BOM & Assembly):</strong> {language === 'id' ? 'Tentukan Bill of Materials, lalu rakit barang jadi. Komponen otomatis dipotong dari stok dan HPP dihitung.' : 'Define the Bill of Materials, then assemble finished goods. Components are automatically deducted from stock and COGS is calculated.'}</li>
+                <li><strong>Step 8 (Outbound):</strong> {language === 'id' ? 'Proses Sales Order, hasilkan Pick Task & Pack Task, lalu terbitkan Surat Jalan (Delivery Note) dengan bukti pengiriman.' : 'Process Sales Orders, generate Pick & Pack Tasks, then issue the Delivery Note with proof of delivery.'}</li>
+                <li><strong>Step 9 (Finance):</strong> {language === 'id' ? 'Pantau HPP, tagihan utang (AP), faktur piutang (AR), dan pelunasan pembayaran.' : 'Track COGS, Accounts Payable bills, Accounts Receivable invoices, and payment settlement.'}</li>
               </ul>
 
-              {/* Note: Import vs Local Routing */}
+              {/* Note: Inbound vs Outbound Routing */}
               <div style={{
                 marginTop: '1.5rem',
                 padding: '1rem',
@@ -131,24 +131,18 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
                 fontSize: '0.875rem'
               }}>
                 <strong style={{ color: '#1e40af', display: 'block', marginBottom: '0.5rem' }}>
-                  💡 {language === 'id' ? 'Keterangan Penting Alur Kerja (Impor vs Lokal):' : 'Important Workflow Routing (Import vs Local):'}
+                  💡 {language === 'id' ? 'Keterangan Penting Alur Kerja (Inbound vs Outbound):' : 'Important Workflow Routing (Inbound vs Outbound):'}
                 </strong>
                 <div style={{ margin: 0, color: '#1e3a8a', lineHeight: '1.5' }}>
                   {language === 'id' ? (
                     <>
-                      <strong>1. Jalur Impor (Linear):</strong> Pesanan mengikuti alur lurus dari <strong>Proses 1 → 2 → 3 → 4 → Alur Kondisional Impor (EID Last Mile)</strong>. Barang dikirim dari hub global, melewati pabean/customs, masuk gudang utama, lalu dikirim ke lokasi.<br/>
-                      <strong style={{ display: 'block', marginTop: '0.5rem' }}>2. Jalur Lokal (Non-Linear):</strong> Pesanan lokal dibeli langsung dari vendor dalam negeri. Jalurnya adalah <strong>Proses 1 → langsung lompat ke Alur Kondisional Lokal (3PP)</strong>. Setelah proses pengiriman lokal selesai, barang masuk ke <strong>Proses 4</strong> untuk dicatat stoknya.
-                      <span style={{ display: 'block', marginTop: '0.5rem', color: '#b91c1c', fontWeight: '600' }}>
-                        *Catatan: Saat memindahkan kartu lokal dari Alur Kondisional Lokal (3PP) kembali ke Proses 4, sistem akan memicu jendela verifikasi kemunduran tahap (Revert Stage). Masukkan keterangan alasan seperti "Penerimaan stok lokal di gudang" untuk melanjutkan.
-                      </span>
+                      <strong>1. Inbound (Pengadaan):</strong> Requisition → <strong>Purchase Order</strong> → Goods Receipt → QC Inspection → Stok masuk Inventory. Supplier mengirim material, gudang mencatat penerimaan, QC memverifikasi mutu.<br/>
+                      <strong style={{ display: 'block', marginTop: '0.5rem' }}>2. Outbound (Penjualan):</strong> <strong>Sales Order</strong> → Pick Task → Pack Task → Surat Jalan (Delivery Note) → Pengiriman ke pelanggan. Stok otomatis berkurang dan HPP tercatat.
                     </>
                   ) : (
                     <>
-                      <strong>1. Import Route (Linear):</strong> Orders follow the straight path of <strong>Process 1 → 2 → 3 → 4 → Conditional Import Flow (EID Last Mile)</strong>. Materials are shipped from global hubs, clear customs, enter the main warehouse, and dispatch to sites.<br/>
-                      <strong style={{ display: 'block', marginTop: '0.5rem' }}>2. Local Route (Non-Linear):</strong> Local orders are sourced domestically. They go from <strong>Process 1 → jump directly to Conditional Local Flow (3PP)</strong>. Once local shipping completes, they return to <strong>Process 4</strong> for warehouse inventory logging.
-                      <span style={{ display: 'block', marginTop: '0.5rem', color: '#b91c1c', fontWeight: '600' }}>
-                        *Note: When dragging a local card back from Conditional Local Flow (3PP) to Process 4, the system will trigger the Revert Stage verification modal. Enter a reason like "Receiving local stock in warehouse" to proceed.
-                      </span>
+                      <strong>1. Inbound (Procurement):</strong> Requisition → <strong>Purchase Order</strong> → Goods Receipt → QC Inspection → Stock enters Inventory. The supplier ships materials, the warehouse logs receipt, and QC verifies quality.<br/>
+                      <strong style={{ display: 'block', marginTop: '0.5rem' }}>2. Outbound (Sales):</strong> <strong>Sales Order</strong> → Pick Task → Pack Task → Delivery Note (Surat Jalan) → Shipment to customer. Stock decrements automatically and COGS is recorded.
                     </>
                   )}
                 </div>
@@ -162,8 +156,8 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
             </summary>
             <div style={{ padding: '1rem 0 0 1rem' }}>
               <ol>
-                <li>{language === 'id' ? 'Klik pada kartu order yang diinginkan untuk membuka laci Order Drawer.' : 'Click on the desired order card to open the Order Drawer.'}</li>
-                <li>{language === 'id' ? 'Di bagian General Info, cari dan klik tombol Generate PO Document.' : 'In the General Info section, find and click the Generate PO Document button.'}</li>
+                <li>{language === 'id' ? 'Masuk ke modul 2. SCM & QC Inbound, lalu buka daftar Purchase Order.' : 'Enter the 2. SCM & Inbound QC module, then open the Purchase Order list.'}</li>
+                <li>{language === 'id' ? 'Pilih PO yang ingin dicetak dan klik tombol Generate PO Document.' : 'Select the PO you want to print and click the Generate PO Document button.'}</li>
                 <li>{language === 'id' ? 'Sistem akan membuka tab baru berisi PDF Purchase Order resmi yang merangkum vendor, kuantitas, harga, dan total biaya.' : 'The system will open a new tab containing an official Purchase Order PDF summarizing the vendor, quantity, price, and total cost.'}</li>
                 <li>{language === 'id' ? 'Klik tombol Print PDF untuk mencetak atau menyimpannya secara lokal.' : 'Click the Print PDF button to print or save it locally.'}</li>
               </ol>
@@ -172,20 +166,20 @@ export default function HelpDictionary({ language, onOpenTutorial }) {
 
           <details style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
             <summary style={{ fontWeight: '600', cursor: 'pointer', fontSize: '1rem', color: 'var(--primary-color)' }}>
-              6. SCM Phase Routing Bypass (Bypass Alur/Fase)
+              6. Master Data & Module Navigation
             </summary>
             <div style={{ padding: '1rem 0 0 1rem' }}>
               <p>
                 {language === 'id' 
-                  ? 'Guna meningkatkan kemudahan pengguna (user-friendliness) dan menghindari hambatan menarik kartu (drag-and-drop) yang terlampau jauh—seperti saat alur lokal melompat dari Proses 1 langsung ke Proses 6 (3PP) lalu kembali ke Proses 4—sistem menyediakan fitur pemindahan fase instan.'
-                  : 'To enhance user-friendliness and prevent tedious drag-and-drop operations across scrolled distances—such as local orders jumping from Process 1 to Process 6 (3PP) and returning to Process 4—the system provides a quick phase routing feature.'
+                  ? 'Seluruh transaksi v2.0 bersumber dari Master Data. Pastikan produk, kategori, merek, gudang, bin, supplier, dan klien terdaftar sebelum membuat transaksi apa pun.'
+                  : 'Every v2.0 transaction is sourced from Master Data. Ensure products, categories, brands, warehouses, bins, suppliers, and clients are registered before creating any transaction.'
                 }
               </p>
               <ol>
-                <li>{language === 'id' ? 'Klik kartu pesanan yang ingin Anda pindahkan untuk membuka laci detail pesanan (Order Drawer).' : 'Click on the order card you want to route to open its Order Drawer details.'}</li>
-                <li>{language === 'id' ? 'Cari bagian "Pindahkan Alur/Fase (Bypass Drag & Drop)" di bawah Informasi Umum.' : 'Locate the "Bypass Route / Change Phase" selection box under the General Info section.'}</li>
-                <li>{language === 'id' ? 'Pilih fase tujuan Anda langsung dari menu dropdown. Sistem akan otomatis memindahkan pesanan ke kolom tujuan secara instan.' : 'Select your target phase directly from the dropdown. The system will immediately route the order to that stage.'}</li>
-                <li>{language === 'id' ? 'Seluruh validasi hak akses peran (RBAC), pengisian dokumen prasyarat, serta verifikasi pengembalian alur mundur (Revert Modal) tetap aktif dan diawasi demi keamanan data.' : 'Standard role checks (RBAC), prerequisite document completion, and backward revert verification modals remain active to ensure data integrity.'}</li>
+                <li>{language === 'id' ? 'Buka modul 6. Master Data v2.0 untuk mengelola katalog produk, gudang & bin, merek, supplier, dan klien.' : 'Open the 6. Master Data v2.0 module to manage the product catalog, warehouses & bins, brands, suppliers, and clients.'}</li>
+                <li>{language === 'id' ? 'Gunakan sidebar untuk berpindah antar modul operasional: Inventory, SCM, Assembly, Outbound, dan Finance.' : 'Use the sidebar to switch between operational modules: Inventory, SCM, Assembly, Outbound, and Finance.'}</li>
+                <li>{language === 'id' ? 'Pantau Lead Time Analytics dan Managerial & Worker KPI untuk mendeteksi hambatan operasional secara dini.' : 'Monitor Lead Time Analytics and Managerial & Worker KPI to catch operational bottlenecks early.'}</li>
+                <li>{language === 'id' ? 'Semua endpoint API v2 memerlukan sesi terautentikasi; isolasi tenant dijaga per perusahaan.' : 'All v2 API endpoints require an authenticated session; tenant isolation is enforced per company.'}</li>
               </ol>
             </div>
           </details>
