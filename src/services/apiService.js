@@ -67,7 +67,8 @@ export const apiService = {
     getQCInspections: () => fetchJson('/v2/scm/qc-inspections'),
     qcAction: (id, data) => fetchJson(`/v2/scm/qc-inspections/${id}/action`, { method: 'POST', body: JSON.stringify(data) }),
     getRTV: () => fetchJson('/v2/scm/rtv'),
-    createRTV: (data) => fetchJson('/v2/scm/rtv', { method: 'POST', body: JSON.stringify(data) })
+    createRTV: (data) => fetchJson('/v2/scm/rtv', { method: 'POST', body: JSON.stringify(data) }),
+    shipRTV: (id) => fetchJson(`/v2/scm/rtv/${id}/ship`, { method: 'POST' })
   },
 
   // Modul 3: Bill of Materials (BOM) & Assembly Engine

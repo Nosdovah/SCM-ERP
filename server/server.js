@@ -81,7 +81,8 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    supabase_connected: !!supabase
+    supabase_connected: !!supabase,
+    persistence: storeStatus()
   });
 });
 
@@ -1015,22 +1016,45 @@ async function authenticate(req, res, next) {
     req.user = { id: data.user.id, email: data.user.email };
     return next();
   } catch (err) {
+    console.warn('[auth] token verification failed:', err?.message || err);
     return res.status(401).json({ error: 'Authentication failed', code: 'AUTH_ERROR' });
   }
 }
 
-// Hydrate the cache before handling, persist it after any successful mutation.
+// Hydrate the cache before handling. For mutating requests the resulting write
+// is flushed to Supabase BEFORE the response is sent — on Vercel the function
+// can be frozen the instant the response is flushed, so a fire-and-forget write
+// (res.on('finish')) would be lost silently. This makes every accepted mutation
+// durable before the client sees a 2xx.
 async function v2Persistence(req, res, next) {
   try {
     await ensureReady();
   } catch (err) {
     console.debug('[v2-store] hydrate skipped:', err?.message);
   }
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    res.on('finish', () => {
-      if (res.statusCode < 400) persistAll().catch(() => {});
-    });
+
+  const mutating = req.method !== 'GET' && req.method !== 'HEAD';
+  if (mutating) {
+    const origJson = res.json.bind(res);
+    const origSend = res.send.bind(res);
+    let flushing = null;
+    const flush = () => {
+      if (!flushing) {
+        flushing = (async () => {
+          if (res.statusCode >= 400) return;
+          try {
+            await persistAll();
+          } catch (err) {
+            console.error('[v2-store] persist failed:', err?.message || err);
+          }
+        })();
+      }
+      return flushing;
+    };
+    res.json = (body) => { flush().then(() => origJson(body)); return res; };
+    res.send = (body) => { flush().then(() => origSend(body)); return res; };
   }
+
   next();
 }
 
@@ -1543,6 +1567,44 @@ app.post('/api/v2/scm/rtv', (req, res) => {
   res.status(201).json({ success: true, rtv: newRTV, movement: mov });
 });
 
+// Ship an existing inbound return (RTV) and issue the vendor credit note.
+// Previously the client mutated localStorage only, so the shipment was never
+// persisted — this endpoint makes it durable.
+app.post('/api/v2/scm/rtv/:id/ship', (req, res) => {
+  const rtv = v2RTVCases.find(r => r.id === req.params.id);
+  if (!rtv) return res.status(404).json({ error: 'RTV case not found', code: 'RTV_NOT_FOUND' });
+
+  rtv.status = 'SHIPPED';
+  rtv.shipped_at = new Date().toISOString().replace('T', ' ').substring(0, 16);
+  rtv.credit_note_no = rtv.credit_note_no || `CN-VEND-${Math.floor(100 + Math.random() * 900)}`;
+
+  // Post the RET_OUT movement to the immutable ledger.
+  const mov = {
+    id: `mov-${Date.now()}`,
+    movement_type: 'RET_OUT',
+    product_name: rtv.product_name,
+    qty: -Number(rtv.qty || 1),
+    bin_code: rtv.bin_code || 'RMA-HOLD-01',
+    ref_doc: rtv.credit_note_no,
+    created_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
+    created_by: 'Return Admin'
+  };
+  v2Movements.unshift(mov);
+
+  // Apply the credit note against the linked AP bill.
+  let apBill = null;
+  const refund = Number(rtv.refund_amount || 0);
+  if (refund > 0) {
+    apBill = v2ApBills.find(b =>
+      (rtv.ap_bill_id && b.id === rtv.ap_bill_id) ||
+      (rtv.po_number && (b.po_number === rtv.po_number || b.ref_doc === rtv.po_number))
+    );
+    if (apBill) apBill.amount = Math.max(0, Number(apBill.amount || 0) - refund);
+  }
+
+  res.json({ success: true, rtv, movement: mov, ap_bill: apBill });
+});
+
 // --- MODULE 4: BOM & PC ASSEMBLY ENGINE ENDPOINTS ---
 app.get('/api/v2/assembly/boms', (_req, res) => res.json([v2BOM]));
 app.post('/api/v2/assembly/boms', (req, res) => {
@@ -2017,13 +2079,8 @@ app.post('/api/v2/rpc/ship-order', async (req, res) => {
   res.json({ success: true, sj_id, status: 'DELIVERED', message: 'Shipment posted successfully' });
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    backend: supabase ? 'Supabase PostgreSQL + Storage' : 'Mock/Local',
-    timestamp: new Date().toISOString()
-  });
-});
+// NOTE: the authoritative health probe lives at the top of this file (it also
+// reports persistence mode). A duplicate handler here previously shadowed it.
 
 // Start local dev server if run directly (and not on Vercel Serverless)
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {

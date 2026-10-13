@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { 
   initialPurchaseOrders, initialRequisitions, initialGRNList, 
-  initialInboundReturns, initialApBills 
+  initialInboundReturns 
 } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
 
@@ -287,22 +287,19 @@ export default function SupplyChainV2({ language }) {
     });
 
     setInboundReturns(updated);
-    try {
-      localStorage.setItem('moai_v2_inbound_returns', JSON.stringify(updated));
-      // Optionally reduce AP Bill in Finance
-      const rawAp = localStorage.getItem('moai_v2_ap_bills');
-      const apBills = rawAp ? JSON.parse(rawAp) : initialApBills;
-      const targetRet = inboundReturns.find(r => r.id === retId);
-      if (targetRet && apBills.length > 0) {
-        const updatedAp = apBills.map(b => ({
-          ...b,
-          amount: Math.max(0, b.amount - (targetRet.refund_amount || 0))
-        }));
-        localStorage.setItem('moai_v2_ap_bills', JSON.stringify(updatedAp));
+    // Persist to the server — this was previously a localStorage-only write, so
+    // the shipment vanished on refresh / was invisible to other devices.
+    apiService.scm.shipRTV(retId).then(result => {
+      if (result && result.success) {
+        try {
+          localStorage.setItem('moai_v2_inbound_returns', JSON.stringify(updated));
+        } catch (err) {
+          console.debug(err);
+        }
+      } else {
+        console.warn('[SCM] shipRTV failed — return not persisted server-side', result);
       }
-    } catch (err) {
-      console.error('Failed to post return shipment', err);
-    }
+    });
 
     setReturnSuccessBanner(
       isId
