@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
-  Database, Plus, Search, Box, Tag, Truck, Users, Barcode, MapPin
+  Database, Plus, Search, Box, Tag, Truck, Users, Barcode, MapPin,
+  Pencil, Trash2, ArchiveRestore, Eye, EyeOff
 } from 'lucide-react';
 import { 
   initialProducts, initialZones, 
@@ -27,8 +28,13 @@ const modalActions = { display: 'flex', justifyContent: 'flex-end', gap: '0.5rem
 const cancelBtn = { padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', backgroundColor: 'transparent', cursor: 'pointer' };
 const submitBtn = { padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: 'var(--accent-color)', color: '#ffffff', fontWeight: '600', cursor: 'pointer' };
 
+// A master-data row is archived when the API soft-deleted it (DELETE without
+// ?hard=true sets is_active=false + deleted_at).
+const isArchivedRow = (x) => !!x && (x.is_active === false || !!x.deleted_at);
+
 // Reusable "Add" toolbar rendered above the brands / suppliers / clients tabs.
-function EntityToolbar({ title, subtitle, count, onAdd, addLabel, testId }) {
+// `archivedCount`/`showArchived`/`onToggleArchived` drive the archive view.
+function EntityToolbar({ title, subtitle, count, onAdd, addLabel, testId, archivedCount = 0, showArchived = false, onToggleArchived }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -39,21 +45,89 @@ function EntityToolbar({ title, subtitle, count, onAdd, addLabel, testId }) {
         <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--primary-color)' }}>{title}</h3>
         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
           {count} {subtitle}
+          {archivedCount > 0 && (
+            <span style={{ color: '#b45309', fontWeight: '600' }}> · {archivedCount} diarsipkan</span>
+          )}
         </div>
       </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {archivedCount > 0 && (
+          <button
+            type="button"
+            id="btn-toggle-archived"
+            data-testid="btn-toggle-archived"
+            onClick={onToggleArchived}
+            title={showArchived ? 'Sembunyikan arsip' : 'Tampilkan arsip'}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+              backgroundColor: showArchived ? '#fef3c7' : '#f1f5f9',
+              color: showArchived ? '#b45309' : '#475569',
+              border: `1px solid ${showArchived ? '#fcd34d' : 'var(--border-color)'}`,
+              padding: '0.5rem 0.8rem', borderRadius: '0.5rem',
+              fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer'
+            }}
+          >
+            {showArchived ? <EyeOff size={14} /> : <Eye size={14} />}
+            {showArchived ? 'Sembunyikan Arsip' : `Arsip (${archivedCount})`}
+          </button>
+        )}
+        <button
+          type="button"
+          id={testId}
+          data-testid={testId}
+          onClick={onAdd}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+            backgroundColor: 'var(--accent-color)', color: '#ffffff',
+            border: 'none', padding: '0.55rem 1rem', borderRadius: '0.5rem',
+            fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer'
+          }}
+        >
+          <Plus size={16} /> {addLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Edit / Delete / Restore controls rendered on every master-entity card.
+function EntityCardActions({ isId, archived, onEdit, onDelete, onRestore, testIdPrefix = '' }) {
+  const btn = (extra) => ({
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    width: '30px', height: '30px', borderRadius: '0.375rem', cursor: 'pointer',
+    border: '1px solid var(--border-color)', backgroundColor: '#ffffff', ...extra
+  });
+  if (archived) {
+    return (
+      <div style={{ display: 'flex', gap: '0.35rem' }}>
+        <button
+          type="button" title={isId ? 'Pulihkan' : 'Restore'}
+          id={`${testIdPrefix}restore`} data-testid={`${testIdPrefix}restore`}
+          onClick={onRestore}
+          style={btn({ color: '#047857', borderColor: '#a7f3d0' })}
+        >
+          <ArchiveRestore size={15} />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', gap: '0.35rem' }}>
       <button
-        type="button"
-        id={testId}
-        data-testid={testId}
-        onClick={onAdd}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-          backgroundColor: 'var(--accent-color)', color: '#ffffff',
-          border: 'none', padding: '0.55rem 1rem', borderRadius: '0.5rem',
-          fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer'
-        }}
+        type="button" title={isId ? 'Ubah' : 'Edit'}
+        id={`${testIdPrefix}edit`} data-testid={`${testIdPrefix}edit`}
+        onClick={onEdit}
+        style={btn({ color: 'var(--accent-color)' })}
       >
-        <Plus size={16} /> {addLabel}
+        <Pencil size={15} />
+      </button>
+      <button
+        type="button" title={isId ? 'Hapus' : 'Delete'}
+        id={`${testIdPrefix}delete`} data-testid={`${testIdPrefix}delete`}
+        onClick={onDelete}
+        style={btn({ color: '#b91c1c', borderColor: '#fca5a5' })}
+      >
+        <Trash2 size={15} />
       </button>
     </div>
   );
@@ -89,6 +163,16 @@ export default function MasterDataV2({ language }) {
   // Notice banner + in-flight flag for the entity forms
   const [entityNotice, setEntityNotice] = useState(null);
   const [entitySaving, setEntitySaving] = useState(false);
+
+  // Full-CRUD state for the master entities.
+  // `editing*` holds the record being edited (null = create mode).
+  // `confirmDelete` drives the delete-confirmation modal.
+  // `showArchived` toggles the archive view (per active entity tab).
+  const [editingBrand, setEditingBrand] = useState(null);
+  const [editingSupplier, setEditingSupplier] = useState(null);
+  const [editingClient, setEditingClient] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { kind, record }
+  const [showArchived, setShowArchived] = useState(false);
 
   // New Brand Form
   const emptyBrand = { name: '', code: '', description: '' };
@@ -227,70 +311,184 @@ export default function MasterDataV2({ language }) {
     setShowBinModal(false);
   };
 
-  // ---- Master entity forms (Brands / Suppliers / Clients) -----------------
-  // Every create re-fetches the list so the view reflects the durable server
-  // state instead of an optimistic local guess.
-  const reloadBrands = () => apiService.masterData.getBrands()
+  // ---- Master entity CRUD (Brands / Suppliers / Clients) -----------------
+  // The list is always fetched *including* archived rows, then split locally so
+  // the toolbar can show an archive count and the toggle is instant. Every
+  // mutation re-fetches so the view reflects the durable server state instead
+  // of an optimistic local guess.
+  const reloadBrands = () => apiService.masterData.getBrands({ includeArchived: true })
     .then(d => { if (Array.isArray(d)) setBrands(d); });
-  const reloadSuppliers = () => apiService.masterData.getSuppliers()
+  const reloadSuppliers = () => apiService.masterData.getSuppliers({ includeArchived: true })
     .then(d => { if (Array.isArray(d)) setSuppliers(d); });
-  const reloadClients = () => apiService.masterData.getClients()
+  const reloadClients = () => apiService.masterData.getClients({ includeArchived: true })
     .then(d => { if (Array.isArray(d)) setClients(d); });
 
-  const handleCreateBrand = async (e) => {
-    e.preventDefault();
+  const brandActive = brands.filter(b => !isArchivedRow(b));
+  const brandArchived = brands.filter(isArchivedRow);
+  const supplierActive = suppliers.filter(s => !isArchivedRow(s));
+  const supplierArchived = suppliers.filter(isArchivedRow);
+  const clientActive = clients.filter(c => !isArchivedRow(c));
+  const clientArchived = clients.filter(isArchivedRow);
+
+  const visibleBrands = showArchived ? [...brandActive, ...brandArchived] : brandActive;
+  const visibleSuppliers = showArchived ? [...supplierActive, ...supplierArchived] : supplierActive;
+  const visibleClients = showArchived ? [...clientActive, ...clientArchived] : clientActive;
+
+  // Openers ------------------------------------------------------------------
+  const openCreateBrand = () => {
+    setEntityNotice(null); setEditingBrand(null); setNewBrand(emptyBrand); setShowBrandModal(true);
+  };
+  const openEditBrand = (b) => {
+    setEntityNotice(null); setEditingBrand(b);
+    setNewBrand({ name: b.name || '', code: b.code || '', description: b.description || '' });
+    setShowBrandModal(true);
+  };
+  const openCreateSupplier = () => {
+    setEntityNotice(null); setEditingSupplier(null); setNewSupplier(emptySupplier); setShowSupplierModal(true);
+  };
+  const openEditSupplier = (s) => {
+    setEntityNotice(null); setEditingSupplier(s);
+    setNewSupplier({
+      name: s.name || '', code: s.code || '', category: s.category || 'Distributor',
+      country: s.country || 'Indonesia', currency: s.currency || 'IDR',
+      rating: s.rating ?? 5, contact: s.contact || '', phone: s.phone || '',
+      email: s.email || '', address: s.address || '',
+      payment_terms: s.payment_terms || 'NET 30',
+      lead_time_days: s.lead_time_days ?? 7, is_principal: !!s.is_principal
+    });
+    setShowSupplierModal(true);
+  };
+  const openCreateClient = () => {
+    setEntityNotice(null); setEditingClient(null); setNewClient(emptyClient); setShowClientModal(true);
+  };
+  const openEditClient = (c) => {
+    setEntityNotice(null); setEditingClient(c);
+    setNewClient({
+      name: c.name || '', code: c.code || '', segment: c.segment || 'corporate',
+      contact: c.contact || '', phone: c.phone || '', email: c.email || '',
+      billing_address: c.billing_address || '', payment_terms: c.payment_terms || 'NET 30',
+      credit_limit: c.credit_limit ?? '', outstanding: c.outstanding ?? 0
+    });
+    setShowClientModal(true);
+  };
+
+  // Submit (create OR update) -----------------------------------------------
+  const submitEntity = async ({ editing, payload, create, update, reload, label }) => {
     setEntitySaving(true);
-    const res = await apiService.masterData.createBrand(newBrand);
-    setEntitySaving(false);
-    if (res && res.id) {
-      await reloadBrands();
-      setShowBrandModal(false);
-      setNewBrand(emptyBrand);
-      setEntityNotice({ type: 'ok', msg: isId
-        ? `Brand "${res.name}" (${res.code}) berhasil ditambahkan ke master data.`
-        : `Brand "${res.name}" (${res.code}) added to master data.` });
-    } else {
-      setEntityNotice({ type: 'err', msg: isId
-        ? 'Gagal menambahkan brand. Kode mungkin sudah dipakai, atau koneksi API bermasalah.'
-        : 'Failed to add brand — duplicate code or API error.' });
+    try {
+      const res = editing ? await update(editing.id, payload) : await create(payload);
+      await reload();
+      return { ok: true, res };
+    } catch (err) {
+      return { ok: false, err, label };
+    } finally {
+      setEntitySaving(false);
     }
   };
 
-  const handleCreateSupplier = async (e) => {
+  const handleSubmitBrand = async (e) => {
     e.preventDefault();
-    setEntitySaving(true);
-    const res = await apiService.masterData.createSupplier(newSupplier);
-    setEntitySaving(false);
-    if (res && res.id) {
-      await reloadSuppliers();
-      setShowSupplierModal(false);
-      setNewSupplier(emptySupplier);
+    const wasEdit = !!editingBrand;
+    const out = await submitEntity({
+      editing: editingBrand, payload: newBrand,
+      create: apiService.masterData.createBrand, update: apiService.masterData.updateBrand,
+      reload: reloadBrands, label: 'brand'
+    });
+    if (out.ok) {
+      setShowBrandModal(false); setEditingBrand(null); setNewBrand(emptyBrand);
       setEntityNotice({ type: 'ok', msg: isId
-        ? `Pemasok "${res.name}" (${res.code}) berhasil ditambahkan.`
-        : `Supplier "${res.name}" (${res.code}) added.` });
+        ? `Brand "${out.res.name}" (${out.res.code}) berhasil ${wasEdit ? 'diperbarui' : 'ditambahkan'}.`
+        : `Brand "${out.res.name}" (${out.res.code}) ${wasEdit ? 'updated' : 'added'}.` });
     } else {
-      setEntityNotice({ type: 'err', msg: isId
-        ? 'Gagal menambahkan pemasok — kode duplikat atau API bermasalah.'
-        : 'Failed to add supplier — duplicate code or API error.' });
+      setEntityNotice({ type: 'err', msg: (isId ? 'Gagal menyimpan brand: ' : 'Failed to save brand: ') + out.err.message });
     }
   };
 
-  const handleCreateClient = async (e) => {
+  const handleSubmitSupplier = async (e) => {
     e.preventDefault();
-    setEntitySaving(true);
-    const res = await apiService.masterData.createClient(newClient);
-    setEntitySaving(false);
-    if (res && res.id) {
-      await reloadClients();
-      setShowClientModal(false);
-      setNewClient(emptyClient);
+    const wasEdit = !!editingSupplier;
+    const out = await submitEntity({
+      editing: editingSupplier, payload: newSupplier,
+      create: apiService.masterData.createSupplier, update: apiService.masterData.updateSupplier,
+      reload: reloadSuppliers, label: 'supplier'
+    });
+    if (out.ok) {
+      setShowSupplierModal(false); setEditingSupplier(null); setNewSupplier(emptySupplier);
       setEntityNotice({ type: 'ok', msg: isId
-        ? `Klien "${res.name}" (${res.code}) berhasil ditambahkan.`
-        : `Client "${res.name}" (${res.code}) added.` });
+        ? `Pemasok "${out.res.name}" (${out.res.code}) berhasil ${wasEdit ? 'diperbarui' : 'ditambahkan'}.`
+        : `Supplier "${out.res.name}" (${out.res.code}) ${wasEdit ? 'updated' : 'added'}.` });
     } else {
-      setEntityNotice({ type: 'err', msg: isId
-        ? 'Gagal menambahkan klien — kode duplikat atau API bermasalah.'
-        : 'Failed to add client — duplicate code or API error.' });
+      setEntityNotice({ type: 'err', msg: (isId ? 'Gagal menyimpan pemasok: ' : 'Failed to save supplier: ') + out.err.message });
+    }
+  };
+
+  const handleSubmitClient = async (e) => {
+    e.preventDefault();
+    const wasEdit = !!editingClient;
+    const out = await submitEntity({
+      editing: editingClient, payload: newClient,
+      create: apiService.masterData.createClient, update: apiService.masterData.updateClient,
+      reload: reloadClients, label: 'client'
+    });
+    if (out.ok) {
+      setShowClientModal(false); setEditingClient(null); setNewClient(emptyClient);
+      setEntityNotice({ type: 'ok', msg: isId
+        ? `Klien "${out.res.name}" (${out.res.code}) berhasil ${wasEdit ? 'diperbarui' : 'ditambahkan'}.`
+        : `Client "${out.res.name}" (${out.res.code}) ${wasEdit ? 'updated' : 'added'}.` });
+    } else {
+      setEntityNotice({ type: 'err', msg: (isId ? 'Gagal menyimpan klien: ' : 'Failed to save client: ') + out.err.message });
+    }
+  };
+
+  // Delete / restore ---------------------------------------------------------
+  const ENTITY_META = {
+    brand: { label: 'Brand', api: { remove: apiService.masterData.deleteBrand, restore: apiService.masterData.restoreBrand }, reload: reloadBrands },
+    supplier: { label: 'Supplier', api: { remove: apiService.masterData.deleteSupplier, restore: apiService.masterData.restoreSupplier }, reload: reloadSuppliers },
+    client: { label: 'Client', api: { remove: apiService.masterData.deleteClient, restore: apiService.masterData.restoreClient }, reload: reloadClients }
+  };
+
+  const askDelete = (kind, record) => {
+    setEntityNotice(null);
+    setConfirmDelete({ kind, record, error: null });
+  };
+
+  const runDelete = async (hard = false) => {
+    if (!confirmDelete) return;
+    const { kind, record } = confirmDelete;
+    const meta = ENTITY_META[kind];
+    setEntitySaving(true);
+    try {
+      const res = await meta.api.remove(record.id, hard);
+      await meta.reload();
+      setConfirmDelete(null);
+      const refs = res && res.referenced ? res.referenced : 0;
+      setEntityNotice({ type: 'ok', msg: isId
+        ? (hard
+            ? `${meta.label} "${record.name}" dihapus permanen.`
+            : `${meta.label} "${record.name}" diarsipkan${refs ? ` (direferensikan ${refs} transaksi — riwayat tetap utuh)` : ''}.`)
+        : (hard
+            ? `${meta.label} "${record.name}" permanently deleted.`
+            : `${meta.label} "${record.name}" archived${refs ? ` (referenced by ${refs} transaction(s) — history preserved)` : ''}.`) });
+    } catch (err) {
+      setConfirmDelete(c => (c ? { ...c, error: err.message } : c));
+    } finally {
+      setEntitySaving(false);
+    }
+  };
+
+  const runRestore = async (kind, record) => {
+    const meta = ENTITY_META[kind];
+    setEntitySaving(true);
+    try {
+      const res = await meta.api.restore(record.id);
+      await meta.reload();
+      setEntityNotice({ type: 'ok', msg: isId
+        ? `${meta.label} "${res.name}" berhasil dipulihkan.`
+        : `${meta.label} "${res.name}" restored.` });
+    } catch (err) {
+      setEntityNotice({ type: 'err', msg: (isId ? 'Gagal memulihkan: ' : 'Failed to restore: ') + err.message });
+    } finally {
+      setEntitySaving(false);
     }
   };
 
@@ -603,8 +801,11 @@ export default function MasterDataV2({ language }) {
           <EntityToolbar
             title={isId ? 'Master Brand / Merek' : 'Brand Master'}
             subtitle={isId ? 'brand terdaftar di katalog' : 'brands registered in the catalogue'}
-            count={brands.length}
-            onAdd={() => { setEntityNotice(null); setShowBrandModal(true); }}
+            count={brandActive.length}
+            archivedCount={brandArchived.length}
+            showArchived={showArchived}
+            onToggleArchived={() => setShowArchived(v => !v)}
+            onAdd={openCreateBrand}
             addLabel={isId ? 'Tambah Brand' : 'Add Brand'}
             testId="btn-add-brand"
           />
@@ -619,10 +820,13 @@ export default function MasterDataV2({ language }) {
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
-          {brands.map(b => (
+          {visibleBrands.map(b => (
             <div key={b.id} style={{ 
-              backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)',
+              backgroundColor: isArchivedRow(b) ? '#f8fafc' : '#ffffff',
+              borderRadius: '0.75rem',
+              border: `1px ${isArchivedRow(b) ? 'dashed' : 'solid'} var(--border-color)`,
               padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem',
+              opacity: isArchivedRow(b) ? 0.75 : 1,
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
               <div style={{ 
@@ -632,14 +836,27 @@ export default function MasterDataV2({ language }) {
               }}>
                 {String(b.code || b.name || '??').substring(0, 2).toUpperCase()}
               </div>
-              <div>
-                <h4 style={{ margin: 0, fontWeight: '700', color: 'var(--primary-color)', fontSize: '1rem' }}>{b.name}</h4>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h4 style={{ margin: 0, fontWeight: '700', color: 'var(--primary-color)', fontSize: '1rem' }}>
+                  {b.name}
+                  {isArchivedRow(b) && (
+                    <span style={{ marginLeft: '0.4rem', fontSize: '0.65rem', fontWeight: '700', color: '#b45309', backgroundColor: '#fef3c7', padding: '0.1rem 0.35rem', borderRadius: '0.25rem' }}>
+                      {isId ? 'ARSIP' : 'ARCHIVED'}
+                    </span>
+                  )}
+                </h4>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{b.description}</div>
                 <div style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--accent-color)', marginTop: '0.25rem' }}>Kode Brand: {b.code}</div>
               </div>
+              <EntityCardActions
+                isId={isId} archived={isArchivedRow(b)} testIdPrefix={`brand-${b.id}-`}
+                onEdit={() => openEditBrand(b)}
+                onDelete={() => askDelete('brand', b)}
+                onRestore={() => runRestore('brand', b)}
+              />
             </div>
           ))}
-          {brands.length === 0 && (
+          {visibleBrands.length === 0 && (
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
               {isId ? 'Belum ada brand. Klik "Tambah Brand".' : 'No brands yet. Click "Add Brand".'}
             </div>
@@ -656,8 +873,11 @@ export default function MasterDataV2({ language }) {
           <EntityToolbar
             title={isId ? 'Master Pemasok / Vendor' : 'Supplier Master'}
             subtitle={isId ? 'pemasok terdaftar' : 'suppliers registered'}
-            count={suppliers.length}
-            onAdd={() => { setEntityNotice(null); setShowSupplierModal(true); }}
+            count={supplierActive.length}
+            archivedCount={supplierArchived.length}
+            showArchived={showArchived}
+            onToggleArchived={() => setShowArchived(v => !v)}
+            onAdd={openCreateSupplier}
             addLabel={isId ? 'Tambah Pemasok' : 'Add Supplier'}
             testId="btn-add-supplier"
           />
@@ -672,10 +892,13 @@ export default function MasterDataV2({ language }) {
             </div>
           )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
-          {suppliers.map(s => (
+          {visibleSuppliers.map(s => (
             <div key={s.id} style={{ 
-              backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)',
+              backgroundColor: isArchivedRow(s) ? '#f8fafc' : '#ffffff',
+              borderRadius: '0.75rem',
+              border: `1px ${isArchivedRow(s) ? 'dashed' : 'solid'} var(--border-color)`,
               padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem',
+              opacity: isArchivedRow(s) ? 0.75 : 1,
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -687,12 +910,25 @@ export default function MasterDataV2({ language }) {
                   }}>
                     {s.is_principal ? 'PRINCIPAL RESMI' : 'DISTRIBUTOR / VENDOR'}
                   </span>
+                  {isArchivedRow(s) && (
+                    <span style={{ marginLeft: '0.35rem', fontSize: '0.7rem', fontWeight: '700', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', backgroundColor: '#fee2e2', color: '#b91c1c' }}>
+                      {isId ? 'ARSIP' : 'ARCHIVED'}
+                    </span>
+                  )}
                   <h4 style={{ margin: '0.4rem 0 0 0', fontWeight: '700', fontSize: '1.05rem', color: 'var(--primary-color)' }}>
                     {s.name}
                   </h4>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Kode: {s.code}</div>
                 </div>
-                <span style={{ fontWeight: '700', color: 'var(--accent-color)', fontSize: '0.85rem' }}>{s.currency}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                  <span style={{ fontWeight: '700', color: 'var(--accent-color)', fontSize: '0.85rem' }}>{s.currency}</span>
+                  <EntityCardActions
+                    isId={isId} archived={isArchivedRow(s)} testIdPrefix={`supplier-${s.id}-`}
+                    onEdit={() => openEditSupplier(s)}
+                    onDelete={() => askDelete('supplier', s)}
+                    onRestore={() => runRestore('supplier', s)}
+                  />
+                </div>
               </div>
 
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -713,7 +949,7 @@ export default function MasterDataV2({ language }) {
               </div>
             </div>
           ))}
-          {suppliers.length === 0 && (
+          {visibleSuppliers.length === 0 && (
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
               {isId ? 'Belum ada pemasok. Klik "Tambah Pemasok".' : 'No suppliers yet.'}
             </div>
@@ -730,8 +966,11 @@ export default function MasterDataV2({ language }) {
           <EntityToolbar
             title={isId ? 'Master Klien / Pelanggan' : 'Client Master'}
             subtitle={isId ? 'klien terdaftar' : 'clients registered'}
-            count={clients.length}
-            onAdd={() => { setEntityNotice(null); setShowClientModal(true); }}
+            count={clientActive.length}
+            archivedCount={clientArchived.length}
+            showArchived={showArchived}
+            onToggleArchived={() => setShowArchived(v => !v)}
+            onAdd={openCreateClient}
             addLabel={isId ? 'Tambah Klien' : 'Add Client'}
             testId="btn-add-client"
           />
@@ -746,10 +985,13 @@ export default function MasterDataV2({ language }) {
             </div>
           )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
-          {clients.map(c => (
+          {visibleClients.map(c => (
             <div key={c.id} style={{ 
-              backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)',
+              backgroundColor: isArchivedRow(c) ? '#f8fafc' : '#ffffff',
+              borderRadius: '0.75rem',
+              border: `1px ${isArchivedRow(c) ? 'dashed' : 'solid'} var(--border-color)`,
               padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem',
+              opacity: isArchivedRow(c) ? 0.75 : 1,
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -762,11 +1004,22 @@ export default function MasterDataV2({ language }) {
                   }}>
                     {c.segment}
                   </span>
+                  {isArchivedRow(c) && (
+                    <span style={{ marginLeft: '0.35rem', fontSize: '0.7rem', fontWeight: '700', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', backgroundColor: '#fee2e2', color: '#b91c1c' }}>
+                      {isId ? 'ARSIP' : 'ARCHIVED'}
+                    </span>
+                  )}
                   <h4 style={{ margin: '0.4rem 0 0 0', fontWeight: '700', fontSize: '1.05rem', color: 'var(--primary-color)' }}>
                     {c.name}
                   </h4>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Kode: {c.code}</div>
                 </div>
+                <EntityCardActions
+                  isId={isId} archived={isArchivedRow(c)} testIdPrefix={`client-${c.id}-`}
+                  onEdit={() => openEditClient(c)}
+                  onDelete={() => askDelete('client', c)}
+                  onRestore={() => runRestore('client', c)}
+                />
               </div>
 
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -786,7 +1039,7 @@ export default function MasterDataV2({ language }) {
               </div>
             </div>
           ))}
-          {clients.length === 0 && (
+          {visibleClients.length === 0 && (
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
               {isId ? 'Belum ada klien. Klik "Tambah Klien".' : 'No clients yet.'}
             </div>
@@ -1011,13 +1264,17 @@ export default function MasterDataV2({ language }) {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: ADD BRAND */}
+      {/* MODAL: ADD / EDIT BRAND */}
       {/* ========================================================================= */}
       {showBrandModal && (
         <div style={modalOverlay}>
           <div style={modalCard}>
-            <h3 style={modalTitle}>{isId ? 'Tambah Master Brand' : 'Add Brand'}</h3>
-            <form onSubmit={handleCreateBrand} style={modalForm}>
+            <h3 style={modalTitle}>
+              {editingBrand
+                ? (isId ? `Ubah Brand — ${editingBrand.name}` : `Edit Brand — ${editingBrand.name}`)
+                : (isId ? 'Tambah Master Brand' : 'Add Brand')}
+            </h3>
+            <form onSubmit={handleSubmitBrand} style={modalForm}>
               <div>
                 <label style={labelStyle}>{isId ? 'Nama Brand' : 'Brand Name'} *</label>
                 <input
@@ -1043,9 +1300,11 @@ export default function MasterDataV2({ language }) {
                 />
               </div>
               <div style={modalActions}>
-                <button type="button" onClick={() => setShowBrandModal(false)} style={cancelBtn}>{isId ? 'Batal' : 'Cancel'}</button>
+                <button type="button" onClick={() => { setShowBrandModal(false); setEditingBrand(null); }} style={cancelBtn}>{isId ? 'Batal' : 'Cancel'}</button>
                 <button type="submit" disabled={entitySaving} style={{ ...submitBtn, opacity: entitySaving ? 0.6 : 1 }}>
-                  {entitySaving ? '…' : (isId ? 'Simpan Brand' : 'Save Brand')}
+                  {entitySaving ? '…' : (editingBrand
+                    ? (isId ? 'Perbarui Brand' : 'Update Brand')
+                    : (isId ? 'Simpan Brand' : 'Save Brand'))}
                 </button>
               </div>
             </form>
@@ -1054,13 +1313,17 @@ export default function MasterDataV2({ language }) {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: ADD SUPPLIER */}
+      {/* MODAL: ADD / EDIT SUPPLIER */}
       {/* ========================================================================= */}
       {showSupplierModal && (
         <div style={modalOverlay}>
           <div style={modalCard}>
-            <h3 style={modalTitle}>{isId ? 'Tambah Master Pemasok / Vendor' : 'Add Supplier'}</h3>
-            <form onSubmit={handleCreateSupplier} style={modalForm}>
+            <h3 style={modalTitle}>
+              {editingSupplier
+                ? (isId ? `Ubah Pemasok — ${editingSupplier.name}` : `Edit Supplier — ${editingSupplier.name}`)
+                : (isId ? 'Tambah Master Pemasok / Vendor' : 'Add Supplier')}
+            </h3>
+            <form onSubmit={handleSubmitSupplier} style={modalForm}>
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
                 <div>
                   <label style={labelStyle}>{isId ? 'Nama Perusahaan' : 'Company Name'} *</label>
@@ -1158,13 +1421,17 @@ export default function MasterDataV2({ language }) {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: ADD CLIENT */}
+      {/* MODAL: ADD / EDIT CLIENT */}
       {/* ========================================================================= */}
       {showClientModal && (
         <div style={modalOverlay}>
           <div style={modalCard}>
-            <h3 style={modalTitle}>{isId ? 'Tambah Master Klien / Pelanggan' : 'Add Client'}</h3>
-            <form onSubmit={handleCreateClient} style={modalForm}>
+            <h3 style={modalTitle}>
+              {editingClient
+                ? (isId ? `Ubah Klien — ${editingClient.name}` : `Edit Client — ${editingClient.name}`)
+                : (isId ? 'Tambah Master Klien / Pelanggan' : 'Add Client')}
+            </h3>
+            <form onSubmit={handleSubmitClient} style={modalForm}>
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
                 <div>
                   <label style={labelStyle}>{isId ? 'Nama Perusahaan / Instansi' : 'Company / Institution'} *</label>
@@ -1236,12 +1503,77 @@ export default function MasterDataV2({ language }) {
               </div>
 
               <div style={modalActions}>
-                <button type="button" onClick={() => setShowClientModal(false)} style={cancelBtn}>{isId ? 'Batal' : 'Cancel'}</button>
+                <button type="button" onClick={() => { setShowClientModal(false); setEditingClient(null); }} style={cancelBtn}>{isId ? 'Batal' : 'Cancel'}</button>
                 <button type="submit" disabled={entitySaving} style={{ ...submitBtn, opacity: entitySaving ? 0.6 : 1 }}>
-                  {entitySaving ? '…' : (isId ? 'Simpan Klien' : 'Save Client')}
+                  {entitySaving ? '…' : (editingClient
+                    ? (isId ? 'Perbarui Klien' : 'Update Client')
+                    : (isId ? 'Simpan Klien' : 'Save Client'))}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: CONFIRM DELETE (archive / permanent) */}
+      {/* ========================================================================= */}
+      {confirmDelete && (
+        <div style={modalOverlay} id="confirm-delete-modal" data-testid="confirm-delete-modal">
+          <div style={{ ...modalCard, width: '460px' }}>
+            <h3 style={{ ...modalTitle, color: '#b91c1c' }}>
+              {isId
+                ? `Hapus ${ENTITY_META[confirmDelete.kind].label}?`
+                : `Delete ${ENTITY_META[confirmDelete.kind].label}?`}
+            </h3>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              <p style={{ marginTop: 0 }}>
+                <strong>{confirmDelete.record.name}</strong>{' '}
+                <span style={{ color: 'var(--text-muted)' }}>({confirmDelete.record.code})</span>
+              </p>
+              <p>
+                {isId
+                  ? 'Penghapusan default bersifat arsip (soft delete): data disembunyikan dari daftar aktif, tapi riwayat dokumen (PO, GRN, SO, invoice) tetap utuh. Penghapusan permanen hanya bisa dilakukan bila tidak ada transaksi yang merujuk.'
+                  : 'The default delete is an archive (soft delete): the record is hidden from the active list while document history (PO, GRN, SO, invoices) stays intact. Permanent deletion is only allowed when nothing references it.'}
+              </p>
+            </div>
+
+            {confirmDelete.error && (
+              <div style={{
+                backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5',
+                padding: '0.6rem 0.8rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem'
+              }}>
+                ⚠ {confirmDelete.error}
+              </div>
+            )}
+
+            <div style={{ ...modalActions, justifyContent: 'space-between' }}>
+              <button
+                type="button"
+                id="btn-hard-delete"
+                data-testid="btn-hard-delete"
+                disabled={entitySaving}
+                onClick={() => runDelete(true)}
+                style={{ ...cancelBtn, color: '#b91c1c', borderColor: '#fca5a5' }}
+              >
+                {isId ? 'Hapus Permanen' : 'Delete Permanently'}
+              </button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button type="button" id="btn-cancel-delete" onClick={() => setConfirmDelete(null)} style={cancelBtn}>
+                  {isId ? 'Batal' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  id="btn-archive-confirm"
+                  data-testid="btn-archive-confirm"
+                  disabled={entitySaving}
+                  onClick={() => runDelete(false)}
+                  style={{ ...submitBtn, backgroundColor: '#b45309', opacity: entitySaving ? 0.6 : 1 }}
+                >
+                  {entitySaving ? '…' : (isId ? 'Arsipkan' : 'Archive')}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

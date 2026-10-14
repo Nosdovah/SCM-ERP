@@ -323,6 +323,87 @@ async function runSuite() {
       if (data.credit_limit !== 500000000) throw new Error('Client credit_limit not persisted as number');
     });
 
+    // 8.6 Master Data full CRUD (Update / Archive / Restore / Hard delete)
+    const rawCall = (path, opts = {}) => fetch(`${BASE_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ci-test' },
+      ...opts
+    });
+    const listOf = async (path) => (await (await rawCall(path)).json());
+
+    for (const ent of [
+      { p: 'brands', label: 'Brand', create: { name: `CRUD Brand ${Date.now()}`, description: 'tmp' }, upd: { name: `CRUD Brand U ${Date.now()}`, description: 'updated' } },
+      { p: 'suppliers', label: 'Supplier', create: { name: `PT CRUD Supplier ${Date.now()}`, lead_time_days: 9 }, upd: { lead_time_days: 21 } },
+      { p: 'clients', label: 'Client', create: { name: `PT CRUD Client ${Date.now()}`, credit_limit: 1000000 }, upd: { credit_limit: 2500000 } }
+    ]) {
+      await test(`CRUD /v2/master/${ent.p} (update → archive → restore → hard delete)`, async () => {
+        const baseline = (await listOf(`/v2/master/${ent.p}`)).length;
+
+        const created = await (await rawCall(`/v2/master/${ent.p}`, { method: 'POST', body: JSON.stringify(ent.create) })).json();
+        if (!created.id) throw new Error('create failed');
+        const id = created.id;
+
+        // UPDATE
+        const updRes = await rawCall(`/v2/master/${ent.p}/${id}`, { method: 'PUT', body: JSON.stringify(ent.upd) });
+        if (updRes.status !== 200) throw new Error(`update expected 200, got ${updRes.status}`);
+        const upd = await updRes.json();
+        if (!upd.updated_at) throw new Error('update did not stamp updated_at');
+        for (const [k, v] of Object.entries(ent.upd)) {
+          if (upd[k] !== v) throw new Error(`update did not persist ${k}=${v} (got ${upd[k]})`);
+        }
+
+        // UPDATE 404 / 400 / 409
+        if ((await rawCall(`/v2/master/${ent.p}/nope-xyz`, { method: 'PUT', body: JSON.stringify(ent.upd) })).status !== 404) {
+          throw new Error('update unknown id should be 404');
+        }
+        if ((await rawCall(`/v2/master/${ent.p}/${id}`, { method: 'PUT', body: JSON.stringify({ name: '   ' }) })).status !== 400) {
+          throw new Error('update blank name should be 400');
+        }
+
+        // ARCHIVE
+        const delRes = await rawCall(`/v2/master/${ent.p}/${id}`, { method: 'DELETE' });
+        if (delRes.status !== 200) throw new Error(`delete expected 200, got ${delRes.status}`);
+        const del = await delRes.json();
+        if (del.archived !== true) throw new Error('delete should archive by default');
+        if ((await listOf(`/v2/master/${ent.p}`)).length !== baseline) throw new Error('archived row still listed');
+        if ((await listOf(`/v2/master/${ent.p}?include_archived=true`)).length !== baseline + 1) {
+          throw new Error('include_archived did not surface the archived row');
+        }
+
+        // RESTORE
+        const resRes = await rawCall(`/v2/master/${ent.p}/${id}/restore`, { method: 'POST', body: '{}' });
+        if (resRes.status !== 200) throw new Error(`restore expected 200, got ${resRes.status}`);
+        if ((await listOf(`/v2/master/${ent.p}`)).length !== baseline + 1) throw new Error('restored row not listed');
+
+        // HARD DELETE
+        const hardRes = await rawCall(`/v2/master/${ent.p}/${id}?hard=true`, { method: 'DELETE' });
+        if (hardRes.status !== 200) throw new Error(`hard delete expected 200, got ${hardRes.status}`);
+        if ((await listOf(`/v2/master/${ent.p}`)).length !== baseline) throw new Error('hard delete did not remove the row');
+
+        // 404 paths
+        if ((await rawCall(`/v2/master/${ent.p}/nope-xyz`, { method: 'DELETE' })).status !== 404) throw new Error('delete unknown should be 404');
+        if ((await rawCall(`/v2/master/${ent.p}/nope-xyz/restore`, { method: 'POST', body: '{}' })).status !== 404) throw new Error('restore unknown should be 404');
+      });
+    }
+
+    await test('CRUD reference guard (archive referenced entity allowed, hard delete refused)', async () => {
+      const brands = await listOf('/v2/master/brands');
+      if (!brands.length) throw new Error('no seeded brand to test the guard with');
+      const target = brands[0];
+
+      const arch = await rawCall(`/v2/master/brands/${target.id}`, { method: 'DELETE' });
+      if (arch.status !== 200) throw new Error(`archive of referenced brand should succeed, got ${arch.status}`);
+      const archBody = await arch.json();
+      if (typeof archBody.referenced !== 'number') throw new Error('archive response missing referenced count');
+
+      const hard = await rawCall(`/v2/master/brands/${target.id}?hard=true`, { method: 'DELETE' });
+      if (hard.status !== 409) throw new Error(`hard delete of referenced brand should be 409, got ${hard.status}`);
+
+      // Leave no trace behind.
+      const restored = await rawCall(`/v2/master/brands/${target.id}/restore`, { method: 'POST', body: '{}' });
+      if (restored.status !== 200) throw new Error('cleanup restore failed');
+      if (!(await listOf('/v2/master/brands')).some(b => b.id === target.id)) throw new Error('brand not restored after guard test');
+    });
+
     // 9. Cleanup test order
     if (createdOrderId) {
       await test(`DELETE /orders/:id (Cleanup Test Order ${createdOrderId})`, async () => {

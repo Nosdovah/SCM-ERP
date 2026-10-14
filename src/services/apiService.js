@@ -43,6 +43,31 @@ const fetchJson = async (url, options = {}) => {
   }
 };
 
+// Strict variant used by the master-data CRUD calls: throws an Error carrying
+// the server's message + HTTP status instead of silently returning null, so the
+// UI can tell the user *why* a save/delete was rejected (409 duplicate, 404
+// not-found, 400 validation…).
+const fetchJsonStrict = async (url, options = {}) => {
+  const token = getAuthToken();
+  const res = await fetch(`${BASE_URL}${url}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {})
+    },
+    ...options
+  });
+  const contentType = res.headers.get('content-type');
+  const body = contentType && contentType.includes('application/json') ? await res.json() : null;
+  if (!res.ok) {
+    const err = new Error((body && (body.error || body.message)) || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.body = body;
+    throw err;
+  }
+  return body;
+};
+
 export const apiService = {
   // Modul 1: Inventory Management & Serial Registry
   inventory: {
@@ -111,12 +136,27 @@ export const apiService = {
     createBin: (data) => fetchJson('/v2/master/bins', { method: 'POST', body: JSON.stringify(data) }),
     getWarehouses: () => fetchJson('/v2/master/warehouses'),
     getZones: () => fetchJson('/v2/master/zones'),
-    getBrands: () => fetchJson('/v2/master/brands'),
-    createBrand: (data) => fetchJson('/v2/master/brands', { method: 'POST', body: JSON.stringify(data) }),
-    getSuppliers: () => fetchJson('/v2/master/suppliers'),
-    createSupplier: (data) => fetchJson('/v2/master/suppliers', { method: 'POST', body: JSON.stringify(data) }),
-    getClients: () => fetchJson('/v2/master/clients'),
-    createClient: (data) => fetchJson('/v2/master/clients', { method: 'POST', body: JSON.stringify(data) })
+
+    // ---- Master entities: full CRUD (Brands / Suppliers / Clients) --------
+    // DELETE archives by default; pass hard=true to remove a record that is not
+    // referenced by any transaction. GET hides archived rows unless asked.
+    getBrands: (opts = {}) => fetchJson(`/v2/master/brands${opts.includeArchived ? '?include_archived=true' : ''}`),
+    createBrand: (data) => fetchJsonStrict('/v2/master/brands', { method: 'POST', body: JSON.stringify(data) }),
+    updateBrand: (id, data) => fetchJsonStrict(`/v2/master/brands/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteBrand: (id, hard = false) => fetchJsonStrict(`/v2/master/brands/${encodeURIComponent(id)}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
+    restoreBrand: (id) => fetchJsonStrict(`/v2/master/brands/${encodeURIComponent(id)}/restore`, { method: 'POST', body: '{}' }),
+
+    getSuppliers: (opts = {}) => fetchJson(`/v2/master/suppliers${opts.includeArchived ? '?include_archived=true' : ''}`),
+    createSupplier: (data) => fetchJsonStrict('/v2/master/suppliers', { method: 'POST', body: JSON.stringify(data) }),
+    updateSupplier: (id, data) => fetchJsonStrict(`/v2/master/suppliers/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteSupplier: (id, hard = false) => fetchJsonStrict(`/v2/master/suppliers/${encodeURIComponent(id)}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
+    restoreSupplier: (id) => fetchJsonStrict(`/v2/master/suppliers/${encodeURIComponent(id)}/restore`, { method: 'POST', body: '{}' }),
+
+    getClients: (opts = {}) => fetchJson(`/v2/master/clients${opts.includeArchived ? '?include_archived=true' : ''}`),
+    createClient: (data) => fetchJsonStrict('/v2/master/clients', { method: 'POST', body: JSON.stringify(data) }),
+    updateClient: (id, data) => fetchJsonStrict(`/v2/master/clients/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteClient: (id, hard = false) => fetchJsonStrict(`/v2/master/clients/${encodeURIComponent(id)}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
+    restoreClient: (id) => fetchJsonStrict(`/v2/master/clients/${encodeURIComponent(id)}/restore`, { method: 'POST', body: '{}' })
   },
 
   // Modul 6: Managerial, Billing & Analytics (executive dashboard, P&L, worker KPIs)
