@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Cpu, Wrench, Layers, Plus, CheckCircle2, AlertTriangle, RefreshCw
 } from 'lucide-react';
@@ -7,9 +7,56 @@ import { apiService } from '../../services/apiService';
 
 const generateAssemblySerial = () => `SN-ARES-PC-${Math.floor(1000 + Math.random() * 9000)}`;
 
+// Normalise the BOM payload from GET /api/v2/assembly/boms into the UI shape.
+// API components carry component_sku/component_name/qty/scrap_pct but no cost,
+// while the UI reads sku/name/qty/is_serial/cost. Unit cost & the serial flag are
+// enriched from the product master (cost_price / is_serial) so the roll-up HPP is real.
+function normalizeBOM(raw, products) {
+  const empty = {
+    target_product_id: '', target_sku: '', output_sku: '', product_name: '',
+    name: '', version: '1.0', labor_cost: 0, overhead_cost: 0, components: []
+  };
+  if (!raw || typeof raw !== 'object') return empty;
+  const list = Array.isArray(products) ? products : [];
+  const target = list.find(p => p && p.sku === raw.target_sku) || {};
+  const components = (Array.isArray(raw.components) ? raw.components : []).map(c => {
+    const sku = c.component_sku || c.sku || '';
+    const prod = list.find(x => x && x.sku === sku) || {};
+    return {
+      sku,
+      name: c.component_name || c.name || prod.name || '',
+      qty: Number(c.qty) || 0,
+      scrap_pct: Number(c.scrap_pct) || 0,
+      is_serial: (c.is_serial !== undefined) ? c.is_serial : !!prod.is_serial,
+      cost: (c.cost !== undefined && c.cost !== null) ? Number(c.cost) : (Number(prod.cost_price) || 0)
+    };
+  });
+  const output_sku = raw.target_sku || raw.output_sku || target.sku || '';
+  return {
+    ...empty,
+    target_product_id: raw.target_product_id || target.id || '',
+    target_sku: output_sku,
+    output_sku,
+    product_name: raw.product_name || target.name || raw.name || '',
+    name: raw.name || target.name || '',
+    version: raw.version || '1.0',
+    labor_cost: Number(raw.labor_cost) || 0,
+    overhead_cost: Number(raw.overhead_cost) || 0,
+    components
+  };
+}
+
 export default function AssemblyBOMV2({ session, language }) {
   const [activeTab, setActiveTab] = useState('boms'); // 'boms' | 'orders' | 'simulator' | 'debundle'
-  const [bom] = useState(initialBOM);
+  const [rawBom, setRawBom] = useState(() => {
+    try {
+      const saved = localStorage.getItem('moai_v2_bom');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load BOM', e);
+    }
+    return initialBOM;
+  });
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_assembly_orders');
@@ -44,6 +91,9 @@ export default function AssemblyBOMV2({ session, language }) {
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 
+  // Normalised BOM (recomputed once products are available so costs can be enriched).
+  const bom = useMemo(() => normalizeBOM(rawBom, products), [rawBom, products]);
+
   // Calculate BOM costs
   const materialCost = (bom.components || []).reduce((acc, c) => acc + ((c.cost || 0) * (c.qty || 0)), 0);
   const totalUnitHPP = materialCost + (bom.labor_cost || 0) + (bom.overhead_cost || 0);
@@ -67,6 +117,13 @@ export default function AssemblyBOMV2({ session, language }) {
 
   // REST API Mount Fetch
   useEffect(() => {
+    apiService.assembly.getBOMs().then(data => {
+      const raw = Array.isArray(data) ? data[0] : data;
+      if (raw) {
+        setRawBom(raw);
+        try { localStorage.setItem('moai_v2_bom', JSON.stringify(raw)); } catch (err) { console.debug(err); }
+      }
+    });
     apiService.assembly.getOrders().then(data => {
       if (data && Array.isArray(data)) {
         setOrders(data);
