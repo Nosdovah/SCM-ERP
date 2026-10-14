@@ -53,6 +53,8 @@ export const apiService = {
     postTransfer: (data) => fetchJson('/v2/inventory/transfers', { method: 'POST', body: JSON.stringify(data) }),
     getAdjustments: () => fetchJson('/v2/inventory/adjustments'),
     postAdjustment: (data) => fetchJson('/v2/inventory/adjustments', { method: 'POST', body: JSON.stringify(data) }),
+    // Bulk absolute stock setup: { items: [{ sku, qty, bin_code? }], reason?, note? }
+    setStockSetup: (data) => fetchJson('/v2/inventory/stock-setup', { method: 'POST', body: JSON.stringify(data) }),
     getRMACases: () => fetchJson('/v2/inventory/rma'),
     postRMA: (data) => fetchJson('/v2/inventory/rma', { method: 'POST', body: JSON.stringify(data) })
   },

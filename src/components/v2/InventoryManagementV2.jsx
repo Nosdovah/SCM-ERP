@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Layers, Search, Barcode, ShieldAlert, 
   ArrowRightLeft, Clock, AlertTriangle, 
-  History
+  History, SlidersHorizontal
 } from 'lucide-react';
 import { 
   initialProducts, initialSerials, initialStockMovements, initialBins 
@@ -82,6 +82,15 @@ export default function InventoryManagementV2({ session, language }) {
     items: []
   });
   const [opnameNotice, setOpnameNotice] = useState(null);
+
+  // Bulk Stock Setup — initialise / re-baseline on-hand qty for the master catalogue.
+  const [stockDraft, setStockDraft] = useState({});          // sku -> string qty
+  const [setupSearch, setSetupSearch] = useState('');
+  const [setupCategory, setSetupCategory] = useState('ALL');
+  const [setupBin, setSetupBin] = useState('');
+  const [setupBulkQty, setSetupBulkQty] = useState('');
+  const [setupNotice, setSetupNotice] = useState(null);
+  const [setupSaving, setSetupSaving] = useState(false);
 
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
@@ -195,6 +204,77 @@ export default function InventoryManagementV2({ session, language }) {
     }
   };
 
+  // ---- Bulk Stock Setup (Adjustable Stock) --------------------------------
+  // Draft model: stockDraft[sku] holds the *new* absolute on-hand qty as a
+  // string. An empty/absent entry means "leave unchanged".
+  const draftQtyOf = (p) => (stockDraft[p.sku] === undefined ? p.stock : (Number(stockDraft[p.sku]) || 0));
+  const changedSetupRows = products.filter(
+    p => stockDraft[p.sku] !== undefined && (Number(stockDraft[p.sku]) || 0) !== p.stock
+  );
+  const setupFiltered = products.filter(p => {
+    const matchCat = setupCategory === 'ALL' || p.item_type === setupCategory;
+    const q = setupSearch.trim().toLowerCase();
+    const matchQ = !q
+      || p.name.toLowerCase().includes(q)
+      || p.sku.toLowerCase().includes(q)
+      || String(p.brand || '').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  const draftTotalQty = setupFiltered.reduce((acc, p) => acc + draftQtyOf(p), 0);
+  const draftTotalValue = setupFiltered.reduce((acc, p) => acc + draftQtyOf(p) * (Number(p.cost_price) || 0), 0);
+
+  const handleDraftQty = (sku, val) => setStockDraft(prev => {
+    const next = { ...prev };
+    if (val === '') delete next[sku];
+    else next[sku] = val;
+    return next;
+  });
+  const handleBulkFill = () => {
+    if (setupBulkQty === '') return;
+    const next = { ...stockDraft };
+    setupFiltered.forEach(p => { next[p.sku] = String(setupBulkQty); });
+    setStockDraft(next);
+  };
+  const handleClearDrafts = () => { setStockDraft({}); setSetupNotice(null); };
+
+  const handleSaveStockSetup = async (e) => {
+    if (e) e.preventDefault();
+    const items = changedSetupRows.map(p => ({
+      sku: p.sku,
+      qty: Number(stockDraft[p.sku]) || 0,
+      ...(setupBin ? { bin_code: setupBin } : {})
+    }));
+    if (items.length === 0) {
+      setSetupNotice({ type: 'warn', msg: isId ? 'Belum ada baris yang diubah. Isi kolom "Stok Baru" pada SKU yang ingin di-set.' : 'No rows changed yet.' });
+      return;
+    }
+    setSetupSaving(true);
+    const res = await apiService.inventory.setStockSetup({
+      items,
+      reason: 'Initial Stock Setup',
+      note: setupBin ? `Bin ${setupBin}` : ''
+    });
+    setSetupSaving(false);
+
+    if (res && res.ok) {
+      // Re-hydrate balances so the whole view (and localStorage cache) reflects
+      // the durable server state rather than an optimistic local guess.
+      const data = await apiService.inventory.getBalances();
+      if (data && Array.isArray(data.products)) {
+        const normalized = data.products.map(normalizeProduct);
+        setProducts(normalized);
+        try { localStorage.setItem('moai_v2_products', JSON.stringify(normalized)); } catch (err) { console.debug(err); }
+      }
+      apiService.inventory.getMovements().then(d => { if (Array.isArray(d)) setMovements(d); });
+      setSetupNotice({ type: 'ok', msg: isId
+        ? `Setup stok tersimpan — ${res.applied} SKU diproses, ${res.changed} baris tercatat di ledger (${res.ref}). Total qty ${res.total_qty} · nilai ${formatIDR(res.total_value)}.`
+        : `Stock setup saved — ${res.applied} SKUs, ${res.changed} ledger entries (${res.ref}).` });
+      setStockDraft({});
+    } else {
+      setSetupNotice({ type: 'err', msg: isId ? 'Gagal menyimpan setup stok. Periksa koneksi API lalu coba lagi.' : 'Failed to save stock setup.' });
+    }
+  };
+
   // RMA Handlers (Flow #7)
   const handleSendToService = (rmaId) => {
     const updated = rmaCases.map(c => c.id === rmaId ? { ...c, status: 'SERVICE_TICKET_CREATED' } : c);
@@ -287,7 +367,8 @@ export default function InventoryManagementV2({ session, language }) {
             { id: 'movements', label: isId ? 'Buku Besar Stok (Ledger)' : 'Stock Ledger', icon: History },
             { id: 'operations', label: isId ? 'Transfer & Opname' : 'Operations', icon: ArrowRightLeft },
             { id: 'aging', label: isId ? 'Penuaan & Dead Stock' : 'Aging & Obsolescence', icon: Clock },
-            { id: 'rma', label: isId ? 'RMA & Karantina' : 'RMA & Defective', icon: ShieldAlert }
+            { id: 'rma', label: isId ? 'RMA & Karantina' : 'RMA & Defective', icon: ShieldAlert },
+            { id: 'setup', label: isId ? 'Setup Stok Awal' : 'Stock Setup', icon: SlidersHorizontal }
           ].map(tab => {
             const Icon = tab.icon;
             const active = subTab === tab.id;
@@ -858,6 +939,198 @@ export default function InventoryManagementV2({ session, language }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SUBTAB 7: BULK STOCK SETUP (Adjustable Stock — initialise master data) */}
+      {/* ========================================================================= */}
+      {subTab === 'setup' && (
+        <form onSubmit={handleSaveStockSetup} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '1rem', borderRadius: '0.75rem', color: '#1e40af', fontSize: '0.85rem' }}>
+            <strong>{isId ? 'Form Setup Stok (Adjustable):' : 'Adjustable Stock Setup:'}</strong>{' '}
+            {isId
+              ? 'Tetapkan qty on-hand awal per SKU. Setiap perubahan otomatis diposting ke Stock Ledger sebagai ADJ_IN / ADJ_OUT (bukan overwrite saldo), sehingga tetap audit-able. Kosongkan input = tidak diubah.'
+              : 'Set the opening on-hand qty per SKU. Every change is posted to the Stock Ledger as ADJ_IN / ADJ_OUT (no silent overwrite), so it stays auditable. Empty input = unchanged.'}
+          </div>
+
+          {setupNotice && (
+            <div id="stock-setup-banner" data-testid="stock-setup-banner" style={{
+              backgroundColor: setupNotice.type === 'ok' ? '#ecfdf5' : setupNotice.type === 'warn' ? '#fffbeb' : '#fee2e2',
+              color: setupNotice.type === 'ok' ? '#047857' : setupNotice.type === 'warn' ? '#b45309' : '#991b1b',
+              border: `1px solid ${setupNotice.type === 'ok' ? '#a7f3d0' : setupNotice.type === 'warn' ? '#fde68a' : '#fca5a5'}`,
+              padding: '0.75rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem'
+            }}>
+              {setupNotice.type === 'ok' ? '✓ ' : '⚠ '}{setupNotice.msg}
+            </div>
+          )}
+
+          {/* Toolbar */}
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: '1 1 240px', minWidth: '200px' }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-muted)' }}>{isId ? 'Cari Produk / SKU / Brand' : 'Search product / SKU / brand'}</label>
+              <div style={{ position: 'relative' }}>
+                <Search size={15} style={{ position: 'absolute', left: '0.55rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  id="stock-setup-search"
+                  value={setupSearch}
+                  onChange={e => setSetupSearch(e.target.value)}
+                  placeholder="SKU-PR-AIO-001 / Acer ..."
+                  style={{ width: '100%', padding: '0.45rem 0.5rem 0.45rem 1.9rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-muted)' }}>Kategori</label>
+              <select
+                id="stock-setup-category"
+                value={setupCategory}
+                onChange={e => setSetupCategory(e.target.value)}
+                style={{ padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}
+              >
+                <option value="ALL">{isId ? 'Semua Kategori' : 'All'}</option>
+                <option value="PREBUILT">Prebuilt</option>
+                <option value="BAREBONE">Barebone</option>
+                <option value="SPARE_PART">Spare Part</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-muted)' }}>{isId ? 'Bin (opsional, massal)' : 'Bin (optional)'}</label>
+              <input
+                id="stock-setup-bin"
+                value={setupBin}
+                onChange={e => setSetupBin(e.target.value)}
+                placeholder="PB-A-1-01"
+                style={{ width: '120px', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', fontFamily: 'monospace' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-muted)' }}>{isId ? 'Isi massal qty (baris terfilter)' : 'Bulk-fill qty'}</label>
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
+                <input
+                  id="stock-setup-bulk-qty"
+                  type="number" min="0"
+                  value={setupBulkQty}
+                  onChange={e => setSetupBulkQty(e.target.value)}
+                  placeholder="0"
+                  style={{ width: '80px', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}
+                />
+                <button
+                  type="button"
+                  id="btn-stock-setup-bulk"
+                  onClick={handleBulkFill}
+                  style={{ padding: '0.45rem 0.85rem', border: '1px solid var(--accent-color)', borderRadius: '0.375rem', backgroundColor: 'transparent', color: 'var(--accent-color)', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                >
+                  {isId ? 'Terapkan' : 'Apply'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Editable table */}
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '0.7rem 1rem' }}>{isId ? 'Produk / SKU' : 'Product / SKU'}</th>
+                  <th style={{ padding: '0.7rem 1rem' }}>Tipe</th>
+                  <th style={{ padding: '0.7rem 1rem' }}>Bin</th>
+                  <th style={{ padding: '0.7rem 1rem' }}>{isId ? 'Stok Saat Ini' : 'On Hand'}</th>
+                  <th style={{ padding: '0.7rem 1rem' }}>{isId ? 'Stok Baru' : 'New Qty'}</th>
+                  <th style={{ padding: '0.7rem 1rem' }}>Δ</th>
+                  <th style={{ padding: '0.7rem 1rem' }}>{isId ? 'Nilai Aset (HPP)' : 'Asset Value'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {setupFiltered.map(p => {
+                  const cur = Number(p.stock) || 0;
+                  const draft = draftQtyOf(p);
+                  const delta = draft - cur;
+                  const dirty = stockDraft[p.sku] !== undefined && delta !== 0;
+                  return (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: dirty ? '#fffbeb' : 'transparent' }}>
+                      <td style={{ padding: '0.6rem 1rem' }}>
+                        <div style={{ fontWeight: '700', color: 'var(--primary-color)' }}>{p.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{p.sku}{p.brand ? ` · ${p.brand}` : ''}</div>
+                      </td>
+                      <td style={{ padding: '0.6rem 1rem' }}>
+                        <span style={{
+                          fontSize: '0.7rem', fontWeight: '700', padding: '0.15rem 0.45rem', borderRadius: '0.25rem',
+                          backgroundColor: p.item_type === 'PREBUILT' ? '#eff6ff' : p.item_type === 'BAREBONE' ? '#f5f3ff' : '#ecfdf5',
+                          color: p.item_type === 'PREBUILT' ? '#1d4ed8' : p.item_type === 'BAREBONE' ? '#6d28d9' : '#047857'
+                        }}>{p.item_type}</span>
+                      </td>
+                      <td style={{ padding: '0.6rem 1rem', fontFamily: 'monospace', fontSize: '0.78rem' }}>{p.bin_code}</td>
+                      <td style={{ padding: '0.6rem 1rem', fontWeight: '700' }}>{cur}</td>
+                      <td style={{ padding: '0.6rem 1rem' }}>
+                        <input
+                          type="number" min="0"
+                          id={`stock-setup-qty-${p.sku}`}
+                          value={stockDraft[p.sku] ?? ''}
+                          placeholder={String(cur)}
+                          onChange={e => handleDraftQty(p.sku, e.target.value)}
+                          style={{
+                            width: '90px', padding: '0.35rem 0.45rem', borderRadius: '0.375rem',
+                            border: dirty ? '1px solid #d97706' : '1px solid var(--border-color)',
+                            backgroundColor: dirty ? '#fffbeb' : '#ffffff', fontSize: '0.85rem', fontWeight: '600'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: !dirty ? 'var(--text-muted)' : delta > 0 ? '#047857' : '#dc2626' }}>
+                        {!dirty ? '—' : (delta > 0 ? `+${delta}` : delta)}
+                      </td>
+                      <td style={{ padding: '0.6rem 1rem', fontWeight: '600' }}>{formatIDR(draft * (Number(p.cost_price) || 0))}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {setupFiltered.length === 0 && (
+              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                {isId ? 'Tidak ada produk yang cocok dengan filter.' : 'No products match the filter.'}
+              </div>
+            )}
+          </div>
+
+          {/* Sticky action bar */}
+          <div style={{
+            position: 'sticky', bottom: 0, backgroundColor: '#ffffff', border: '1px solid var(--border-color)',
+            borderRadius: '0.75rem', padding: '0.85rem 1rem', display: 'flex', flexWrap: 'wrap',
+            justifyContent: 'space-between', alignItems: 'center', gap: '1rem', boxShadow: '0 -4px 12px rgba(0,0,0,0.06)'
+          }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              <strong style={{ color: changedSetupRows.length > 0 ? '#d97706' : 'var(--primary-color)' }}>{changedSetupRows.length}</strong> {isId ? 'baris diubah' : 'rows changed'}
+              {' · '}{isId ? 'Qty terfilter' : 'Filtered qty'} <strong>{draftTotalQty}</strong>
+              {' · '}{formatIDR(draftTotalValue)}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                id="btn-stock-setup-reset"
+                onClick={handleClearDrafts}
+                style={{ padding: '0.5rem 1rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', backgroundColor: 'transparent', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                {isId ? 'Reset' : 'Reset'}
+              </button>
+              <button
+                type="submit"
+                id="btn-save-stock-setup"
+                data-testid="btn-save-stock-setup"
+                disabled={setupSaving || changedSetupRows.length === 0}
+                style={{
+                  padding: '0.5rem 1.25rem', border: 'none', borderRadius: '0.375rem',
+                  backgroundColor: (setupSaving || changedSetupRows.length === 0) ? '#94a3b8' : 'var(--accent-color)',
+                  color: '#ffffff', fontWeight: '700', fontSize: '0.85rem',
+                  cursor: (setupSaving || changedSetupRows.length === 0) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {setupSaving ? (isId ? 'Menyimpan…' : 'Saving…') : `${isId ? 'Simpan Setup Stok' : 'Save Stock Setup'} (${changedSetupRows.length})`}
+              </button>
+            </div>
+          </div>
+        </form>
       )}
 
       {/* MODAL: TRANSFER STOK */}
