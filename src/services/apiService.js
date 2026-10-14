@@ -112,6 +112,7 @@ export const apiService = {
     getWarehouses: () => fetchJson('/v2/master/warehouses'),
     getZones: () => fetchJson('/v2/master/zones'),
     getBrands: () => fetchJson('/v2/master/brands'),
+    createBrand: (data) => fetchJson('/v2/master/brands', { method: 'POST', body: JSON.stringify(data) }),
     getSuppliers: () => fetchJson('/v2/master/suppliers'),
     createSupplier: (data) => fetchJson('/v2/master/suppliers', { method: 'POST', body: JSON.stringify(data) }),
     getClients: () => fetchJson('/v2/master/clients'),

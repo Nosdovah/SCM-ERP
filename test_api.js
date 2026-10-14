@@ -280,6 +280,49 @@ async function runSuite() {
       if (!data.success || data.status !== 'DELIVERED') throw new Error('Failed to ship order via RPC');
     });
 
+    // 8.5 Master Data entity forms (Brands / Suppliers / Clients)
+    await test('POST /v2/master/brands (Create Brand)', async () => {
+      const code = `TESTBR${Date.now().toString().slice(-6)}`;
+      const data = await request('/v2/master/brands', {
+        method: 'POST',
+        body: JSON.stringify({ name: `Test Brand ${code}`, code, description: 'CI test brand' })
+      });
+      if (!data.id || data.code !== code) throw new Error('Brand not created with expected code');
+      // Duplicate code must be rejected with a 409
+      const dupRes = await fetch(`${BASE_URL}/v2/master/brands`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ci-test' },
+        body: JSON.stringify({ name: `Test Brand Dup ${code}`, code })
+      });
+      if (dupRes.status !== 409) throw new Error(`Expected 409 on duplicate brand code, got ${dupRes.status}`);
+    });
+
+    await test('POST /v2/master/suppliers (Create Supplier)', async () => {
+      const data = await request('/v2/master/suppliers', {
+        method: 'POST',
+        body: JSON.stringify({ name: `PT Test Supplier ${Date.now()}`, category: 'Distributor', payment_terms: 'NET 30' })
+      });
+      if (!data.id || !data.code) throw new Error('Supplier not created with generated code');
+    });
+
+    await test('POST /v2/master/suppliers (Reject missing name → 400)', async () => {
+      const res = await fetch(`${BASE_URL}/v2/master/suppliers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ci-test' },
+        body: JSON.stringify({ category: 'Distributor' })
+      });
+      if (res.status !== 400) throw new Error(`Expected 400 on missing name, got ${res.status}`);
+    });
+
+    await test('POST /v2/master/clients (Create Client)', async () => {
+      const data = await request('/v2/master/clients', {
+        method: 'POST',
+        body: JSON.stringify({ name: `PT Test Client ${Date.now()}`, segment: 'corporate', credit_limit: 500000000 })
+      });
+      if (!data.id || !data.code) throw new Error('Client not created with generated code');
+      if (data.credit_limit !== 500000000) throw new Error('Client credit_limit not persisted as number');
+    });
+
     // 9. Cleanup test order
     if (createdOrderId) {
       await test(`DELETE /orders/:id (Cleanup Test Order ${createdOrderId})`, async () => {

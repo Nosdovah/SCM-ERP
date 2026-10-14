@@ -8,6 +8,57 @@ import {
 } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
 
+// Shared modal/form styles for the master-entity forms (brands / suppliers / clients).
+const modalOverlay = {
+  position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+  backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
+  display: 'flex', alignItems: 'center', justifyContent: 'center'
+};
+const modalCard = {
+  backgroundColor: '#ffffff', borderRadius: '0.75rem', width: '620px',
+  maxWidth: '92%', maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem',
+  boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
+};
+const modalTitle = { margin: '0 0 1rem 0', color: 'var(--primary-color)', fontSize: '1.2rem', fontWeight: '700' };
+const modalForm = { display: 'flex', flexDirection: 'column', gap: '0.85rem' };
+const labelStyle = { fontSize: '0.75rem', fontWeight: '600' };
+const inputStyle = { width: '100%', padding: '0.45rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem' };
+const modalActions = { display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' };
+const cancelBtn = { padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', backgroundColor: 'transparent', cursor: 'pointer' };
+const submitBtn = { padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: 'var(--accent-color)', color: '#ffffff', fontWeight: '600', cursor: 'pointer' };
+
+// Reusable "Add" toolbar rendered above the brands / suppliers / clients tabs.
+function EntityToolbar({ title, subtitle, count, onAdd, addLabel, testId }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      backgroundColor: '#ffffff', padding: '1rem 1.25rem', borderRadius: '0.75rem',
+      border: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '0.75rem'
+    }}>
+      <div>
+        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--primary-color)' }}>{title}</h3>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+          {count} {subtitle}
+        </div>
+      </div>
+      <button
+        type="button"
+        id={testId}
+        data-testid={testId}
+        onClick={onAdd}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+          backgroundColor: 'var(--accent-color)', color: '#ffffff',
+          border: 'none', padding: '0.55rem 1rem', borderRadius: '0.5rem',
+          fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer'
+        }}
+      >
+        <Plus size={16} /> {addLabel}
+      </button>
+    </div>
+  );
+}
+
 export default function MasterDataV2({ language }) {
   const [activeTab, setActiveTab] = useState('products'); // 'products' | 'hierarchy' | 'brands' | 'suppliers' | 'clients'
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,6 +82,32 @@ export default function MasterDataV2({ language }) {
   // Form Modals
   const [showProductModal, setShowProductModal] = useState(false);
   const [showBinModal, setShowBinModal] = useState(false);
+  const [showBrandModal, setShowBrandModal] = useState(false);
+  const [showSupplierModal, setShowSupplierModal] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
+
+  // Notice banner + in-flight flag for the entity forms
+  const [entityNotice, setEntityNotice] = useState(null);
+  const [entitySaving, setEntitySaving] = useState(false);
+
+  // New Brand Form
+  const emptyBrand = { name: '', code: '', description: '' };
+  const [newBrand, setNewBrand] = useState(emptyBrand);
+
+  // New Supplier Form
+  const emptySupplier = {
+    name: '', code: '', category: 'Distributor', country: 'Indonesia', currency: 'IDR',
+    rating: 5, contact: '', phone: '', email: '', address: '',
+    payment_terms: 'NET 30', lead_time_days: 7, is_principal: false
+  };
+  const [newSupplier, setNewSupplier] = useState(emptySupplier);
+
+  // New Client Form
+  const emptyClient = {
+    name: '', code: '', segment: 'corporate', contact: '', phone: '', email: '',
+    billing_address: '', payment_terms: 'NET 30', credit_limit: '', outstanding: 0
+  };
+  const [newClient, setNewClient] = useState(emptyClient);
 
   // New Product Form
   const [newProd, setNewProd] = useState({
@@ -67,9 +144,10 @@ export default function MasterDataV2({ language }) {
 
   // Filtered Products
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.barcode.includes(searchQuery);
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = (p.name || '').toLowerCase().includes(q) ||
+                          (p.sku || '').toLowerCase().includes(q) ||
+                          String(p.barcode || '').includes(searchQuery);
     const matchesCat = categoryFilter === 'ALL' || p.item_type === categoryFilter;
     return matchesSearch && matchesCat;
   });
@@ -148,6 +226,75 @@ export default function MasterDataV2({ language }) {
     apiService.masterData.createBin(createdBin);
     setShowBinModal(false);
   };
+
+  // ---- Master entity forms (Brands / Suppliers / Clients) -----------------
+  // Every create re-fetches the list so the view reflects the durable server
+  // state instead of an optimistic local guess.
+  const reloadBrands = () => apiService.masterData.getBrands()
+    .then(d => { if (Array.isArray(d)) setBrands(d); });
+  const reloadSuppliers = () => apiService.masterData.getSuppliers()
+    .then(d => { if (Array.isArray(d)) setSuppliers(d); });
+  const reloadClients = () => apiService.masterData.getClients()
+    .then(d => { if (Array.isArray(d)) setClients(d); });
+
+  const handleCreateBrand = async (e) => {
+    e.preventDefault();
+    setEntitySaving(true);
+    const res = await apiService.masterData.createBrand(newBrand);
+    setEntitySaving(false);
+    if (res && res.id) {
+      await reloadBrands();
+      setShowBrandModal(false);
+      setNewBrand(emptyBrand);
+      setEntityNotice({ type: 'ok', msg: isId
+        ? `Brand "${res.name}" (${res.code}) berhasil ditambahkan ke master data.`
+        : `Brand "${res.name}" (${res.code}) added to master data.` });
+    } else {
+      setEntityNotice({ type: 'err', msg: isId
+        ? 'Gagal menambahkan brand. Kode mungkin sudah dipakai, atau koneksi API bermasalah.'
+        : 'Failed to add brand — duplicate code or API error.' });
+    }
+  };
+
+  const handleCreateSupplier = async (e) => {
+    e.preventDefault();
+    setEntitySaving(true);
+    const res = await apiService.masterData.createSupplier(newSupplier);
+    setEntitySaving(false);
+    if (res && res.id) {
+      await reloadSuppliers();
+      setShowSupplierModal(false);
+      setNewSupplier(emptySupplier);
+      setEntityNotice({ type: 'ok', msg: isId
+        ? `Pemasok "${res.name}" (${res.code}) berhasil ditambahkan.`
+        : `Supplier "${res.name}" (${res.code}) added.` });
+    } else {
+      setEntityNotice({ type: 'err', msg: isId
+        ? 'Gagal menambahkan pemasok — kode duplikat atau API bermasalah.'
+        : 'Failed to add supplier — duplicate code or API error.' });
+    }
+  };
+
+  const handleCreateClient = async (e) => {
+    e.preventDefault();
+    setEntitySaving(true);
+    const res = await apiService.masterData.createClient(newClient);
+    setEntitySaving(false);
+    if (res && res.id) {
+      await reloadClients();
+      setShowClientModal(false);
+      setNewClient(emptyClient);
+      setEntityNotice({ type: 'ok', msg: isId
+        ? `Klien "${res.name}" (${res.code}) berhasil ditambahkan.`
+        : `Client "${res.name}" (${res.code}) added.` });
+    } else {
+      setEntityNotice({ type: 'err', msg: isId
+        ? 'Gagal menambahkan klien — kode duplikat atau API bermasalah.'
+        : 'Failed to add client — duplicate code or API error.' });
+    }
+  };
+
+  // Small reusable "Add" toolbar for the entity tabs (defined at module scope below)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -452,7 +599,26 @@ export default function MasterDataV2({ language }) {
       {/* TAB 3: BRANDS */}
       {/* ========================================================================= */}
       {activeTab === 'brands' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <EntityToolbar
+            title={isId ? 'Master Brand / Merek' : 'Brand Master'}
+            subtitle={isId ? 'brand terdaftar di katalog' : 'brands registered in the catalogue'}
+            count={brands.length}
+            onAdd={() => { setEntityNotice(null); setShowBrandModal(true); }}
+            addLabel={isId ? 'Tambah Brand' : 'Add Brand'}
+            testId="btn-add-brand"
+          />
+          {entityNotice && (
+            <div id="entity-notice-banner" data-testid="entity-notice-banner" style={{
+              backgroundColor: entityNotice.type === 'ok' ? '#ecfdf5' : '#fee2e2',
+              color: entityNotice.type === 'ok' ? '#047857' : '#991b1b',
+              border: `1px solid ${entityNotice.type === 'ok' ? '#a7f3d0' : '#fca5a5'}`,
+              padding: '0.75rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem'
+            }}>
+              {entityNotice.type === 'ok' ? '✓ ' : '⚠ '}{entityNotice.msg}
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
           {brands.map(b => (
             <div key={b.id} style={{ 
               backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)',
@@ -464,7 +630,7 @@ export default function MasterDataV2({ language }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color)',
                 fontWeight: '800', fontSize: '1.1rem'
               }}>
-                {b.code.substring(0, 2)}
+                {String(b.code || b.name || '??').substring(0, 2).toUpperCase()}
               </div>
               <div>
                 <h4 style={{ margin: 0, fontWeight: '700', color: 'var(--primary-color)', fontSize: '1rem' }}>{b.name}</h4>
@@ -473,6 +639,12 @@ export default function MasterDataV2({ language }) {
               </div>
             </div>
           ))}
+          {brands.length === 0 && (
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+              {isId ? 'Belum ada brand. Klik "Tambah Brand".' : 'No brands yet. Click "Add Brand".'}
+            </div>
+          )}
+          </div>
         </div>
       )}
 
@@ -480,6 +652,25 @@ export default function MasterDataV2({ language }) {
       {/* TAB 4: SUPPLIERS */}
       {/* ========================================================================= */}
       {activeTab === 'suppliers' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <EntityToolbar
+            title={isId ? 'Master Pemasok / Vendor' : 'Supplier Master'}
+            subtitle={isId ? 'pemasok terdaftar' : 'suppliers registered'}
+            count={suppliers.length}
+            onAdd={() => { setEntityNotice(null); setShowSupplierModal(true); }}
+            addLabel={isId ? 'Tambah Pemasok' : 'Add Supplier'}
+            testId="btn-add-supplier"
+          />
+          {entityNotice && (
+            <div id="entity-notice-banner" data-testid="entity-notice-banner" style={{
+              backgroundColor: entityNotice.type === 'ok' ? '#ecfdf5' : '#fee2e2',
+              color: entityNotice.type === 'ok' ? '#047857' : '#991b1b',
+              border: `1px solid ${entityNotice.type === 'ok' ? '#a7f3d0' : '#fca5a5'}`,
+              padding: '0.75rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem'
+            }}>
+              {entityNotice.type === 'ok' ? '✓ ' : '⚠ '}{entityNotice.msg}
+            </div>
+          )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
           {suppliers.map(s => (
             <div key={s.id} style={{ 
@@ -522,6 +713,12 @@ export default function MasterDataV2({ language }) {
               </div>
             </div>
           ))}
+          {suppliers.length === 0 && (
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+              {isId ? 'Belum ada pemasok. Klik "Tambah Pemasok".' : 'No suppliers yet.'}
+            </div>
+          )}
+        </div>
         </div>
       )}
 
@@ -529,6 +726,25 @@ export default function MasterDataV2({ language }) {
       {/* TAB 5: CLIENTS */}
       {/* ========================================================================= */}
       {activeTab === 'clients' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <EntityToolbar
+            title={isId ? 'Master Klien / Pelanggan' : 'Client Master'}
+            subtitle={isId ? 'klien terdaftar' : 'clients registered'}
+            count={clients.length}
+            onAdd={() => { setEntityNotice(null); setShowClientModal(true); }}
+            addLabel={isId ? 'Tambah Klien' : 'Add Client'}
+            testId="btn-add-client"
+          />
+          {entityNotice && (
+            <div id="entity-notice-banner" data-testid="entity-notice-banner" style={{
+              backgroundColor: entityNotice.type === 'ok' ? '#ecfdf5' : '#fee2e2',
+              color: entityNotice.type === 'ok' ? '#047857' : '#991b1b',
+              border: `1px solid ${entityNotice.type === 'ok' ? '#a7f3d0' : '#fca5a5'}`,
+              padding: '0.75rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem'
+            }}>
+              {entityNotice.type === 'ok' ? '✓ ' : '⚠ '}{entityNotice.msg}
+            </div>
+          )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
           {clients.map(c => (
             <div key={c.id} style={{ 
@@ -570,6 +786,12 @@ export default function MasterDataV2({ language }) {
               </div>
             </div>
           ))}
+          {clients.length === 0 && (
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+              {isId ? 'Belum ada klien. Klik "Tambah Klien".' : 'No clients yet.'}
+            </div>
+          )}
+        </div>
         </div>
       )}
 
@@ -781,6 +1003,242 @@ export default function MasterDataV2({ language }) {
                   style={{ padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: 'var(--accent-color)', color: '#ffffff', fontWeight: '600', cursor: 'pointer' }}
                 >
                   Simpan Bin
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD BRAND */}
+      {/* ========================================================================= */}
+      {showBrandModal && (
+        <div style={modalOverlay}>
+          <div style={modalCard}>
+            <h3 style={modalTitle}>{isId ? 'Tambah Master Brand' : 'Add Brand'}</h3>
+            <form onSubmit={handleCreateBrand} style={modalForm}>
+              <div>
+                <label style={labelStyle}>{isId ? 'Nama Brand' : 'Brand Name'} *</label>
+                <input
+                  type="text" required placeholder="Contoh: MSI"
+                  value={newBrand.name} onChange={e => setNewBrand({ ...newBrand, name: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>{isId ? 'Kode Brand (opsional — dibuat otomatis)' : 'Brand Code (optional — auto)'}</label>
+                <input
+                  type="text" placeholder="MSI"
+                  value={newBrand.code} onChange={e => setNewBrand({ ...newBrand, code: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>{isId ? 'Deskripsi' : 'Description'}</label>
+                <input
+                  type="text" placeholder={isId ? 'Contoh: Motherboard, GPU, laptop' : 'e.g. Motherboard, GPU, laptop'}
+                  value={newBrand.description} onChange={e => setNewBrand({ ...newBrand, description: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={modalActions}>
+                <button type="button" onClick={() => setShowBrandModal(false)} style={cancelBtn}>{isId ? 'Batal' : 'Cancel'}</button>
+                <button type="submit" disabled={entitySaving} style={{ ...submitBtn, opacity: entitySaving ? 0.6 : 1 }}>
+                  {entitySaving ? '…' : (isId ? 'Simpan Brand' : 'Save Brand')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD SUPPLIER */}
+      {/* ========================================================================= */}
+      {showSupplierModal && (
+        <div style={modalOverlay}>
+          <div style={modalCard}>
+            <h3 style={modalTitle}>{isId ? 'Tambah Master Pemasok / Vendor' : 'Add Supplier'}</h3>
+            <form onSubmit={handleCreateSupplier} style={modalForm}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Nama Perusahaan' : 'Company Name'} *</label>
+                  <input
+                    type="text" required placeholder="PT Contoh Distribusi"
+                    value={newSupplier.name} onChange={e => setNewSupplier({ ...newSupplier, name: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Kode (opsional)' : 'Code (optional)'}</label>
+                  <input
+                    type="text" placeholder="SUPP-XXX"
+                    value={newSupplier.code} onChange={e => setNewSupplier({ ...newSupplier, code: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Kategori' : 'Category'}</label>
+                  <select value={newSupplier.category} onChange={e => setNewSupplier({ ...newSupplier, category: e.target.value })} style={inputStyle}>
+                    <option value="Distributor">Distributor</option>
+                    <option value="Principal">Principal</option>
+                    <option value="Importer">Importer</option>
+                    <option value="Retailer">Retailer</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Negara' : 'Country'}</label>
+                  <input type="text" value={newSupplier.country} onChange={e => setNewSupplier({ ...newSupplier, country: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Currency</label>
+                  <select value={newSupplier.currency} onChange={e => setNewSupplier({ ...newSupplier, currency: e.target.value })} style={inputStyle}>
+                    <option value="IDR">IDR</option>
+                    <option value="USD">USD</option>
+                    <option value="SGD">SGD</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Kontak PIC' : 'Contact PIC'}</label>
+                  <input type="text" placeholder="Budi Santoso" value={newSupplier.contact} onChange={e => setNewSupplier({ ...newSupplier, contact: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Telepon' : 'Phone'}</label>
+                  <input type="text" placeholder="+62-21-..." value={newSupplier.phone} onChange={e => setNewSupplier({ ...newSupplier, phone: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Email</label>
+                  <input type="email" placeholder="sales@vendor.com" value={newSupplier.email} onChange={e => setNewSupplier({ ...newSupplier, email: e.target.value })} style={inputStyle} />
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>{isId ? 'Alamat' : 'Address'}</label>
+                <input type="text" value={newSupplier.address} onChange={e => setNewSupplier({ ...newSupplier, address: e.target.value })} style={inputStyle} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Term of Payment' : 'Payment Terms'}</label>
+                  <select value={newSupplier.payment_terms} onChange={e => setNewSupplier({ ...newSupplier, payment_terms: e.target.value })} style={inputStyle}>
+                    <option value="COD">COD</option>
+                    <option value="NET 14">NET 14</option>
+                    <option value="NET 30">NET 30</option>
+                    <option value="NET 45">NET 45</option>
+                    <option value="NET 60">NET 60</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Lead Time (hari)' : 'Lead Time (days)'}</label>
+                  <input type="number" min="0" value={newSupplier.lead_time_days} onChange={e => setNewSupplier({ ...newSupplier, lead_time_days: Number(e.target.value) })} style={inputStyle} />
+                </div>
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={newSupplier.is_principal} onChange={e => setNewSupplier({ ...newSupplier, is_principal: e.target.checked })} />
+                <span>{isId ? 'Pemasok ini Principal Resmi (bukan distributor)' : 'This supplier is an Official Principal'}</span>
+              </label>
+
+              <div style={modalActions}>
+                <button type="button" onClick={() => setShowSupplierModal(false)} style={cancelBtn}>{isId ? 'Batal' : 'Cancel'}</button>
+                <button type="submit" disabled={entitySaving} style={{ ...submitBtn, opacity: entitySaving ? 0.6 : 1 }}>
+                  {entitySaving ? '…' : (isId ? 'Simpan Pemasok' : 'Save Supplier')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD CLIENT */}
+      {/* ========================================================================= */}
+      {showClientModal && (
+        <div style={modalOverlay}>
+          <div style={modalCard}>
+            <h3 style={modalTitle}>{isId ? 'Tambah Master Klien / Pelanggan' : 'Add Client'}</h3>
+            <form onSubmit={handleCreateClient} style={modalForm}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Nama Perusahaan / Instansi' : 'Company / Institution'} *</label>
+                  <input
+                    type="text" required placeholder="PT Contoh Pelanggan"
+                    value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Kode (opsional)' : 'Code (optional)'}</label>
+                  <input
+                    type="text" placeholder="CLI-XXX"
+                    value={newClient.code} onChange={e => setNewClient({ ...newClient, code: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={labelStyle}>Segmen</label>
+                  <select value={newClient.segment} onChange={e => setNewClient({ ...newClient, segment: e.target.value })} style={inputStyle}>
+                    <option value="corporate">Corporate (Perusahaan)</option>
+                    <option value="government">Government (Pemerintah)</option>
+                    <option value="retail">Retail (Toko)</option>
+                    <option value="education">Education (Pendidikan)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Term of Payment' : 'Payment Terms'}</label>
+                  <select value={newClient.payment_terms} onChange={e => setNewClient({ ...newClient, payment_terms: e.target.value })} style={inputStyle}>
+                    <option value="COD">COD</option>
+                    <option value="NET 14">NET 14</option>
+                    <option value="NET 30">NET 30</option>
+                    <option value="NET 45">NET 45</option>
+                    <option value="NET 60">NET 60</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Kontak PIC' : 'Contact PIC'}</label>
+                  <input type="text" placeholder="Rian Hidayat" value={newClient.contact} onChange={e => setNewClient({ ...newClient, contact: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{isId ? 'Telepon' : 'Phone'}</label>
+                  <input type="text" placeholder="+62-21-..." value={newClient.phone} onChange={e => setNewClient({ ...newClient, phone: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Email</label>
+                  <input type="email" placeholder="purchasing@client.co.id" value={newClient.email} onChange={e => setNewClient({ ...newClient, email: e.target.value })} style={inputStyle} />
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>{isId ? 'Alamat Penagihan' : 'Billing Address'}</label>
+                <input type="text" value={newClient.billing_address} onChange={e => setNewClient({ ...newClient, billing_address: e.target.value })} style={inputStyle} />
+              </div>
+
+              <div>
+                <label style={labelStyle}>{isId ? 'Limit Kredit (Rp)' : 'Credit Limit (IDR)'}</label>
+                <input
+                  type="number" min="0" placeholder="500000000"
+                  value={newClient.credit_limit} onChange={e => setNewClient({ ...newClient, credit_limit: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={modalActions}>
+                <button type="button" onClick={() => setShowClientModal(false)} style={cancelBtn}>{isId ? 'Batal' : 'Cancel'}</button>
+                <button type="submit" disabled={entitySaving} style={{ ...submitBtn, opacity: entitySaving ? 0.6 : 1 }}>
+                  {entitySaving ? '…' : (isId ? 'Simpan Klien' : 'Save Client')}
                 </button>
               </div>
             </form>

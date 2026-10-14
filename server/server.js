@@ -1186,6 +1186,31 @@ app.post('/api/v2/master/bins', (req, res) => {
   res.status(201).json(newBin);
 });
 app.get('/api/v2/master/brands', (_req, res) => res.json(v2Brands));
+app.post('/api/v2/master/brands', (req, res) => {
+  const b = req.body || {};
+  const name = String(b.name || '').trim();
+  if (!name) {
+    return res.status(400).json({ error: 'Brand name is required' });
+  }
+  const code = String(b.code || '').trim().toUpperCase()
+    || name.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12)
+    || `BRAND${Date.now().toString().slice(-4)}`;
+  if (v2Brands.some(x => String(x.code || '').toUpperCase() === code)) {
+    return res.status(409).json({ error: `Brand code "${code}" already exists` });
+  }
+  if (v2Brands.some(x => String(x.name || '').trim().toLowerCase() === name.toLowerCase())) {
+    return res.status(409).json({ error: `Brand "${name}" already exists` });
+  }
+  const newBrand = {
+    id: `brand-${Date.now()}`,
+    name,
+    code,
+    description: String(b.description || '').trim(),
+    created_at: new Date().toISOString()
+  };
+  v2Brands.push(newBrand);
+  res.status(201).json(newBrand);
+});
 app.get('/api/v2/master/suppliers', async (req, res) => {
   const { company_name } = req.query;
   if (supabase) {
@@ -1215,13 +1240,64 @@ app.get('/api/v2/master/suppliers', async (req, res) => {
   res.json(v2Suppliers);
 });
 app.post('/api/v2/master/suppliers', (req, res) => {
-  const newSupp = { id: `supp-${Date.now()}`, ...req.body };
+  const s = req.body || {};
+  const name = String(s.name || '').trim();
+  if (!name) {
+    return res.status(400).json({ error: 'Supplier name is required' });
+  }
+  const code = String(s.code || '').trim().toUpperCase()
+    || `SUPP-${name.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10)}`;
+  if (v2Suppliers.some(x => String(x.code || '').toUpperCase() === code)) {
+    return res.status(409).json({ error: `Supplier code "${code}" already exists` });
+  }
+  const newSupp = {
+    id: `supp-${Date.now()}`,
+    code,
+    name,
+    category: String(s.category || 'Distributor').trim(),
+    country: String(s.country || 'Indonesia').trim(),
+    currency: String(s.currency || 'IDR').toUpperCase(),
+    rating: Number(s.rating) || 5.0,
+    contact: String(s.contact || '').trim(),
+    phone: String(s.phone || '').trim(),
+    email: String(s.email || '').trim(),
+    address: String(s.address || '').trim(),
+    payment_terms: String(s.payment_terms || 'NET 30').trim(),
+    lead_time_days: Number(s.lead_time_days) || 7,
+    on_time_rate: String(s.on_time_rate || '—'),
+    defect_rate: String(s.defect_rate || '—'),
+    is_principal: !!s.is_principal,
+    created_at: new Date().toISOString()
+  };
   v2Suppliers.unshift(newSupp);
   res.status(201).json(newSupp);
 });
 app.get('/api/v2/master/clients', (_req, res) => res.json(v2Clients));
 app.post('/api/v2/master/clients', (req, res) => {
-  const newClient = { id: `cli-${Date.now()}`, ...req.body };
+  const c = req.body || {};
+  const name = String(c.name || '').trim();
+  if (!name) {
+    return res.status(400).json({ error: 'Client name is required' });
+  }
+  const code = String(c.code || '').trim().toUpperCase()
+    || `CLI-${name.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10)}`;
+  if (v2Clients.some(x => String(x.code || '').toUpperCase() === code)) {
+    return res.status(409).json({ error: `Client code "${code}" already exists` });
+  }
+  const newClient = {
+    id: `cli-${Date.now()}`,
+    code,
+    name,
+    segment: String(c.segment || 'corporate').toLowerCase(),
+    contact: String(c.contact || '').trim(),
+    phone: String(c.phone || '').trim(),
+    email: String(c.email || '').trim(),
+    billing_address: String(c.billing_address || '').trim(),
+    payment_terms: String(c.payment_terms || 'NET 30').trim(),
+    credit_limit: Number(c.credit_limit) || 0,
+    outstanding: Number(c.outstanding) || 0,
+    created_at: new Date().toISOString()
+  };
   v2Clients.unshift(newClient);
   res.status(201).json(newClient);
 });
