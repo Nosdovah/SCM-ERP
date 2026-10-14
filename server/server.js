@@ -1945,6 +1945,69 @@ app.get('/api/v2/managerial/pnl', (_req, res) => {
   });
 });
 
+// --- MODULE 6b: ACTIVITY FEED (TopNav notification bell) ---
+// Derived from the durable v2 store so the bell reflects real operational
+// events. Replaces the legacy client-side Supabase realtime channel.
+app.get('/api/v2/notifications', (_req, res) => {
+  const iso = (value) => {
+    if (!value) return new Date().toISOString();
+    // Movements store "YYYY-MM-DD HH:mm" — normalise to ISO so browsers
+    // (Safari) can parse it consistently.
+    return String(value).replace(' ', 'T');
+  };
+  const feed = [];
+
+  for (const m of v2Movements) {
+    const inbound = /IN|RECEIPT|GRN|RETURN/i.test(m.movement_type || '');
+    feed.push({
+      id: `mv-${m.id}`,
+      action: inbound ? 'Stock Received' : 'Stock Movement',
+      details: {
+        sku: m.sku,
+        item: m.product_name || m.sku,
+        qty: m.qty,
+        to: m.bin_code,
+        ref: m.ref_doc
+      },
+      created_at: iso(m.created_at),
+      user_email: m.created_by || 'System'
+    });
+  }
+
+  for (const gr of v2GRNList) {
+    feed.push({
+      id: `gr-${gr.id}`,
+      action: 'Goods Receipt',
+      details: { item: gr.po_id || gr.supplier_name || 'Goods Receipt', to: gr.status, ref: gr.id },
+      created_at: iso(gr.created_at || gr.received_at || gr.updated_at),
+      user_email: gr.created_by || 'System'
+    });
+  }
+
+  for (const so of v2SalesOrders) {
+    feed.push({
+      id: `so-${so.id}`,
+      action: 'Sales Order',
+      details: { item: so.customer_name || so.client_name || 'Sales Order', to: so.status, ref: so.id },
+      created_at: iso(so.created_at),
+      user_email: so.created_by || 'System'
+    });
+  }
+
+  for (const dn of v2DeliveryNotes) {
+    feed.push({
+      id: `dn-${dn.id}`,
+      action: 'Delivery Note',
+      details: { item: dn.customer_name || 'Delivery', to: dn.status, ref: dn.id },
+      created_at: iso(dn.created_at || dn.issued_at),
+      user_email: dn.created_by || 'System'
+    });
+  }
+
+  feed.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  res.json(feed.slice(0, 20));
+});
+
 // --- MODULE 7: ATOMIC DATABASE RPC ENDPOINTS (§7) ---
 app.post('/api/v2/rpc/post-grn', async (req, res) => {
   const { gr_id, actor, idempotency_key } = req.body;

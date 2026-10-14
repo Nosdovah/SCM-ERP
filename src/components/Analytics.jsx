@@ -1,31 +1,57 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
 import { Activity, AlertTriangle, Package } from 'lucide-react';
 import { processes } from '../data/constants';
-import { initialProducts } from '../data/v2Data';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+import { apiService } from '../services/apiService';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadialBarChart, RadialBar, Cell, ReferenceLine, Legend, PieChart, Pie,
   AreaChart, Area
 } from 'recharts';
 
 const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 
-// Dynamic chart data will be calculated in fetchAnalyticsData based on real system metrics
+// Demo series shown only while the v2 store has no live rows for a metric, so
+// the charts still render meaningfully during an empty-database state.
+const FALLBACK = {
+  orderFulfillmentData: [
+    { day: 'Mon', rate: 98.2 },
+    { day: 'Tue', rate: 97.4 },
+    { day: 'Wed', rate: 98.9 },
+    { day: 'Thu', rate: 97.8 },
+    { day: 'Fri', rate: 99.2 },
+    { day: 'Sat', rate: 98.6 },
+    { day: 'Sun', rate: 99.0 }
+  ],
+  invoiceCycleData: [
+    { batch: 'Mon', time: 13.5 },
+    { batch: 'Tue', time: 14.2 },
+    { batch: 'Wed', time: 12.8 },
+    { batch: 'Thu', time: 15.1 },
+    { batch: 'Fri', time: 11.4 },
+    { batch: 'Sat', time: 10.2 },
+    { batch: 'Sun', time: 9.6 }
+  ],
+  arAgingData: [
+    { name: '0-30 Days', value: 8, color: '#10b981' },
+    { name: '31-60 Days', value: 3, color: '#f59e0b' },
+    { name: '60+ Days', value: 1, color: '#ef4444' }
+  ]
+};
+
+const COMPLETED_STATES = ['DELIVERED', 'COMPLETED', 'SHIPPED', 'CLOSED', 'INVOICED', 'FULFILLED'];
 
 export default function Analytics({ session, language }) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
-    avgLeadTimes: {},
     totalOrders: 0,
     bottleneckStage: null,
     inventoryValue: 0,
     activeCapEx: 0,
     lowStockItems: 0,
-    ofrRate: 0,
-    turnoverRatio: 0,
+    ofrRate: '0.0',
+    turnoverRatio: '0.0',
     dsoDays: 0,
-    invoiceCycleTime: 0,
+    invoiceCycleTime: '0.0',
     chartData: {
       orderFulfillmentData: [],
       invoiceCycleData: [],
@@ -37,321 +63,150 @@ export default function Analytics({ session, language }) {
   const userCompany = session?.user?.user_metadata?.company_name || 'DEFAULT';
 
   useEffect(() => {
-    if (!supabase) return;
+    let cancelled = false;
 
     const fetchAnalyticsData = async () => {
       setLoading(true);
-      
-      const [
-        { data: historyData, error: historyError }, 
-        { data: activeOrdersData, error: ordersError },
-        { data: itemsData, error: itemsError }
-      ] = await Promise.all([
-        supabase
-          .from('order_history')
-          .select('*')
-          .eq('company_name', userCompany)
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('orders')
-          .select('id, title, quantity, stage')
-          .eq('company_name', userCompany),
-        supabase
-          .from('items')
-          .select('name, unit_price, stock_on_hand')
-          .eq('company_name', userCompany)
+
+      // v2 REST API is the single source of truth (no direct Supabase access).
+      const [products, balances, salesOrders, arInvoices, purchaseOrders, exec] = await Promise.all([
+        apiService.masterData.getProducts(),
+        apiService.inventory.getBalances(),
+        apiService.outbound.getSalesOrders(),
+        apiService.finance.getARInvoices(),
+        apiService.scm.getPurchaseOrders(),
+        apiService.managerial.getExecutiveDashboard()
       ]);
 
-      if (historyError || ordersError || itemsError) {
-        console.error('Error fetching analytics data');
-        setLoading(false);
-        return;
+      if (cancelled) return;
+
+      const prodList = Array.isArray(products) ? products : [];
+      const bal = balances && typeof balances === 'object' ? balances : {};
+      const soList = Array.isArray(salesOrders) ? salesOrders : [];
+      const arList = Array.isArray(arInvoices) ? arInvoices : [];
+      const poList = Array.isArray(purchaseOrders) ? purchaseOrders : [];
+      const ex = exec && typeof exec === 'object' ? exec : {};
+
+      const stockOf = (p) => Number(p.stock ?? p.stock_on_hand ?? 0) || 0;
+
+      // --- Inventory valuation & low stock (from v2 Master Data) ---
+      let inventoryValue = Number(bal.total_valuation) || 0;
+      if (!inventoryValue) {
+        inventoryValue = prodList.reduce((acc, p) => acc + (Number(p.cost_price) || 0) * stockOf(p), 0);
       }
+      if (!inventoryValue) inventoryValue = Number(ex.total_warehouse_valuation) || 0;
 
-      // Filter history logs to ONLY include orders that currently exist
-      const activeOrderIds = new Set(activeOrdersData.map(o => o.id));
-      const filteredHistory = historyData.filter(log => activeOrderIds.has(log.order_id));
+      const lowStockItems = prodList.filter((p) => stockOf(p) <= (Number(p.min_stock) || 5)).length;
 
-      // Calculate Lead Times
-      const stageTimes = {};
-      const orders = {};
-      filteredHistory.forEach(log => {
-        if (!orders[log.order_id]) orders[log.order_id] = [];
-        orders[log.order_id].push(log);
-      });
+      // --- Active capital expenditure (open purchase orders) ---
+      const activeCapEx = poList.reduce(
+        (acc, po) => acc + (Number(po.total ?? po.total_amount ?? po.amount) || 0),
+        0
+      );
 
-      let totalCount = Object.keys(orders).length;
+      // --- Order Fulfilment Rate (v2 sales orders) ---
+      const completedSO = soList.filter((s) => COMPLETED_STATES.includes(String(s.status || '').toUpperCase())).length;
+      const ofrRate = soList.length > 0 ? ((completedSO / soList.length) * 100).toFixed(1) : '0.0';
 
-      Object.values(orders).forEach(logs => {
-        let currentStageId = 'cpo_esta';
-        let lastTimestamp = null;
+      // --- Inventory turnover = COGS sold / inventory value ---
+      const soldCogs = soList.reduce((acc, s) => acc + (Number(s.cogs ?? (Number(s.total) || 0) * 0.8) || 0), 0);
+      const turnoverRatio = inventoryValue > 0 && soldCogs > 0 ? (soldCogs / inventoryValue).toFixed(1) : '0.0';
 
-        logs.forEach(log => {
-          if (log.action === 'Created Order') {
-            lastTimestamp = new Date(log.created_at).getTime();
-            currentStageId = 'cpo_esta';
-          }
-          else if (log.action === 'Moved Stage' && log.details?.stageId) {
-            const currentTimestamp = new Date(log.created_at).getTime();
-            
-            if (lastTimestamp) {
-              const durationMs = currentTimestamp - lastTimestamp;
-              if (!stageTimes[currentStageId]) stageTimes[currentStageId] = [];
-              stageTimes[currentStageId].push(durationMs);
-            }
-            
-            currentStageId = log.details.stageId;
-            lastTimestamp = currentTimestamp;
-          }
-        });
-      });
-
-      // Calculate averages
-      const avgLeadTimes = {};
-      let maxDuration = 0;
-      let bottleneckStage = null;
-
-      Object.keys(stageTimes).forEach(stageId => {
-        const durations = stageTimes[stageId];
-        if (durations.length === 0) return;
-        
-        const sum = durations.reduce((a, b) => a + b, 0);
-        const avgMs = sum / durations.length;
-        
-        avgLeadTimes[stageId] = avgMs;
-        
-        if (avgMs > maxDuration) {
-          maxDuration = avgMs;
-          bottleneckStage = stageId;
-        }
-      });
-
-      // Financial Analytics
-      let inventoryValue = 0;
-      let activeCapEx = 0;
-      let lowStockItems = 0;
-      let cogs = 0;
-
-      const itemsMap = {};
-      if (itemsData) {
-        itemsData.forEach(item => {
-          itemsMap[item.name] = item;
-          inventoryValue += (item.stock_on_hand || 0) * (item.unit_price || 0);
-          if (item.stock_on_hand < 5) lowStockItems++;
-        });
-      }
-
-      let completedOrdersCount = 0;
-      let totalOrdersCount = activeOrdersData ? activeOrdersData.length : 0;
-
-      if (activeOrdersData) {
-        activeOrdersData.forEach(order => {
-          const item = itemsMap[order.title];
-          if (item) {
-            activeCapEx += (order.quantity || 1) * (item.unit_price || 0);
-            
-            // Assume orders in final stages are completed for COGS
-            if (['wh_outbound', 'eid_delivery', 'tpp_delivery'].includes(order.stage)) {
-               cogs += (order.quantity || 1) * (item.unit_price || 0);
-               completedOrdersCount++;
-            }
-          }
-        });
-      }
-
-      // Fallback for inventory value & low stock using v2 Master Data
-      if (inventoryValue === 0) {
-        try {
-          const v2Prods = JSON.parse(localStorage.getItem('moai_v2_products') || 'null') || initialProducts;
-          inventoryValue = v2Prods.reduce((acc, p) => acc + ((p.cost_price || p.price || 0) * (p.stock || p.stock_on_hand || 0)), 0);
-          lowStockItems = v2Prods.filter(p => (p.stock || p.stock_on_hand || 0) <= (p.min_stock || 5)).length;
-        } catch {
-          inventoryValue = 0;
-          lowStockItems = 0;
-        }
-      }
-
-      if (activeCapEx === 0) {
-        try {
-          const v2Pos = JSON.parse(localStorage.getItem('moai_v2_pos') || 'null') || [];
-          activeCapEx = v2Pos.reduce((acc, po) => acc + (po.total || 0), 0);
-        } catch {
-          activeCapEx = 0;
-        }
-      }
-
-      // Calculate Turnover Ratio
-      let turnoverRatio = inventoryValue > 0 && cogs > 0 ? (cogs / inventoryValue).toFixed(1) : '0.0';
-
-      // Calculate OFR (Order Fulfillment Rate)
-      let ofrRate = totalOrdersCount > 0 ? ((completedOrdersCount / totalOrdersCount) * 100).toFixed(1) : '0.0';
-
-      // Calculate average lead time for whole order (DSO proxy)
-      let totalOrderDurationMs = 0;
-      let completedCount = 0;
-      
-      // Calculate invoice cycle time proxy (time spent in final stage)
-      let totalFinalStageMs = 0;
-      let finalStageCount = 0;
-
-      Object.values(orders).forEach(logs => {
-        if (logs.length < 2) return;
-        const firstLog = logs[0];
-        const lastLog = logs[logs.length - 1];
-        
-        // Duration from creation to last action
-        const durationMs = new Date(lastLog.created_at).getTime() - new Date(firstLog.created_at).getTime();
-        totalOrderDurationMs += durationMs;
-        completedCount++;
-
-        // Invoice cycle proxy: time since entered final stage
-        const finalStageLogs = [...logs].reverse();
-        const finalStageLog = finalStageLogs.find(l => l.action === 'Moved Stage' && ['wh_outbound', 'eid_delivery', 'tpp_delivery'].includes(l.details?.stageId));
-        if (finalStageLog) {
-            const timeInFinalStage = new Date().getTime() - new Date(finalStageLog.created_at).getTime();
-            totalFinalStageMs += timeInFinalStage;
-            finalStageCount++;
-        }
-      });
-
-      const avgDsoDays = completedCount > 0 ? Math.round(totalOrderDurationMs / (1000 * 60 * 60 * 24)) : 0;
-      const avgInvoiceCycleHrs = finalStageCount > 0 ? (totalFinalStageMs / (1000 * 60 * 60)).toFixed(1) : '13.5';
-
-      // Generate dynamic chart data based on EXACT real numbers from the database
-      const now = new Date();
-      const last7Days = Array.from({length: 7}, (_, i) => {
-         const d = new Date(now);
-         d.setDate(d.getDate() - (6 - i));
-         return d.toLocaleDateString('en-US', { weekday: 'short' });
-      });
-
-      const ofrByDay = {};
-      const invoiceByDay = {};
-      last7Days.forEach(d => {
-         ofrByDay[d] = { total: 0, completed: 0 };
-         invoiceByDay[d] = { totalHrs: 0, count: 0 };
-      });
-
+      // --- AR ageing / DSO / invoice cycle (v2 AR invoices) ---
       let aging0_30 = 0;
       let aging31_60 = 0;
       let aging60plus = 0;
+      let arDaysSum = 0;
+      arList.forEach((inv) => {
+        const days = Number(inv.days_outstanding ?? inv.age_days) ||
+          (inv.due_date ? (Date.now() - new Date(inv.due_date).getTime()) / 86400000 : 0);
+        arDaysSum += days;
+        if (days <= 30) aging0_30++;
+        else if (days <= 60) aging31_60++;
+        else aging60plus++;
+      });
+      const dsoDays = arList.length > 0 ? Math.round(arDaysSum / arList.length) : 0;
+      const invoiceCycleTime = arList.length > 0 ? (arDaysSum / arList.length / 24).toFixed(1) : '13.5';
 
-      if (activeOrdersData) {
-        activeOrdersData.forEach(order => {
-            const createdAtStr = new Date(order.created_at).toLocaleDateString('en-US', { weekday: 'short' });
-            if (ofrByDay[createdAtStr]) {
-                ofrByDay[createdAtStr].total++;
-            }
-            
-            const isCompleted = ['wh_outbound', 'eid_delivery', 'tpp_delivery'].includes(order.stage);
-            if (isCompleted && ofrByDay[createdAtStr]) {
-                ofrByDay[createdAtStr].completed++;
-            }
-
-            if (isCompleted) {
-               const orderLogs = orders[order.id] || [];
-               if (orderLogs.length > 0) {
-                   const firstLog = orderLogs[0];
-                   const lastLog = orderLogs[orderLogs.length - 1];
-                   const durationDays = (new Date(lastLog.created_at).getTime() - new Date(firstLog.created_at).getTime()) / (1000 * 60 * 60 * 24);
-                   if (durationDays <= 30) aging0_30++;
-                   else if (durationDays <= 60) aging31_60++;
-                   else aging60plus++;
-               }
-            }
-        });
-      }
-
-      Object.values(orders).forEach(logs => {
-         const finalStageLogs = [...logs].reverse();
-         const finalStageLog = finalStageLogs.find(l => l.action === 'Moved Stage' && ['wh_outbound', 'eid_delivery', 'tpp_delivery'].includes(l.details?.stageId));
-         
-         if (finalStageLog) {
-             const stageDayStr = new Date(finalStageLog.created_at).toLocaleDateString('en-US', { weekday: 'short' });
-             const timeInFinalStage = (new Date().getTime() - new Date(finalStageLog.created_at).getTime()) / (1000 * 60 * 60);
-             if (invoiceByDay[stageDayStr]) {
-                 invoiceByDay[stageDayStr].totalHrs += timeInFinalStage;
-                 invoiceByDay[stageDayStr].count++;
-             }
-         }
+      // --- 7-day series (real data, demo fallback when empty) ---
+      const now = new Date();
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(now);
+        d.setDate(d.getDate() - (6 - i));
+        return d.toLocaleDateString('en-US', { weekday: 'short' });
       });
 
-      let orderFulfillmentData = last7Days.map(day => ({
-         day,
-         rate: ofrByDay[day].total > 0 ? parseFloat(((ofrByDay[day].completed / ofrByDay[day].total) * 100).toFixed(1)) : 0
-      }));
-      if (orderFulfillmentData.every(d => d.rate === 0)) {
-        orderFulfillmentData = [
-          { day: 'Mon', rate: 98.2 },
-          { day: 'Tue', rate: 97.4 },
-          { day: 'Wed', rate: 98.9 },
-          { day: 'Thu', rate: 97.8 },
-          { day: 'Fri', rate: 99.2 },
-          { day: 'Sat', rate: 98.6 },
-          { day: 'Sun', rate: 99.0 }
-        ];
-      }
+      const soByDay = {};
+      const invByDay = {};
+      last7Days.forEach((d) => {
+        soByDay[d] = { total: 0, completed: 0 };
+        invByDay[d] = { totalHrs: 0, count: 0 };
+      });
 
-      let invoiceCycleData = last7Days.map(day => ({
-         batch: day,
-         time: invoiceByDay[day].count > 0 ? parseFloat((invoiceByDay[day].totalHrs / invoiceByDay[day].count).toFixed(1)) : 0
+      soList.forEach((s) => {
+        const day = new Date(s.created_at || Date.now()).toLocaleDateString('en-US', { weekday: 'short' });
+        if (!soByDay[day]) return;
+        soByDay[day].total++;
+        if (COMPLETED_STATES.includes(String(s.status || '').toUpperCase())) soByDay[day].completed++;
+      });
+
+      arList.forEach((inv) => {
+        const day = new Date(inv.created_at || inv.issue_date || Date.now()).toLocaleDateString('en-US', { weekday: 'short' });
+        if (!invByDay[day]) return;
+        invByDay[day].totalHrs += (Number(inv.days_outstanding ?? inv.age_days) || 0) * 24;
+        invByDay[day].count++;
+      });
+
+      let orderFulfillmentData = last7Days.map((day) => ({
+        day,
+        rate: soByDay[day].total > 0 ? parseFloat(((soByDay[day].completed / soByDay[day].total) * 100).toFixed(1)) : 0
       }));
-      if (invoiceCycleData.every(d => d.time === 0)) {
-        invoiceCycleData = [
-          { batch: 'Mon', time: 13.5 },
-          { batch: 'Tue', time: 14.2 },
-          { batch: 'Wed', time: 12.8 },
-          { batch: 'Thu', time: 15.1 },
-          { batch: 'Fri', time: 11.4 },
-          { batch: 'Sat', time: 10.2 },
-          { batch: 'Sun', time: 9.6 }
-        ];
-      }
+      if (orderFulfillmentData.every((d) => d.rate === 0)) orderFulfillmentData = FALLBACK.orderFulfillmentData;
+
+      let invoiceCycleData = last7Days.map((day) => ({
+        batch: day,
+        time: invByDay[day].count > 0 ? parseFloat((invByDay[day].totalHrs / invByDay[day].count).toFixed(1)) : 0
+      }));
+      if (invoiceCycleData.every((d) => d.time === 0)) invoiceCycleData = FALLBACK.invoiceCycleData;
 
       let arAgingData = [
-         { name: '0-30 Days', value: aging0_30, color: '#10b981' },
-         { name: '31-60 Days', value: aging31_60, color: '#f59e0b' },
-         { name: '60+ Days', value: aging60plus, color: '#ef4444' }
+        { name: '0-30 Days', value: aging0_30, color: '#10b981' },
+        { name: '31-60 Days', value: aging31_60, color: '#f59e0b' },
+        { name: '60+ Days', value: aging60plus, color: '#ef4444' }
       ];
-      if (arAgingData.every(d => d.value === 0)) {
-        arAgingData = [
-          { name: '0-30 Days', value: 8, color: '#10b981' },
-          { name: '31-60 Days', value: 3, color: '#f59e0b' },
-          { name: '60+ Days', value: 1, color: '#ef4444' }
-        ];
-      }
+      if (arAgingData.every((d) => d.value === 0)) arAgingData = FALLBACK.arAgingData;
 
       const turnoverChartData = [
         { name: 'Turnover', value: parseFloat(turnoverRatio), fill: parseFloat(turnoverRatio) >= 8 ? '#10b981' : '#f59e0b' }
       ];
 
       setMetrics({
-        avgLeadTimes,
-        totalOrders: totalCount || 12,
-        bottleneckStage: bottleneckStage || 'wh_inbound',
+        totalOrders: soList.length,
+        bottleneckStage: null,
         inventoryValue,
         activeCapEx,
         lowStockItems,
         ofrRate,
         turnoverRatio,
-        dsoDays: avgDsoDays,
-        invoiceCycleTime: avgInvoiceCycleHrs,
+        dsoDays,
+        invoiceCycleTime,
         chartData: {
-            orderFulfillmentData,
-            invoiceCycleData,
-            arAgingData,
-            turnoverData: turnoverChartData
+          orderFulfillmentData,
+          invoiceCycleData,
+          arAgingData,
+          turnoverData: turnoverChartData
         }
       });
       setLoading(false);
     };
 
     fetchAnalyticsData();
+    return () => { cancelled = true; };
   }, [userCompany]);
 
   const getStageTitle = (stageId) => {
     for (const proc of processes) {
-      const s = proc.stages.find(x => x.id === stageId);
+      const s = proc.stages.find((x) => x.id === stageId);
       if (s) return language === 'id' ? (s.titleID || s.title) : (s.titleEN || s.title);
     }
     return stageId;
@@ -363,7 +218,7 @@ export default function Analytics({ session, language }) {
 
   return (
     <div className="animate-fade-in" style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-      
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary-color)' }}>Lead Time Analytics Dashboard (v2.0)</h2>
@@ -384,7 +239,7 @@ export default function Analytics({ session, language }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        
+
         {/* Sales & Service Level */}
         <div className="portlet" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
@@ -421,10 +276,10 @@ export default function Analytics({ session, language }) {
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Inventory Turnover Ratio (Target 8.0)</div>
           <div style={{ height: '150px', width: '100%', position: 'relative' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <RadialBarChart 
-                cx="50%" cy="100%" 
-                innerRadius="60%" outerRadius="100%" 
-                barSize={20} data={metrics.chartData.turnoverData} 
+              <RadialBarChart
+                cx="50%" cy="100%"
+                innerRadius="60%" outerRadius="100%"
+                barSize={20} data={metrics.chartData.turnoverData}
                 startAngle={180} endAngle={0}
               >
                 <RadialBar minAngle={15} background clockWise dataKey="value" cornerRadius={10} />
@@ -481,7 +336,7 @@ export default function Analytics({ session, language }) {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                 <XAxis dataKey="batch" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6b7280'}} />
                 <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6b7280'}} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                   labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px' }}
                 />
@@ -495,7 +350,7 @@ export default function Analytics({ session, language }) {
 
       {/* Real-Time Live Data Section */}
       <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--primary-color)', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Real-Time System Metrics</h3>
-      
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
         <div className="portlet" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           <div style={{ backgroundColor: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', color: '#3b82f6' }}>
