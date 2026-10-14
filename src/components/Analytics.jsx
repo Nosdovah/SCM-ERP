@@ -40,6 +40,16 @@ const FALLBACK = {
 
 const COMPLETED_STATES = ['DELIVERED', 'COMPLETED', 'SHIPPED', 'CLOSED', 'INVOICED', 'FULFILLED'];
 
+// Marks a chart that is showing the illustrative fallback series because the
+// matching v2 collection has no live rows yet.
+function SampleBadge({ language }) {
+  return (
+    <span style={{ fontSize: '0.6rem', backgroundColor: '#e0e7ff', color: '#4338ca', padding: '0.1rem 0.45rem', borderRadius: '0.75rem', fontWeight: '700', marginLeft: '0.4rem', letterSpacing: '0.03em' }}>
+      {language === 'id' ? 'ILUSTRASI' : 'SAMPLE'}
+    </span>
+  );
+}
+
 export default function Analytics({ session, language }) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
@@ -52,6 +62,7 @@ export default function Analytics({ session, language }) {
     turnoverRatio: '0.0',
     dsoDays: 0,
     invoiceCycleTime: '0.0',
+    sample: { ofr: false, invoice: false, ar: false },
     chartData: {
       orderFulfillmentData: [],
       invoiceCycleData: [],
@@ -161,20 +172,23 @@ export default function Analytics({ session, language }) {
         day,
         rate: soByDay[day].total > 0 ? parseFloat(((soByDay[day].completed / soByDay[day].total) * 100).toFixed(1)) : 0
       }));
-      if (orderFulfillmentData.every((d) => d.rate === 0)) orderFulfillmentData = FALLBACK.orderFulfillmentData;
+      const ofrSample = orderFulfillmentData.every((d) => d.rate === 0);
+      if (ofrSample) orderFulfillmentData = FALLBACK.orderFulfillmentData;
 
       let invoiceCycleData = last7Days.map((day) => ({
         batch: day,
         time: invByDay[day].count > 0 ? parseFloat((invByDay[day].totalHrs / invByDay[day].count).toFixed(1)) : 0
       }));
-      if (invoiceCycleData.every((d) => d.time === 0)) invoiceCycleData = FALLBACK.invoiceCycleData;
+      const invoiceSample = invoiceCycleData.every((d) => d.time === 0);
+      if (invoiceSample) invoiceCycleData = FALLBACK.invoiceCycleData;
 
       let arAgingData = [
         { name: '0-30 Days', value: aging0_30, color: '#10b981' },
         { name: '31-60 Days', value: aging31_60, color: '#f59e0b' },
         { name: '60+ Days', value: aging60plus, color: '#ef4444' }
       ];
-      if (arAgingData.every((d) => d.value === 0)) arAgingData = FALLBACK.arAgingData;
+      const arSample = arAgingData.every((d) => d.value === 0);
+      if (arSample) arAgingData = FALLBACK.arAgingData;
 
       const turnoverChartData = [
         { name: 'Turnover', value: parseFloat(turnoverRatio), fill: parseFloat(turnoverRatio) >= 8 ? '#10b981' : '#f59e0b' }
@@ -190,6 +204,7 @@ export default function Analytics({ session, language }) {
         turnoverRatio,
         dsoDays,
         invoiceCycleTime,
+        sample: { ofr: ofrSample, invoice: invoiceSample, ar: arSample },
         chartData: {
           orderFulfillmentData,
           invoiceCycleData,
@@ -243,7 +258,7 @@ export default function Analytics({ session, language }) {
         {/* Sales & Service Level */}
         <div className="portlet" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>Sales & Service Level</div>
+            <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>Sales & Service Level{metrics.sample.ofr && <SampleBadge language={language} />}</div>
             <div style={{ fontSize: '0.75rem', backgroundColor: parseFloat(metrics.ofrRate) >= 96 ? '#dcfce7' : '#fef3c7', color: parseFloat(metrics.ofrRate) >= 96 ? '#166534' : '#92400e', padding: '0.2rem 0.5rem', borderRadius: '1rem', fontWeight: '600' }}>
               {parseFloat(metrics.ofrRate) >= 96 ? 'Optimal' : 'Monitor'}
             </div>
@@ -292,7 +307,7 @@ export default function Analytics({ session, language }) {
         {/* Liquidity & Cash Flow (AR Aging) */}
         <div className="portlet" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>Liquidity & Cash Flow</div>
+            <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>Liquidity & Cash Flow{metrics.sample.ar && <SampleBadge language={language} />}</div>
             <div style={{ fontSize: '0.75rem', backgroundColor: metrics.dsoDays <= 50 ? '#dcfce7' : '#fee2e2', color: metrics.dsoDays <= 50 ? '#166534' : '#991b1b', padding: '0.2rem 0.5rem', borderRadius: '1rem', fontWeight: '600' }}>
               {metrics.dsoDays <= 50 ? 'Optimal' : 'Action Required'}
             </div>
@@ -317,7 +332,7 @@ export default function Analytics({ session, language }) {
         {/* Financial Operations (Time to Invoice) */}
         <div className="portlet" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>Financial Operations</div>
+            <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>Financial Operations{metrics.sample.invoice && <SampleBadge language={language} />}</div>
             <div style={{ fontSize: '0.75rem', backgroundColor: parseFloat(metrics.invoiceCycleTime) < 24 ? '#dcfce7' : '#fef3c7', color: parseFloat(metrics.invoiceCycleTime) < 24 ? '#166534' : '#92400e', padding: '0.2rem 0.5rem', borderRadius: '1rem', fontWeight: '600' }}>
               {parseFloat(metrics.invoiceCycleTime) < 24 ? 'Optimal' : 'Monitor'}
             </div>
