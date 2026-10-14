@@ -37,9 +37,6 @@ function App() {
 
   const [forceTutorial, setForceTutorial] = useState(false);
 
-  const userCompany = session?.user?.user_metadata?.company_name || 'NOT ASSIGNED';
-  const userRole = session?.user?.user_metadata?.role || 'Admin';
-
   const handleLogout = async () => {
     localStorage.removeItem('moai_auth_session');
     localStorage.removeItem('moai_auth_token');
