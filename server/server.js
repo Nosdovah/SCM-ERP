@@ -38,8 +38,10 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Generous JSON limit so bulk catalogue imports (e.g. PUT /api/v2/master/products)
+// are not rejected by the 100kb default.
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Storage using in-memory buffer (100% compatible with Vercel Serverless & Supabase Storage)
 const upload = multer({ 
@@ -1129,6 +1131,44 @@ app.post('/api/v2/master/products', async (req, res) => {
   }
   v2Products.unshift(newProduct);
   res.status(201).json(newProduct);
+});
+
+// Bulk import / replace of the master product catalogue.
+// Used to load a distributor catalogue (e.g. Inventory_List_Update) in one shot.
+// Accepts either a bare JSON array or { products: [...] }.
+// The v2Persistence middleware persists the collection (durable) before responding.
+app.put('/api/v2/master/products', async (req, res) => {
+  const body = req.body;
+  const incoming = Array.isArray(body)
+    ? body
+    : (body && Array.isArray(body.products) ? body.products : null);
+  if (!incoming) {
+    return res.status(400).json({ error: 'Expected a JSON array of products, or { products: [...] }' });
+  }
+  if (incoming.length > 5000) {
+    return res.status(413).json({ error: 'Too many products in one request (max 5000)' });
+  }
+
+  const now = new Date().toISOString();
+  const normalized = incoming.map((p, i) => ({
+    ...p,
+    id: p.id || `prod-${String(i + 1).padStart(4, '0')}`,
+    sku: String(p.sku || '').trim(),
+    unit_price: Number(p.unit_price) || 0,
+    cost_price: Number(p.cost_price) || 0,
+    stock: Number(p.stock) || 0,
+    created_at: p.created_at || now
+  }));
+  if (normalized.some(p => !p.sku)) {
+    return res.status(400).json({ error: 'Every product must have a non-empty sku' });
+  }
+
+  // Replace the collection contents in place (keeps the stable reference used by
+  // every other handler) then let the middleware persist it before we respond.
+  v2Products.length = 0;
+  for (const p of normalized) v2Products.push(p);
+
+  res.json({ replaced: true, count: v2Products.length });
 });
 
 app.get('/api/v2/master/products/:id', (req, res) => {
