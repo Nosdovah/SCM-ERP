@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   BarChart3, TrendingUp, Users, DollarSign 
 } from 'lucide-react';
 import { initialProducts, calculateTotalValuation } from '../../data/v2Data';
+import { apiService } from '../../services/apiService';
 
 export default function ManagerialV2({ language }) {
   const [subTab, setSubTab] = useState('executive'); // 'executive' | 'aging_report' | 'worker_perf' | 'pnl'
 
-  const [products] = useState(() => {
+  const [products, setProducts] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_products');
       if (saved) return JSON.parse(saved);
@@ -21,7 +22,7 @@ export default function ManagerialV2({ language }) {
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
   const totalValuation = calculateTotalValuation(products);
 
-  const [salesOrders] = useState(() => {
+  const [salesOrders, setSalesOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_sales_orders');
       if (saved) return JSON.parse(saved);
@@ -30,6 +31,23 @@ export default function ManagerialV2({ language }) {
     }
     return [];
   });
+
+  // Load live data from the v2 REST layer (localStorage above is only a warm cache,
+  // so a cold session still renders real values instead of zeros).
+  useEffect(() => {
+    apiService.masterData.getProducts().then(data => {
+      if (Array.isArray(data)) {
+        setProducts(data);
+        try { localStorage.setItem('moai_v2_products', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.outbound.getSalesOrders().then(data => {
+      if (Array.isArray(data)) {
+        setSalesOrders(data);
+        try { localStorage.setItem('moai_v2_sales_orders', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+  }, []);
 
   const totalSales = salesOrders.reduce((acc, so) => acc + (Number(so.total) || 0), 0);
   const totalCogs = salesOrders.reduce((acc, so) => acc + ((Number(so.total) || 0) * 0.8), 0);
