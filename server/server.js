@@ -1406,6 +1406,86 @@ app.post('/api/v2/inventory/adjustments', (req, res) => {
   res.status(201).json({ success: true, movement: mov });
 });
 
+// Bulk stock setup — set the ABSOLUTE on-hand quantity for many SKUs in one shot.
+// Purpose: initialise / re-baseline stock master data from a physical count or
+// opening balance sheet. Every line that changes is written to the immutable
+// ledger as an ADJ_IN / ADJ_OUT movement (never a silent UPDATE on the balance),
+// so the golden rule is preserved and the change is fully auditable.
+// The v2Persistence middleware flushes the collection to Supabase before the 2xx.
+app.post('/api/v2/inventory/stock-setup', (req, res) => {
+  const body = req.body || {};
+  const items = Array.isArray(body)
+    ? body
+    : (Array.isArray(body.items) ? body.items : null);
+  if (!items) {
+    return res.status(400).json({ error: 'Expected { items: [{ sku, qty, bin_code? }] }' });
+  }
+  if (items.length > 2000) {
+    return res.status(413).json({ error: 'Too many items in one request (max 2000)' });
+  }
+
+  const reason = String(body.reason || 'Initial Stock Setup').slice(0, 80);
+  const note = String(body.note || '').slice(0, 200);
+  const actor = (req.user && req.user.email) || 'Inventory Staff';
+  const stamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+  const refCode = `SETUP-${Date.now().toString().slice(-6)}`;
+
+  const applied = [];
+  const skipped = [];
+  let totalQty = 0;
+  let totalValue = 0;
+  let changed = 0;
+
+  for (const raw of items) {
+    const sku = String((raw && raw.sku) || '').trim();
+    if (!sku) { skipped.push({ sku: '', reason: 'missing sku' }); continue; }
+
+    const prod = v2Products.find(p => p.sku === sku);
+    if (!prod) { skipped.push({ sku, reason: 'sku not found' }); continue; }
+
+    const target = Math.max(0, Math.trunc(Number(raw.qty) || 0));
+    const current = Number(prod.stock ?? prod.stock_on_hand ?? 0) || 0;
+    const delta = target - current;
+
+    if (raw.bin_code) prod.bin_code = String(raw.bin_code).trim();
+
+    if (delta !== 0) {
+      const mov = {
+        id: `mov-${Date.now()}-${applied.length}`,
+        movement_type: delta > 0 ? 'ADJ_IN' : 'ADJ_OUT',
+        product_name: prod.name,
+        sku: prod.sku,
+        qty: delta,
+        bin_code: prod.bin_code || 'PB-A-1-01',
+        ref_doc: refCode,
+        unit_cost: Number(prod.cost_price) || 0,
+        note: `${reason}${note ? ' · ' + note : ''} (set ${current} -> ${target})`,
+        created_at: stamp,
+        created_by: actor
+      };
+      v2Movements.unshift(mov);
+      changed += 1;
+    }
+
+    prod.stock = target;
+    prod.stock_on_hand = target;
+
+    totalQty += target;
+    totalValue += target * (Number(prod.cost_price) || 0);
+    applied.push({ sku, previous: current, qty: target, delta });
+  }
+
+  res.json({
+    ok: true,
+    ref: refCode,
+    applied: applied.length,
+    changed,
+    skipped,
+    total_qty: totalQty,
+    total_value: totalValue
+  });
+});
+
 app.get('/api/v2/inventory/aging', (_req, res) => {
   res.json({
     buckets: {
