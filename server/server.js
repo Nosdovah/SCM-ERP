@@ -1185,34 +1185,209 @@ app.post('/api/v2/master/bins', (req, res) => {
   v2Bins.push(newBin);
   res.status(201).json(newBin);
 });
-app.get('/api/v2/master/brands', (_req, res) => res.json(v2Brands));
-app.post('/api/v2/master/brands', (req, res) => {
-  const b = req.body || {};
-  const name = String(b.name || '').trim();
-  if (!name) {
-    return res.status(400).json({ error: 'Brand name is required' });
+// ---------------------------------------------------------------------------
+// Master-entity CRUD (Brands / Suppliers / Clients)
+// ---------------------------------------------------------------------------
+// DELETE archives by default (is_active=false + deleted_at) so historical
+// documents — PO, GRN, SO, AR invoices — keep resolving to a known entity.
+// A real removal is available with ?hard=true but is refused (409) while the
+// record is still referenced by a transaction.
+const isArchivedRow = (x) => x.is_active === false || !!x.deleted_at;
+const activeRows = (arr) => arr.filter(x => !isArchivedRow(x));
+
+function countEntityRefs(refCollections, name, code) {
+  const needles = [name, code].map(v => String(v || '').trim().toLowerCase()).filter(Boolean);
+  if (!needles.length) return 0;
+  let total = 0;
+  for (const rc of refCollections) {
+    for (const row of rc.arr) {
+      if (rc.fields.some(f => needles.includes(String(row[f] || '').trim().toLowerCase()))) total += 1;
+    }
   }
-  const code = String(b.code || '').trim().toUpperCase()
-    || name.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12)
-    || `BRAND${Date.now().toString().slice(-4)}`;
-  if (v2Brands.some(x => String(x.code || '').toUpperCase() === code)) {
-    return res.status(409).json({ error: `Brand code "${code}" already exists` });
-  }
-  if (v2Brands.some(x => String(x.name || '').trim().toLowerCase() === name.toLowerCase())) {
-    return res.status(409).json({ error: `Brand "${name}" already exists` });
-  }
-  const newBrand = {
-    id: `brand-${Date.now()}`,
-    name,
-    code,
-    description: String(b.description || '').trim(),
-    created_at: new Date().toISOString()
+  return total;
+}
+
+// Registers POST (create) / PUT (update) / DELETE (archive|hard) / restore.
+// `pick(body, cur)` returns the merged, sanitised record fields.
+function registerMasterEntityCrud(cfg) {
+  const {
+    route, arr, label, idPrefix, codePrefix = '', codeLen = 10, prepend = false,
+    defaults = {}, pick, refCollections = []
+  } = cfg;
+
+  const autoCode = (name) =>
+    `${codePrefix}${String(name).replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, codeLen)}`
+    || `${codePrefix || 'ENT'}${Date.now().toString().slice(-4)}`;
+
+  const findOne = (id) => arr.find(x => String(x.id) === String(id));
+
+  // ---- CREATE ------------------------------------------------------------
+  app.post(route, (req, res) => {
+    const body = req.body || {};
+    const name = String(body.name || '').trim();
+    if (!name) return res.status(400).json({ error: `${label} name is required` });
+
+    const code = String(body.code || '').trim().toUpperCase() || autoCode(name);
+    const live = activeRows(arr);
+    if (live.some(x => String(x.code || '').toUpperCase() === code)) {
+      return res.status(409).json({ error: `${label} code "${code}" already exists` });
+    }
+    if (live.some(x => String(x.name || '').trim().toLowerCase() === name.toLowerCase())) {
+      return res.status(409).json({ error: `${label} "${name}" already exists` });
+    }
+
+    const base = { ...defaults, name, code };
+    const rec = {
+      id: `${idPrefix}-${Date.now()}`,
+      ...base,
+      ...pick(body, base),
+      name,
+      code,
+      is_active: true,
+      created_at: new Date().toISOString()
+    };
+    if (prepend) arr.unshift(rec); else arr.push(rec);
+    res.status(201).json(rec);
+  });
+
+  // ---- UPDATE ------------------------------------------------------------
+  app.put(`${route}/:id`, (req, res) => {
+    const cur = findOne(req.params.id);
+    if (!cur) return res.status(404).json({ error: `${label} not found` });
+
+    const next = pick(req.body || {}, cur);
+    const name = String(next.name || '').trim();
+    if (!name) return res.status(400).json({ error: `${label} name is required` });
+    const code = String(next.code || '').trim().toUpperCase() || cur.code;
+
+    const clash = arr.find(x => x !== cur && !isArchivedRow(x) && (
+      String(x.code || '').toUpperCase() === code ||
+      String(x.name || '').trim().toLowerCase() === name.toLowerCase()
+    ));
+    if (clash) {
+      return res.status(409).json({
+        error: String(clash.code || '').toUpperCase() === code
+          ? `${label} code "${code}" already exists`
+          : `${label} "${name}" already exists`
+      });
+    }
+
+    Object.assign(cur, next, { name, code, updated_at: new Date().toISOString() });
+    res.json(cur);
+  });
+
+  // ---- DELETE (archive by default, ?hard=true to remove) -----------------
+  app.delete(`${route}/:id`, (req, res) => {
+    const idx = arr.findIndex(x => String(x.id) === String(req.params.id));
+    if (idx === -1) return res.status(404).json({ error: `${label} not found` });
+    const cur = arr[idx];
+    const referenced = countEntityRefs(refCollections, cur.name, cur.code);
+    const hard = String(req.query.hard || '').toLowerCase() === 'true';
+
+    if (hard) {
+      if (referenced > 0) {
+        return res.status(409).json({
+          error: `${label} "${cur.name}" is referenced by ${referenced} transaction(s) — archive it instead`,
+          referenced
+        });
+      }
+      arr.splice(idx, 1);
+      return res.json({ deleted: true, hard: true, id: cur.id, name: cur.name });
+    }
+
+    Object.assign(cur, {
+      is_active: false,
+      deleted_at: new Date().toISOString(),
+      deleted_by: req.user?.email || 'system'
+    });
+    res.json({ ...cur, archived: true, referenced });
+  });
+
+  // ---- RESTORE -----------------------------------------------------------
+  app.post(`${route}/:id/restore`, (req, res) => {
+    const cur = findOne(req.params.id);
+    if (!cur) return res.status(404).json({ error: `${label} not found` });
+    const clash = activeRows(arr).find(x => x !== cur &&
+      String(x.code || '').toUpperCase() === String(cur.code || '').toUpperCase());
+    if (clash) {
+      return res.status(409).json({ error: `Cannot restore — code "${cur.code}" is now used by "${clash.name}"` });
+    }
+    delete cur.deleted_at;
+    delete cur.deleted_by;
+    cur.is_active = true;
+    cur.restored_at = new Date().toISOString();
+    res.json(cur);
+  });
+}
+
+// GET is archive-aware: archived rows are hidden unless ?include_archived=true
+function listMasterEntities(arr) {
+  return (req, res) => {
+    const includeArchived = String(req.query.include_archived || '').toLowerCase() === 'true';
+    res.json(includeArchived ? arr : activeRows(arr));
   };
-  v2Brands.push(newBrand);
-  res.status(201).json(newBrand);
+}
+
+registerMasterEntityCrud({
+  route: '/api/v2/master/brands',
+  arr: v2Brands,
+  label: 'Brand',
+  idPrefix: 'brand',
+  codePrefix: '',
+  codeLen: 12,
+  prepend: false,
+  defaults: { description: '' },
+  pick: (b, cur) => ({
+    name: b.name !== undefined ? String(b.name).trim() : cur.name,
+    code: b.code !== undefined ? String(b.code).trim().toUpperCase() : cur.code,
+    description: b.description !== undefined ? String(b.description).trim() : (cur.description || '')
+  }),
+  refCollections: [{ arr: v2Products, fields: ['brand', 'brand_name'] }]
 });
+
+app.get('/api/v2/master/brands', listMasterEntities(v2Brands));
+
+registerMasterEntityCrud({
+  route: '/api/v2/master/suppliers',
+  arr: v2Suppliers,
+  label: 'Supplier',
+  idPrefix: 'supp',
+  codePrefix: 'SUPP-',
+  codeLen: 10,
+  prepend: true,
+  defaults: {
+    category: 'Distributor', country: 'Indonesia', currency: 'IDR', rating: 5.0,
+    contact: '', phone: '', email: '', address: '', payment_terms: 'NET 30',
+    lead_time_days: 7, on_time_rate: '—', defect_rate: '—', is_principal: false
+  },
+  pick: (s, cur) => ({
+    name: s.name !== undefined ? String(s.name).trim() : cur.name,
+    code: s.code !== undefined ? String(s.code).trim().toUpperCase() : cur.code,
+    category: s.category !== undefined ? String(s.category).trim() : cur.category,
+    country: s.country !== undefined ? String(s.country).trim() : cur.country,
+    currency: s.currency !== undefined ? String(s.currency).trim().toUpperCase() : cur.currency,
+    rating: s.rating !== undefined ? (Number(s.rating) || 5.0) : cur.rating,
+    contact: s.contact !== undefined ? String(s.contact).trim() : cur.contact,
+    phone: s.phone !== undefined ? String(s.phone).trim() : cur.phone,
+    email: s.email !== undefined ? String(s.email).trim() : cur.email,
+    address: s.address !== undefined ? String(s.address).trim() : cur.address,
+    payment_terms: s.payment_terms !== undefined ? String(s.payment_terms).trim() : cur.payment_terms,
+    lead_time_days: s.lead_time_days !== undefined ? (Number(s.lead_time_days) || 0) : cur.lead_time_days,
+    is_principal: s.is_principal !== undefined ? !!s.is_principal : cur.is_principal
+  }),
+  refCollections: [
+    { arr: v2PurchaseOrders, fields: ['supplier', 'supplier_name', 'vendor', 'vendor_name'] },
+    { arr: v2GRNList, fields: ['supplier', 'supplier_name'] },
+    { arr: v2Requisitions, fields: ['supplier', 'supplier_name'] }
+  ]
+});
+
+// Suppliers keep the legacy Supabase-first read (the `suppliers` table wins
+// when populated), falling through to the v2 collection — which is where the
+// CRUD routes above write. Archived rows are hidden unless requested.
 app.get('/api/v2/master/suppliers', async (req, res) => {
   const { company_name } = req.query;
+  const includeArchived = String(req.query.include_archived || '').toLowerCase() === 'true';
   if (supabase) {
     try {
       let q = supabase.from('suppliers').select('*').order('created_at', { ascending: false });
@@ -1237,70 +1412,41 @@ app.get('/api/v2/master/suppliers', async (req, res) => {
       console.debug('Error querying Supabase suppliers:', err);
     }
   }
-  res.json(v2Suppliers);
+  res.json(includeArchived ? v2Suppliers : activeRows(v2Suppliers));
 });
-app.post('/api/v2/master/suppliers', (req, res) => {
-  const s = req.body || {};
-  const name = String(s.name || '').trim();
-  if (!name) {
-    return res.status(400).json({ error: 'Supplier name is required' });
-  }
-  const code = String(s.code || '').trim().toUpperCase()
-    || `SUPP-${name.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10)}`;
-  if (v2Suppliers.some(x => String(x.code || '').toUpperCase() === code)) {
-    return res.status(409).json({ error: `Supplier code "${code}" already exists` });
-  }
-  const newSupp = {
-    id: `supp-${Date.now()}`,
-    code,
-    name,
-    category: String(s.category || 'Distributor').trim(),
-    country: String(s.country || 'Indonesia').trim(),
-    currency: String(s.currency || 'IDR').toUpperCase(),
-    rating: Number(s.rating) || 5.0,
-    contact: String(s.contact || '').trim(),
-    phone: String(s.phone || '').trim(),
-    email: String(s.email || '').trim(),
-    address: String(s.address || '').trim(),
-    payment_terms: String(s.payment_terms || 'NET 30').trim(),
-    lead_time_days: Number(s.lead_time_days) || 7,
-    on_time_rate: String(s.on_time_rate || '—'),
-    defect_rate: String(s.defect_rate || '—'),
-    is_principal: !!s.is_principal,
-    created_at: new Date().toISOString()
-  };
-  v2Suppliers.unshift(newSupp);
-  res.status(201).json(newSupp);
+
+registerMasterEntityCrud({
+  route: '/api/v2/master/clients',
+  arr: v2Clients,
+  label: 'Client',
+  idPrefix: 'cli',
+  codePrefix: 'CLI-',
+  codeLen: 10,
+  prepend: true,
+  defaults: {
+    segment: 'corporate', contact: '', phone: '', email: '',
+    billing_address: '', payment_terms: 'NET 30', credit_limit: 0, outstanding: 0
+  },
+  pick: (c, cur) => ({
+    name: c.name !== undefined ? String(c.name).trim() : cur.name,
+    code: c.code !== undefined ? String(c.code).trim().toUpperCase() : cur.code,
+    segment: c.segment !== undefined ? String(c.segment).trim().toLowerCase() : cur.segment,
+    contact: c.contact !== undefined ? String(c.contact).trim() : cur.contact,
+    phone: c.phone !== undefined ? String(c.phone).trim() : cur.phone,
+    email: c.email !== undefined ? String(c.email).trim() : cur.email,
+    billing_address: c.billing_address !== undefined ? String(c.billing_address).trim() : cur.billing_address,
+    payment_terms: c.payment_terms !== undefined ? String(c.payment_terms).trim() : cur.payment_terms,
+    credit_limit: c.credit_limit !== undefined ? (Number(c.credit_limit) || 0) : cur.credit_limit,
+    outstanding: c.outstanding !== undefined ? (Number(c.outstanding) || 0) : cur.outstanding
+  }),
+  refCollections: [
+    { arr: v2SalesOrders, fields: ['client', 'client_name', 'customer', 'customer_name'] },
+    { arr: v2ArInvoices, fields: ['client', 'client_name', 'customer', 'customer_name'] },
+    { arr: v2DeliveryNotes, fields: ['client', 'client_name', 'customer', 'customer_name'] }
+  ]
 });
-app.get('/api/v2/master/clients', (_req, res) => res.json(v2Clients));
-app.post('/api/v2/master/clients', (req, res) => {
-  const c = req.body || {};
-  const name = String(c.name || '').trim();
-  if (!name) {
-    return res.status(400).json({ error: 'Client name is required' });
-  }
-  const code = String(c.code || '').trim().toUpperCase()
-    || `CLI-${name.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10)}`;
-  if (v2Clients.some(x => String(x.code || '').toUpperCase() === code)) {
-    return res.status(409).json({ error: `Client code "${code}" already exists` });
-  }
-  const newClient = {
-    id: `cli-${Date.now()}`,
-    code,
-    name,
-    segment: String(c.segment || 'corporate').toLowerCase(),
-    contact: String(c.contact || '').trim(),
-    phone: String(c.phone || '').trim(),
-    email: String(c.email || '').trim(),
-    billing_address: String(c.billing_address || '').trim(),
-    payment_terms: String(c.payment_terms || 'NET 30').trim(),
-    credit_limit: Number(c.credit_limit) || 0,
-    outstanding: Number(c.outstanding) || 0,
-    created_at: new Date().toISOString()
-  };
-  v2Clients.unshift(newClient);
-  res.status(201).json(newClient);
-});
+
+app.get('/api/v2/master/clients', listMasterEntities(v2Clients));
 app.get('/api/v2/master/operational', (_req, res) => {
   const opData = v2Products.map(p => ({
     product_id: p.id,
