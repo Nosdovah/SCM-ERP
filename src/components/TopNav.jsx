@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bell, User, LogOut } from 'lucide-react';
-import { supabase } from '../supabaseClient';
+import { apiService } from '../services/apiService';
 
 export default function TopNav({ currentView, setCurrentView, handleLogout, session, language, setLanguage }) {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -9,36 +9,30 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
   const userCompany = session?.user?.user_metadata?.company_name || 'NOT ASSIGNED';
   const userRole = session?.user?.user_metadata?.role || 'Admin';
 
+  // Ids seen on the previous poll, used to flag newly arrived activity as unread.
+  const seenIdsRef = useRef(null);
+
+  // Poll the v2 activity feed every 30s — replaces the legacy client-side
+  // Supabase realtime subscription on the `order_history` table.
   useEffect(() => {
-    if (!supabase || userCompany === 'NOT ASSIGNED') return;
+    let cancelled = false;
 
     const fetchNotifications = async () => {
-      const { data } = await supabase
-        .from('order_history')
-        .select('*')
-        .eq('company_name', userCompany)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      
-      if (data) {
-        setNotifications(data);
+      const data = await apiService.notifications.list();
+      if (cancelled || !Array.isArray(data)) return;
+
+      if (seenIdsRef.current) {
+        const fresh = data.filter((n) => !seenIdsRef.current.has(n.id)).length;
+        if (fresh > 0) setUnreadCount((prev) => prev + fresh);
       }
+      seenIdsRef.current = new Set(data.map((n) => n.id));
+      setNotifications(data);
     };
 
     fetchNotifications();
-
-    const channel = supabase
-      .channel('public:order_history')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'order_history' }, (payload) => {
-        if (payload.new.company_name === userCompany) {
-          setNotifications(prev => [payload.new, ...prev].slice(0, 20));
-          setUnreadCount(prev => prev + 1);
-        }
-      })
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [userCompany]);
+    const timer = setInterval(fetchNotifications, 30000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, []);
 
   const handleOpenNotifications = () => {
     setShowNotifications(!showNotifications);
@@ -50,12 +44,22 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
   const getRelativeTime = (timestamp) => {
     const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
     const diff = new Date(timestamp).getTime() - new Date().getTime();
+    if (Number.isNaN(diff)) return '';
     const diffMins = Math.round(diff / 60000);
-    
+
     if (Math.abs(diffMins) < 60) return rtf.format(diffMins, 'minute');
     const diffHours = Math.round(diff / 3600000);
     if (Math.abs(diffHours) < 24) return rtf.format(diffHours, 'hour');
     return rtf.format(Math.round(diff / 86400000), 'day');
+  };
+
+  const getNotificationText = (notif) => {
+    const details = notif.details || {};
+    const item = details.item || details.sku || details.ref || notif.id;
+    let text = `${notif.action}: ${item}`;
+    if (details.qty) text += ` (${details.qty} unit)`;
+    if (details.to) text += ` → ${details.to}`;
+    return text;
   };
 
   const getViewTitle = () => {
@@ -89,11 +93,11 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
     <header className="top-nav">
       <div className="page-title">{getViewTitle()}</div>
       <div className="user-profile" id="tour-top-profile" style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
-        
+
         {/* Language Toggle */}
-        <button 
+        <button
           id="tour-top-lang"
-          onClick={() => setLanguage(language === 'en' ? 'id' : 'en')} 
+          onClick={() => setLanguage(language === 'en' ? 'id' : 'en')}
           style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '0.2rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
           title={language === 'en' ? "Switch to Bahasa Indonesia" : "Beralih ke Bahasa Inggris"}
         >
@@ -113,8 +117,8 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
         {/* Notification Dropdown */}
         {showNotifications && (
           <>
-            <div 
-              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 90 }} 
+            <div
+              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 90 }}
               onClick={() => setShowNotifications(false)}
             />
             <div style={{ position: 'absolute', top: '100%', right: '150px', width: '300px', backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)', zIndex: 100, marginTop: '0.5rem', overflow: 'hidden' }}>
@@ -126,23 +130,12 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
               {notifications.length === 0 ? (
                 <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>{language === 'id' ? 'Belum ada notifikasi' : 'No notifications yet'}</div>
               ) : (
-                notifications.map(notif => {
-                  let notifText = `${notif.action} (Order ${notif.order_id})`;
-                  if (notif.action === 'Created Order' && notif.details?.title) {
-                    notifText = `New Order: ${notif.details.title} created by ${notif.user_email}`;
-                  } else if (notif.action === 'Moved Stage' && notif.details?.to) {
-                    notifText = `Order ${notif.order_id} moved to ${notif.details.to}`;
-                  } else if (notif.action === 'Updated Checklist' && notif.details?.item) {
-                    notifText = `Verified: ${notif.details.item} on Order ${notif.order_id}`;
-                  }
-                  
-                  return (
-                    <div key={notif.id} style={{ padding: '1rem', borderBottom: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer', backgroundColor: 'transparent' }}>
-                      <span style={{ fontSize: '0.875rem', color: 'var(--text-main)', fontWeight: '400' }}>{notifText}</span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{getRelativeTime(notif.created_at)}</span>
-                    </div>
-                  );
-                })
+                notifications.map(notif => (
+                  <div key={notif.id} style={{ padding: '1rem', borderBottom: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer', backgroundColor: 'transparent' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-main)', fontWeight: '400' }}>{getNotificationText(notif)}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{getRelativeTime(notif.created_at)}</span>
+                  </div>
+                ))
               )}
             </div>
             </div>
@@ -158,20 +151,20 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
             </div>
             <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.65)' }}>{session?.user?.email || 'admin@example.com'}</span>
           </div>
-          <div 
-            style={{ 
-              cursor: 'pointer', 
-              width: '38px', 
-              height: '38px', 
-              borderRadius: '50%', 
-              backgroundColor: 'rgba(255,255,255,0.1)', 
-              border: '2px solid rgba(255,255,255,0.4)', 
-              display: 'flex', 
-              alignItems: 'center', 
+          <div
+            style={{
+              cursor: 'pointer',
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              border: '2px solid rgba(255,255,255,0.4)',
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.2s ease'
-            }} 
-            onClick={() => setCurrentView('settings')} 
+            }}
+            onClick={() => setCurrentView('settings')}
             title="Profile Settings"
             onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.8)' }}
             onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)' }}

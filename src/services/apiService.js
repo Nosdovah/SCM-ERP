@@ -114,5 +114,18 @@ export const apiService = {
     createSupplier: (data) => fetchJson('/v2/master/suppliers', { method: 'POST', body: JSON.stringify(data) }),
     getClients: () => fetchJson('/v2/master/clients'),
     createClient: (data) => fetchJson('/v2/master/clients', { method: 'POST', body: JSON.stringify(data) })
+  },
+
+  // Modul 6: Managerial, Billing & Analytics (executive dashboard, P&L, worker KPIs)
+  managerial: {
+    getExecutiveDashboard: () => fetchJson('/v2/managerial/executive-dashboard'),
+    getPnl: () => fetchJson('/v2/managerial/pnl'),
+    getWorkerPerformance: () => fetchJson('/v2/managerial/worker-performance')
+  },
+
+  // Activity feed for the TopNav notification bell.
+  // Replaces the legacy client-side Supabase realtime channel on `order_history`.
+  notifications: {
+    list: () => fetchJson('/v2/notifications')
   }
 };
