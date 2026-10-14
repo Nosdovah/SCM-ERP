@@ -9,6 +9,20 @@ import {
 } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
 
+// The inventory balances endpoint returns `stock_on_hand` / `available` /
+// `valuation`, while the rest of this view works with `stock`. Normalise once
+// at the boundary so every consumer below reads a consistent shape.
+const normalizeProduct = (p) => {
+  const onHand = Number(p.stock ?? p.stock_on_hand ?? 0) || 0;
+  return {
+    ...p,
+    stock: onHand,
+    stock_on_hand: onHand,
+    uom: p.uom || '',
+    valuation: Number(p.valuation ?? onHand * (Number(p.cost_price) || 0)) || 0
+  };
+};
+
 export default function InventoryManagementV2({ session, language }) {
   const [subTab, setSubTab] = useState('overview'); // 'overview' | 'serials' | 'movements' | 'operations' | 'aging' | 'rma'
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -18,7 +32,10 @@ export default function InventoryManagementV2({ session, language }) {
   const [products, setProducts] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_products');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.map(normalizeProduct);
+      }
     } catch (e) {
       console.error('Failed to load products from localStorage', e);
     }
@@ -85,9 +102,10 @@ export default function InventoryManagementV2({ session, language }) {
   // REST API Mount Fetch
   useEffect(() => {
     apiService.inventory.getBalances().then(data => {
-      if (data && data.products) {
-        setProducts(data.products);
-        try { localStorage.setItem('moai_v2_products', JSON.stringify(data.products)); } catch (err) { console.debug(err); }
+      if (data && Array.isArray(data.products)) {
+        const normalized = data.products.map(normalizeProduct);
+        setProducts(normalized);
+        try { localStorage.setItem('moai_v2_products', JSON.stringify(normalized)); } catch (err) { console.debug(err); }
       }
     });
     apiService.inventory.getSerials().then(data => {
