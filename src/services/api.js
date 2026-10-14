@@ -3,10 +3,24 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+// QA-02 fix: forward the active session token so protected endpoints can authenticate.
+function authHeader() {
+  try {
+    const token = localStorage.getItem('moai_auth_token');
+    if (token && token !== 'undefined' && token !== 'null') {
+      return { Authorization: `Bearer ${token}` };
+    }
+  } catch (err) {
+    console.debug('[API] Unable to read auth token', err);
+  }
+  return {};
+}
+
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
   const headers = {
     'Content-Type': 'application/json',
+    ...authHeader(),
     ...(options.headers || {})
   };
 
@@ -70,7 +84,7 @@ export const api = {
       request(`/company-users/${id}`, { method: 'DELETE' })
   },
 
-  // 4. Orders API (Kanban)
+  // 4. Orders API (legacy)
   orders: {
     list: (company_name, priority = 'All', search = '') => {
       let q = `/orders?company_name=${encodeURIComponent(company_name)}`;

@@ -190,34 +190,30 @@ export default function OutboundV2({ language }) {
 
     const updatedSJs = [newSJ, ...deliveryNotes];
     setDeliveryNotes(updatedSJs);
-    apiService.outbound.createDeliveryNote({ so_id: selectedSO.id, driver_name: sjForm.driver_name, vehicle_no: sjForm.vehicle_no, note: sjForm.note });
+    const dnPromise = apiService.outbound.createDeliveryNote({ so_id: selectedSO.id, driver_name: sjForm.driver_name, vehicle_no: sjForm.vehicle_no, note: sjForm.note });
     try {
       localStorage.setItem('moai_v2_delivery_notes', JSON.stringify(updatedSJs));
     } catch (err) {
       console.error('Failed to save Delivery Note to localStorage', err);
     }
 
-    // 3. Flow #15 Auto-draft Invoice to moai_v2_ar_invoices (Finance)
-    try {
-      const rawInvoices = localStorage.getItem('moai_v2_ar_invoices');
-      const invoices = rawInvoices ? JSON.parse(rawInvoices) : initialArInvoices;
-      const nextInvNum = `INV-2026-${String(invoices.length + 90).padStart(4, '0')}`;
-      const newInvoice = {
-        id: `ar-${Date.now()}`,
-        inv_no: nextInvNum,
-        so_ref: selectedSO.so_number,
-        sj_ref: nextSjNumber,
-        client: selectedSO.client_name,
-        due_date: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
-        amount: selectedSO.total || 0,
-        status: 'unpaid',
-        term: 'NET 30',
-        created_from_sj: true
-      };
-      localStorage.setItem('moai_v2_ar_invoices', JSON.stringify([newInvoice, ...invoices]));
-    } catch (err) {
-      console.error('Failed to save auto-draft invoice', err);
-    }
+    // 3. The AR invoice is drafted server-side (single source of truth). Mirror
+    //    the server's invoice locally once it confirms, so the invoice number
+    //    shown in Finance matches the database instead of a client-only guess.
+    dnPromise.then(result => {
+      const invoice = result && result.invoice;
+      if (!invoice) {
+        console.warn('[Outbound] delivery note not persisted — AR invoice not drafted');
+        return;
+      }
+      try {
+        const rawInvoices = localStorage.getItem('moai_v2_ar_invoices');
+        const invoices = rawInvoices ? JSON.parse(rawInvoices) : initialArInvoices;
+        localStorage.setItem('moai_v2_ar_invoices', JSON.stringify([invoice, ...invoices]));
+      } catch (err) {
+        console.error('Failed to cache auto-draft invoice', err);
+      }
+    });
 
     setSjSuccessBanner(
       isId

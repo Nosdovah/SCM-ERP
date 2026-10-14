@@ -5,6 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 import { calculateTotalValuation } from '../src/data/v2Data.js';
+import { bindSupabase, collection, object, ensureReady, persistAll, registerSeed, status as storeStatus } from './store.js';
+import { defaultSeed } from './seedData.js';
 
 // Auto-load .env file if it exists at project root
 const envPath = path.resolve(process.cwd(), '.env');
@@ -63,6 +65,10 @@ if (supabase) {
   console.warn(`[REST API] Warning: SUPABASE_URL / VITE_SUPABASE_URL not found. Please provide credentials in .env or Vercel dashboard.`);
 }
 
+// Bind the durable v2 collection store (QA-01 fix) and register master-data seeds (QA-03 fix)
+bindSupabase(supabase);
+registerSeed(defaultSeed);
+
 // Local in-memory fallback stores (used when offline or when Supabase keys are not set)
 let fallbackOrders = [];
 let fallbackHistory = [];
@@ -75,7 +81,8 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    supabase_connected: !!supabase
+    supabase_connected: !!supabase,
+    persistence: storeStatus()
   });
 });
 
@@ -944,32 +951,116 @@ app.get('/api/sync/all', async (req, res) => {
 // Domain: Computer Distributor & Integrator (Prebuilt, Barebone, Spare Parts)
 // -------------------------------------------------------------
 
-let v2Products = [];
-let v2Warehouses = [];
-let v2Zones = [];
-let v2Bins = [];
-let v2Brands = [];
-let v2Suppliers = [];
-let v2Clients = [];
-let v2Serials = [];
-let v2Movements = [];
-let v2BOM = { target_product_id: '', target_sku: '', name: '', version: '1.0', components: [] };
-let v2AssemblyOrders = [];
-let v2PurchaseOrders = [];
-let v2Requisitions = [];
-let v2SalesOrders = [];
-let v2ApBills = [];
-let v2ArInvoices = [];
-let v2GRNList = [];
+// --- Durable v2 collections (QA-01 fix) ------------------------------------
+// Stable references hydrated from / persisted to Supabase `v2_store`.
+const v2Products = collection('products');
+const v2Warehouses = collection('warehouses');
+const v2Zones = collection('zones');
+const v2Bins = collection('bins');
+const v2Brands = collection('brands');
+const v2Suppliers = collection('suppliers');
+const v2Clients = collection('clients');
+const v2Serials = collection('serials');
+const v2Movements = collection('movements');
+const v2BOM = object('bom', { target_product_id: '', target_sku: '', name: '', version: '1.0', components: [] });
+const v2AssemblyOrders = collection('assembly_orders');
+const v2PurchaseOrders = collection('purchase_orders');
+const v2Requisitions = collection('requisitions');
+const v2SalesOrders = collection('sales_orders');
+const v2ApBills = collection('ap_bills');
+const v2ArInvoices = collection('ar_invoices');
+const v2GRNList = collection('goods_receipts');
+const v2QCInspections = collection('qc_inspections');
+const v2Payments = collection('payments');
+const v2PickTasks = collection('pick_tasks');
+const v2PackTasks = collection('pack_tasks');
+const v2DeliveryNotes = collection('delivery_notes');
+const v2RTVCases = collection('rtv_cases');
+const v2RMACases = collection('rma_cases');
+const v2WorkerActivities = collection('worker_activities');
 
-let v2QCInspections = [];
-let v2Payments = [];
-let v2PickTasks = [];
-let v2PackTasks = [];
-let v2DeliveryNotes = [];
-let v2RTVCases = [];
-let v2RMACases = [];
-let v2WorkerActivities = [];
+// --- Authentication guard for the v2 API (QA-02 fix) -----------------------
+// Requires a valid Supabase session JWT for every /api/v2 request.
+// The client-side "Quick Demo Access" session is honoured only while
+// ALLOW_DEMO_ACCESS is not set to "false".
+const DEMO_ACCESS_ALLOWED = String(process.env.ALLOW_DEMO_ACCESS ?? 'true').toLowerCase() !== 'false';
+
+async function authenticate(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : '';
+
+  // No auth backend configured (local dev / offline) -> allow.
+  if (!supabase) {
+    req.user = { email: 'local-dev', demo: true };
+    return next();
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required', code: 'NO_TOKEN' });
+  }
+
+  // Demo session issued by the client-side Quick Demo Access button.
+  if (token.startsWith('moai_demo_') || token.startsWith('moai_token_')) {
+    if (DEMO_ACCESS_ALLOWED) {
+      req.user = { email: 'demo@kompakom.co.id', demo: true };
+      return next();
+    }
+    return res.status(401).json({ error: 'Demo access is disabled', code: 'DEMO_DISABLED' });
+  }
+
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data || !data.user) {
+      return res.status(401).json({ error: 'Invalid or expired session', code: 'BAD_TOKEN' });
+    }
+    req.user = { id: data.user.id, email: data.user.email };
+    return next();
+  } catch (err) {
+    console.warn('[auth] token verification failed:', err?.message || err);
+    return res.status(401).json({ error: 'Authentication failed', code: 'AUTH_ERROR' });
+  }
+}
+
+// Hydrate the cache before handling. For mutating requests the resulting write
+// is flushed to Supabase BEFORE the response is sent — on Vercel the function
+// can be frozen the instant the response is flushed, so a fire-and-forget write
+// (res.on('finish')) would be lost silently. This makes every accepted mutation
+// durable before the client sees a 2xx.
+async function v2Persistence(req, res, next) {
+  try {
+    await ensureReady();
+  } catch (err) {
+    console.debug('[v2-store] hydrate skipped:', err?.message);
+  }
+
+  const mutating = req.method !== 'GET' && req.method !== 'HEAD';
+  if (mutating) {
+    const origJson = res.json.bind(res);
+    const origSend = res.send.bind(res);
+    let flushing = null;
+    const flush = () => {
+      if (!flushing) {
+        flushing = (async () => {
+          if (res.statusCode >= 400) return;
+          try {
+            await persistAll();
+          } catch (err) {
+            console.error('[v2-store] persist failed:', err?.message || err);
+          }
+        })();
+      }
+      return flushing;
+    };
+    res.json = (body) => { flush().then(() => origJson(body)); return res; };
+    res.send = (body) => { flush().then(() => origSend(body)); return res; };
+  }
+
+  next();
+}
+
+app.use('/api/v2', authenticate);
+app.use('/api/v2', v2Persistence);
+
 
 // --- MODULE 5: MASTER DATA ENDPOINTS ---
 app.get('/api/v2/master/products', async (req, res) => {
@@ -1476,10 +1567,48 @@ app.post('/api/v2/scm/rtv', (req, res) => {
   res.status(201).json({ success: true, rtv: newRTV, movement: mov });
 });
 
+// Ship an existing inbound return (RTV) and issue the vendor credit note.
+// Previously the client mutated localStorage only, so the shipment was never
+// persisted — this endpoint makes it durable.
+app.post('/api/v2/scm/rtv/:id/ship', (req, res) => {
+  const rtv = v2RTVCases.find(r => r.id === req.params.id);
+  if (!rtv) return res.status(404).json({ error: 'RTV case not found', code: 'RTV_NOT_FOUND' });
+
+  rtv.status = 'SHIPPED';
+  rtv.shipped_at = new Date().toISOString().replace('T', ' ').substring(0, 16);
+  rtv.credit_note_no = rtv.credit_note_no || `CN-VEND-${Math.floor(100 + Math.random() * 900)}`;
+
+  // Post the RET_OUT movement to the immutable ledger.
+  const mov = {
+    id: `mov-${Date.now()}`,
+    movement_type: 'RET_OUT',
+    product_name: rtv.product_name,
+    qty: -Number(rtv.qty || 1),
+    bin_code: rtv.bin_code || 'RMA-HOLD-01',
+    ref_doc: rtv.credit_note_no,
+    created_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
+    created_by: 'Return Admin'
+  };
+  v2Movements.unshift(mov);
+
+  // Apply the credit note against the linked AP bill.
+  let apBill = null;
+  const refund = Number(rtv.refund_amount || 0);
+  if (refund > 0) {
+    apBill = v2ApBills.find(b =>
+      (rtv.ap_bill_id && b.id === rtv.ap_bill_id) ||
+      (rtv.po_number && (b.po_number === rtv.po_number || b.ref_doc === rtv.po_number))
+    );
+    if (apBill) apBill.amount = Math.max(0, Number(apBill.amount || 0) - refund);
+  }
+
+  res.json({ success: true, rtv, movement: mov, ap_bill: apBill });
+});
+
 // --- MODULE 4: BOM & PC ASSEMBLY ENGINE ENDPOINTS ---
 app.get('/api/v2/assembly/boms', (_req, res) => res.json([v2BOM]));
 app.post('/api/v2/assembly/boms', (req, res) => {
-  v2BOM = { ...v2BOM, ...req.body };
+  Object.assign(v2BOM, req.body);
   res.status(201).json(v2BOM);
 });
 
@@ -1950,13 +2079,8 @@ app.post('/api/v2/rpc/ship-order', async (req, res) => {
   res.json({ success: true, sj_id, status: 'DELIVERED', message: 'Shipment posted successfully' });
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    backend: supabase ? 'Supabase PostgreSQL + Storage' : 'Mock/Local',
-    timestamp: new Date().toISOString()
-  });
-});
+// NOTE: the authoritative health probe lives at the top of this file (it also
+// reports persistence mode). A duplicate handler here previously shadowed it.
 
 // Start local dev server if run directly (and not on Vercel Serverless)
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {

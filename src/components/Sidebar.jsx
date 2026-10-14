@@ -1,6 +1,6 @@
 import { 
   Layers, ShoppingCart, Wrench, Send, DollarSign, Database, 
-  LayoutDashboard, BookOpen, Settings as SettingsIcon, Activity, BarChart3, CheckSquare
+  LayoutDashboard, BookOpen, Settings as SettingsIcon, Activity, BarChart3
 } from 'lucide-react';
 
 export default function Sidebar({ currentView, setCurrentView, language }) {
@@ -46,13 +46,9 @@ export default function Sidebar({ currentView, setCurrentView, language }) {
           <Database size={18} /> {isId ? '6. Master Data v2.0' : '6. Master Data v2.0'}
         </div>
 
-        {/* SECTION 2: PIPELINE & ANALITIK */}
+        {/* SECTION 2: TRACKING & ANALYTICS */}
         <div style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.75rem 0.75rem 0.25rem', letterSpacing: '0.05em' }}>
           {isId ? 'Pelacak & Analitik' : 'Tracking & Analytics'}
-        </div>
-
-        <div className={`nav-item ${currentView === 'board' ? 'active' : ''}`} id="tour-sidebar-board" onClick={() => setCurrentView('board')}>
-          <CheckSquare size={18} /> {isId ? 'Pipeline Kanban 6 SCM' : 'SCM Pipeline Board'}
         </div>
 
         <div className={`nav-item ${currentView === 'managerial' ? 'active' : ''}`} onClick={() => setCurrentView('managerial')}>

@@ -48,7 +48,7 @@ export default function Auth({ onGoToHelp, onDemoLogin }) {
         }
       }
 
-      // We store the company_name in the user's auth metadata so we can filter their Kanban boards
+      // We store the company_name in the user's auth metadata so we can filter their ERP workspace
       const { error: signUpError } = await supabase.auth.signUp({ 
         email, 
         password,

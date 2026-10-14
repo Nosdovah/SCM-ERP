@@ -72,8 +72,6 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
         return language === 'id' ? '5. Keuangan, HPP & Utang-Piutang' : '5. Finance, COGS & AP/AR';
       case 'master_data':
         return language === 'id' ? '6. Manajemen Data Induk v2.0' : '6. Master Data Management v2.0';
-      case 'board':
-        return language === 'id' ? 'Alur Rantai Pasokan Kanban' : 'SCM Pipeline Board';
       case 'managerial':
         return language === 'id' ? 'Laporan Manajerial & Kinerja Staf' : 'Managerial & Worker Performance';
       case 'analytics':

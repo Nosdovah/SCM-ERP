@@ -90,7 +90,7 @@ export default function Settings({ session, language }) {
     if (error) {
       setUpdateMsg({ type: 'error', text: error.message });
     } else {
-      setUpdateMsg({ type: 'success', text: language === 'id' ? 'Profil berhasil diperbarui! Muat ulang halaman untuk melihat lingkungan Kanban Anda yang diperbarui.' : 'Profile updated successfully! Refresh the page to see your updated Kanban environment.' });
+      setUpdateMsg({ type: 'success', text: language === 'id' ? 'Profil berhasil diperbarui! Muat ulang halaman untuk melihat lingkungan ERP Anda yang diperbarui.' : 'Profile updated successfully! Refresh the page to see your updated ERP environment.' });
       setNewEmail('');
       setNewPassword('');
       setNewCompany('');
@@ -143,7 +143,7 @@ export default function Settings({ session, language }) {
         </div>
         <div className="form-group">
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)', fontSize: '0.875rem' }}>{language === 'id' ? 'Perbarui Perusahaan / Organisasi' : 'Update Company / Organization'}</label>
-          <input type="text" list="companies-list" placeholder={language === 'id' ? 'Cth. APPLE (Peringatan: Ini akan mengubah ruang kerja Kanban Anda)' : 'e.g. APPLE (Warning: This will change your Kanban workspace)'} value={newCompany} onChange={e => setNewCompany(e.target.value)} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', width: '100%', outline: 'none' }} />
+          <input type="text" list="companies-list" placeholder={language === 'id' ? 'Cth. APPLE (Peringatan: Ini akan mengubah ruang kerja ERP Anda)' : 'e.g. APPLE (Warning: This will change your ERP workspace)'} value={newCompany} onChange={e => setNewCompany(e.target.value)} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', width: '100%', outline: 'none' }} />
           <datalist id="companies-list">
             {companiesList.map(c => <option key={c.name} value={c.name} />)}
           </datalist>

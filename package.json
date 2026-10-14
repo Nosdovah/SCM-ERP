@@ -7,6 +7,9 @@
     "dev": "vite",
     "server": "node server/server.js",
     "test:api": "node test_api.js",
+    "test:store": "node scripts/store-durability.test.mjs",
+    "test:persistence": "node scripts/persistence-e2e.test.mjs",
+    "test": "npm run test:api && npm run test:store && npm run test:persistence",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
