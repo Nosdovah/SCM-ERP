@@ -57,9 +57,20 @@ const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL ||
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Real Supabase client (hosted deployment) — null when not configured.
+// Each request is wrapped in a short timeout so a dead/unreachable project
+// fails fast (~2.5s) instead of hanging for seconds, letting the v2 endpoints
+// fall back to the durable store promptly.
+const SUPABASE_FETCH_TIMEOUT_MS = Number(process.env.SUPABASE_FETCH_TIMEOUT_MS || 2500);
 const realSupabase = (supabaseUrl && supabaseKey)
   ? createClient(supabaseUrl, supabaseKey, {
-      auth: { persistSession: false, autoRefreshToken: false }
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: {
+        fetch: (url, opts = {}) => {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), SUPABASE_FETCH_TIMEOUT_MS);
+          return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
+        }
+      }
     })
   : null;
 
@@ -1111,7 +1122,10 @@ app.use('/api/v2', v2Persistence);
 // --- MODULE 5: MASTER DATA ENDPOINTS ---
 app.get('/api/v2/master/products', async (req, res) => {
   const { category, item_type, search, company_name } = req.query;
-  if (supabase) {
+  // v2 collection store is the source of truth — serve it directly (fast).
+  // Only consult the legacy `items` table when the store is empty (migration
+  // bridge), so a dead/unreachable Supabase can't stall the master list.
+  if (v2Products.length === 0 && supabase) {
     try {
       let q = supabase.from('items').select('*');
       if (category) q = q.eq('category', category);
@@ -1432,7 +1446,9 @@ registerMasterEntityCrud({
 app.get('/api/v2/master/suppliers', async (req, res) => {
   const { company_name } = req.query;
   const includeArchived = String(req.query.include_archived || '').toLowerCase() === 'true';
-  if (supabase) {
+  // v2 store first — only fall back to the legacy `suppliers` table when the
+  // store is empty, so a dead Supabase can't stall this endpoint.
+  if (v2Suppliers.length === 0 && supabase) {
     try {
       let q = supabase.from('suppliers').select('*').order('created_at', { ascending: false });
       if (company_name && company_name !== 'NOT ASSIGNED') q = q.eq('company_name', company_name);
