@@ -81,6 +81,11 @@ function handleError(error, context) {
   console.warn(`[v2-store] ${context}:`, error?.message || error);
 }
 
+function isPgConnectionError(err) {
+  const m = String((err && (err.message || err.code)) || '');
+  return /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|getaddrinfo|connection refused|connect |terminating connection|Connection terminated/i.test(m);
+}
+
 export async function ensureReady() {
   const now = Date.now();
   if (now - lastHydrateAt < HYDRATE_TTL_MS) return;
@@ -105,7 +110,7 @@ export async function ensureReady() {
         }
       } catch (err) {
         handleError(err, 'pg hydrate');
-        if (/does not exist|no such table|relation .*v2_store/i.test(err?.message || '')) {
+        if (isPgConnectionError(err) || /does not exist|no such table|relation .*v2_store/i.test(err?.message || '')) {
           pgAvailable = false;
         }
       }
@@ -187,6 +192,7 @@ export async function persistAll() {
         emitChange(name);
       } catch (err) {
         handleError(err, `pg persist:${name}`);
+        if (isPgConnectionError(err)) pgAvailable = false;
       }
     }
     if (written) lastHydrateAt = Date.now();
