@@ -1849,6 +1849,11 @@ app.post('/api/v2/scm/requisitions/:id/convert', (req, res) => {
   if (!pr) return res.status(404).json({ error: 'Requisition not found' });
 
   pr.status = 'CONVERTED';
+  const prItems = Array.isArray(pr.items) ? pr.items : [];
+  const itemsTotal = prItems.reduce((sum, li) => {
+    const prod = v2Products.find(p => p.sku === li.sku);
+    return sum + ((Number(li.qty) || 0) * (Number(prod?.cost_price) || 0));
+  }, 0);
   const newPO = {
     id: `po-${Date.now()}`,
     po_number: `PO-2026-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -1857,8 +1862,9 @@ app.post('/api/v2/scm/requisitions/:id/convert', (req, res) => {
     expected_date: new Date(Date.now() + 7 * 86400000).toISOString().substring(0, 10),
     status: 'APPROVED',
     currency: 'IDR',
-    total: (pr.suggested_qty || 20) * 1850000,
-    items_count: 1
+    items: prItems,
+    items_count: prItems.length,
+    total: itemsTotal || (pr.suggested_qty || 20) * 1850000
   };
   v2PurchaseOrders.unshift(newPO);
   res.json({ success: true, message: 'PR successfully converted to PO', purchase_order: newPO });
@@ -1959,28 +1965,18 @@ app.get('/api/v2/scm/vendor-prices', (_req, res) => {
 
 app.get('/api/v2/scm/rtv', (_req, res) => res.json(v2RTVCases));
 app.post('/api/v2/scm/rtv', (req, res) => {
+  // Create the return case as DRAFT. The physical goods-issue (RTV_OUT) and its
+  // balance effect happen at /rtv/:id/ship — matching the two-step UI flow
+  // (create draft -> ship). Previously this forced SHIPPED and posted an
+  // RTV_OUT movement without touching stock.
   const newRTV = {
     id: `rtv-${Date.now()}`,
     rtv_number: `RTV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-    status: 'SHIPPED',
-    shipped_at: new Date().toISOString().substring(0, 10),
+    status: 'DRAFT',
     ...req.body
   };
   v2RTVCases.unshift(newRTV);
-
-  // Post RTV_OUT movement
-  const mov = {
-    id: `mov-${Date.now()}`,
-    movement_type: 'RTV_OUT',
-    product_name: newRTV.product_name,
-    qty: -Number(newRTV.qty || 1),
-    bin_code: 'RMA-HOLD-01',
-    ref_doc: newRTV.rtv_number,
-    created_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
-    created_by: 'Return Admin'
-  };
-  v2Movements.unshift(mov);
-  res.status(201).json({ success: true, rtv: newRTV, movement: mov });
+  res.status(201).json({ success: true, rtv: newRTV });
 });
 
 // Ship an existing inbound return (RTV) and issue the vendor credit note.
@@ -1994,18 +1990,24 @@ app.post('/api/v2/scm/rtv/:id/ship', (req, res) => {
   rtv.shipped_at = new Date().toISOString().replace('T', ' ').substring(0, 16);
   rtv.credit_note_no = rtv.credit_note_no || `CN-VEND-${Math.floor(100 + Math.random() * 900)}`;
 
-  // Post the RET_OUT movement to the immutable ledger.
+  // Post RTV_OUT AND apply it to the stock balance (golden rule — P1).
+  const itemName = rtv.item_name || rtv.product_name;
+  const qty = Number(rtv.qty || 1);
+  const prod = v2Products.find(p => (rtv.product_sku && p.sku === rtv.product_sku) || p.name === itemName);
   const mov = {
     id: `mov-${Date.now()}`,
-    movement_type: 'RET_OUT',
-    product_name: rtv.product_name,
-    qty: -Number(rtv.qty || 1),
+    movement_type: 'RTV_OUT',
+    product_name: itemName,
+    sku: prod?.sku || rtv.product_sku || undefined,
+    qty: -qty,
     bin_code: rtv.bin_code || 'RMA-HOLD-01',
     ref_doc: rtv.credit_note_no,
-    created_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
+    unit_cost: Number(prod?.cost_price) || 0,
+    created_at: rtv.shipped_at,
     created_by: 'Return Admin'
   };
   v2Movements.unshift(mov);
+  if (prod) prod.stock = Math.max(0, (Number(prod.stock) || 0) - qty);
 
   // Apply the credit note against the linked AP bill.
   let apBill = null;
@@ -2069,28 +2071,49 @@ app.patch('/api/v2/assembly/orders/:id/complete', (req, res) => {
   order.completed_at = new Date().toISOString().replace('T', ' ').substring(0, 16);
   order.serial_generated = generatedSN;
 
-  // Deduct components (ASM_OUT) and receive prebuilt output (ASM_IN)
-  v2BOM.components.forEach(comp => {
+  const refDoc = order.assembly_number;
+  const movements = [];
+
+  // Consume components: ASM_OUT journal PER component + balance deduction (P2).
+  v2BOM.components.forEach((comp, i) => {
     const compSku = comp.component_sku || comp.sku;
     const compProd = v2Products.find(p => p.sku === compSku);
-    if (compProd) compProd.stock = Math.max(0, (Number(compProd.stock) || 0) - ((Number(comp.qty) || 0) * order.qty_to_build));
+    const used = (Number(comp.qty) || 0) * order.qty_to_build;
+    if (compProd) compProd.stock = Math.max(0, (Number(compProd.stock) || 0) - used);
+    movements.push({
+      id: `mov-${Date.now()}-${i}`,
+      movement_type: 'ASM_OUT',
+      product_name: compProd?.name || comp.component_name || comp.name || compSku,
+      sku: compSku,
+      qty: -used,
+      bin_code: order.target_bin || 'PB-A-1-01',
+      ref_doc: refDoc,
+      unit_cost: Number(compProd?.cost_price) || 0,
+      created_at: order.completed_at,
+      created_by: order.created_by
+    });
   });
 
   const outputProd = v2Products.find(p => p.sku === order.sku);
   if (outputProd) outputProd.stock = (Number(outputProd.stock) || 0) + order.qty_to_build;
 
-  // Record movement ASM_IN
-  v2Movements.unshift({
-    id: `mov-${Date.now()}`,
+  // Receive finished goods: ASM_IN at the ACTUAL rolled-up unit cost (P2).
+  const actualUnitCost = order.qty_to_build > 0
+    ? (Number(order.total_cost) || 0) / order.qty_to_build
+    : (Number(outputProd?.cost_price) || 0);
+  movements.push({
+    id: `mov-${Date.now()}-out`,
     movement_type: 'ASM_IN',
     product_name: order.product_name,
+    sku: order.sku,
     qty: order.qty_to_build,
     bin_code: order.target_bin,
-    ref_doc: order.assembly_number,
-    unit_cost: 25450000,
+    ref_doc: refDoc,
+    unit_cost: actualUnitCost || outputProd?.cost_price || 0,
     created_at: order.completed_at,
     created_by: order.created_by
   });
+  for (const m of movements) v2Movements.unshift(m);
 
   // Register serial number
   v2Serials.unshift({
@@ -2105,7 +2128,7 @@ app.patch('/api/v2/assembly/orders/:id/complete', (req, res) => {
     customer_warranty_end: new Date(Date.now() + 365 * 86400000).toISOString().substring(0, 10)
   });
 
-  res.json({ success: true, order, serial_generated: generatedSN });
+  res.json({ success: true, order, serial_generated: generatedSN, movements });
 });
 
 app.post('/api/v2/assembly/simulate', (req, res) => {
@@ -2131,35 +2154,54 @@ app.post('/api/v2/assembly/simulate', (req, res) => {
 app.post('/api/v2/assembly/debundle', (req, res) => {
   const { prebuilt_sku = 'PB-ARES-78X', target_serial = 'SN-ARES-PC-001' } = req.body;
   const prebuilt = v2Products.find(p => p.sku === prebuilt_sku);
+  const prebuiltCost = Number(prebuilt?.cost_price) || 0;
 
-  if (prebuilt && prebuilt.stock > 0) {
-    prebuilt.stock -= 1;
+  if (prebuilt && (Number(prebuilt.stock) || 0) > 0) {
+    prebuilt.stock = (Number(prebuilt.stock) || 0) - 1;
   }
 
-  // Restore 7 spare parts components
-  v2BOM.components.forEach(comp => {
-    const compSku = comp.component_sku || comp.sku;
-    const part = v2Products.find(p => p.sku === compSku);
-    if (part) part.stock = (Number(part.stock) || 0) + (Number(comp.qty) || 0);
-  });
-
-  // Record movements
   const timeNow = new Date().toISOString().replace('T', ' ').substring(0, 16);
-  v2Movements.unshift({
-    id: `mov-${Date.now()}`,
+  const refDoc = `DEBUNDLE-${target_serial}`;
+  const movements = [];
+
+  // ASM_OUT for the finished good being disassembled.
+  movements.push({
+    id: `mov-${Date.now()}-0`,
     movement_type: 'ASM_OUT',
     product_name: prebuilt?.name || prebuilt_sku,
+    sku: prebuilt_sku,
     qty: -1,
     bin_code: 'PB-A-1-01',
-    ref_doc: `DEBUNDLE-${target_serial}`,
-    unit_cost: 25450000,
+    ref_doc: refDoc,
+    unit_cost: prebuiltCost,
     created_at: timeNow,
     created_by: 'Assembly Tech'
   });
 
+  // Restore components WITH an ASM_IN journal per part (P2).
+  v2BOM.components.forEach((comp, i) => {
+    const compSku = comp.component_sku || comp.sku;
+    const part = v2Products.find(p => p.sku === compSku);
+    if (part) part.stock = (Number(part.stock) || 0) + (Number(comp.qty) || 0);
+    movements.push({
+      id: `mov-${Date.now()}-${i + 1}`,
+      movement_type: 'ASM_IN',
+      product_name: part?.name || comp.component_name || comp.name || compSku,
+      sku: compSku,
+      qty: Number(comp.qty) || 0,
+      bin_code: 'PB-A-1-01',
+      ref_doc: refDoc,
+      unit_cost: Number(part?.cost_price) || 0,
+      created_at: timeNow,
+      created_by: 'Assembly Tech'
+    });
+  });
+  for (const m of movements) v2Movements.unshift(m);
+
   res.json({
     success: true,
     message: `Prebuilt PC (${target_serial}) successfully disassembled. 7 spare parts returned to inventory.`,
+    movements,
     updated_products: v2Products
   });
 });
@@ -2240,25 +2282,29 @@ app.post('/api/v2/outbound/delivery-notes', (req, res) => {
   // Update SO status
   if (so) so.status = 'SHIPPED';
 
-  // Execute Goods Issue GI (-) on stock ledger
-  const giLine = (so?.items && so.items[0]) || {};
-  const giQty = Number(giLine.qty || 1);
-  const giProductName = giLine.name || 'Lenovo ThinkPad E14 Gen 5';
-  v2Movements.unshift({
-    id: `mov-${Date.now()}`,
-    movement_type: 'GI',
-    product_name: giProductName,
-    qty: -giQty,
-    bin_code: 'PB-A-1-01',
-    ref_doc: sj.sj_number,
-    unit_cost: 14500000,
-    created_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
-    created_by: 'Outbound Admin'
-  });
-
-  // Apply the goods issue to the stock balance (previously only recorded).
-  const giProd = v2Products.find(p => (giLine.sku && p.sku === giLine.sku) || (giLine.name && p.name === giLine.name));
-  if (giProd) giProd.stock = Math.max(0, (Number(giProd.stock) || 0) - giQty);
+  // Execute Goods Issue GI (-) on stock ledger — one movement + balance
+  // decrement PER SO line (multi-line outbound, P1).
+  const giLines = (Array.isArray(so?.items) && so.items.length) ? so.items : [{ name: 'Lenovo ThinkPad E14 Gen 5', qty: 1 }];
+  const giStamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+  const giMovements = [];
+  for (const ln of giLines) {
+    const qty = Number(ln.qty || 1);
+    const prod = v2Products.find(p => (ln.sku && p.sku === ln.sku) || (ln.name && p.name === ln.name));
+    giMovements.push({
+      id: `mov-${Date.now()}-${giMovements.length}`,
+      movement_type: 'GI',
+      product_name: ln.name || prod?.name || 'Lenovo ThinkPad E14 Gen 5',
+      sku: ln.sku || prod?.sku || undefined,
+      qty: -qty,
+      bin_code: 'PB-A-1-01',
+      ref_doc: sj.sj_number,
+      unit_cost: Number(prod?.cost_price) || 0,
+      created_at: giStamp,
+      created_by: 'Outbound Admin'
+    });
+    if (prod) prod.stock = Math.max(0, (Number(prod.stock) || 0) - qty);
+  }
+  for (const m of giMovements) v2Movements.unshift(m);
 
   // Create AR Invoice in Finance
   const arInv = {
@@ -2272,7 +2318,7 @@ app.post('/api/v2/outbound/delivery-notes', (req, res) => {
   };
   v2ArInvoices.unshift(arInv);
 
-  res.status(201).json({ success: true, delivery_note: sj, invoice: arInv });
+  res.status(201).json({ success: true, delivery_note: sj, movements: giMovements, invoice: arInv });
 });
 
 // --- MODULE 2: FINANCE & COSTING ENDPOINTS ---
@@ -2363,7 +2409,11 @@ app.get('/api/v2/managerial/worker-performance', (_req, res) => res.json(v2Worke
 
 app.get('/api/v2/managerial/pnl', (_req, res) => {
   const totalSales = v2SalesOrders.reduce((sum, s) => sum + (s.total || 0), 0);
-  const totalCogs = v2SalesOrders.reduce((sum, s) => sum + ((s.total || 0) * 0.8), 0);
+  // HPP diturunkan dari ledger: total barang keluar (GI) dikali biaya aktual,
+  // bukan persentase tetap 80% (P4).
+  const totalCogs = v2Movements
+    .filter(m => m.movement_type === 'GI')
+    .reduce((sum, m) => sum + (Math.abs(Number(m.qty) || 0) * (Number(m.unit_cost) || 0)), 0);
   const grossProfit = totalSales - totalCogs;
   res.json({
     period: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
