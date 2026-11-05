@@ -43,16 +43,18 @@ loadEnv('.env.local');
 
 const { Pool } = pg;
 
-const connectionString = process.env.DATABASE_URL
-  || process.env.PG_CONNECTION_STRING
-  || 'postgres://moai:moai_local_pw@127.0.0.1:5432/moai_erp';
+// No hardcoded default: a default string would make getPool() truthy even on
+// hosts with no Postgres (e.g. Vercel), falsely reporting durable persistence.
+const connectionString = process.env.DATABASE_URL || process.env.PG_CONNECTION_STRING || '';
 
 let pool = null;
 const poolError = { message: null };
 
 try {
-  pool = new Pool({ connectionString, max: 10 });
-  pool.on('error', (err) => { poolError.message = err?.message || String(err); });
+  if (connectionString) {
+    pool = new Pool({ connectionString, max: 10 });
+    pool.on('error', (err) => { poolError.message = err?.message || String(err); });
+  }
 } catch (err) {
   poolError.message = err?.message || String(err);
 }
