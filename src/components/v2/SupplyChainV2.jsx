@@ -8,6 +8,7 @@ import {
   initialInboundReturns 
 } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
+import { useLiveData } from '../../hooks/useLiveData';
 
 const createPurchaseOrderFromPR = (pr) => ({
   id: `po-${Date.now()}`,
@@ -104,8 +105,8 @@ export default function SupplyChainV2({ language }) {
 
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
-  // REST API Mount Fetch
-  useEffect(() => {
+  // REST API Mount Fetch + live re-fetch (SSE)
+  const loadSCM = () => {
     apiService.scm.getPurchaseOrders().then(data => {
       if (data && Array.isArray(data)) {
         setPurchaseOrders(data);
@@ -136,7 +137,9 @@ export default function SupplyChainV2({ language }) {
     apiService.masterData.getProducts().then(data => {
       if (data && Array.isArray(data)) setProducts(data);
     });
-  }, []);
+  };
+  useEffect(loadSCM, []);
+  useLiveData(loadSCM, ['purchase_orders', 'requisitions', 'goods_receipts', 'rtv_cases', 'suppliers', 'products']);
 
   // Flow #13: Handle Create New PO
   const handleCreatePO = (e) => {

@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { initialProducts, calculateTotalValuation } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
+import { useLiveData } from '../../hooks/useLiveData';
 
 export default function ManagerialV2({ language }) {
   const [subTab, setSubTab] = useState('executive'); // 'executive' | 'aging_report' | 'worker_perf' | 'pnl'
@@ -33,8 +34,9 @@ export default function ManagerialV2({ language }) {
   });
 
   // Load live data from the v2 REST layer (localStorage above is only a warm cache,
-  // so a cold session still renders real values instead of zeros).
-  useEffect(() => {
+  // so a cold session still renders real values instead of zeros). Re-fetches on
+  // live (SSE) changes too.
+  const loadManagerial = () => {
     apiService.masterData.getProducts().then(data => {
       if (Array.isArray(data)) {
         setProducts(data);
@@ -47,7 +49,9 @@ export default function ManagerialV2({ language }) {
         try { localStorage.setItem('moai_v2_sales_orders', JSON.stringify(data)); } catch (err) { console.debug(err); }
       }
     });
-  }, []);
+  };
+  useEffect(loadManagerial, []);
+  useLiveData(loadManagerial, ['products', 'sales_orders']);
 
   const totalSales = salesOrders.reduce((acc, so) => acc + (Number(so.total) || 0), 0);
   const totalCogs = salesOrders.reduce((acc, so) => acc + ((Number(so.total) || 0) * 0.8), 0);

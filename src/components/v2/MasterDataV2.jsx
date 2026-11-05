@@ -8,6 +8,7 @@ import {
   initialBins, initialBrands, initialSuppliers, initialClients 
 } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
+import { useLiveData } from '../../hooks/useLiveData';
 
 // Shared modal/form styles for the master-entity forms (brands / suppliers / clients).
 const modalOverlay = {
@@ -236,8 +237,8 @@ export default function MasterDataV2({ language }) {
     return matchesSearch && matchesCat;
   });
 
-  // REST API Mount Fetch
-  useEffect(() => {
+  // REST API Mount Fetch + live re-fetch (SSE)
+  const loadMasterData = () => {
     apiService.masterData.getProducts().then(data => {
       if (data && Array.isArray(data)) {
         setProducts(data);
@@ -269,7 +270,9 @@ export default function MasterDataV2({ language }) {
         setClients(data);
       }
     });
-  }, []);
+  };
+  useEffect(loadMasterData, []);
+  useLiveData(loadMasterData, ['products', 'bins', 'zones', 'brands', 'suppliers', 'clients']);
 
   const handleCreateProduct = (e) => {
     e.preventDefault();

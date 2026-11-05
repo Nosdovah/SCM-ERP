@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, User, LogOut } from 'lucide-react';
 import { apiService } from '../services/apiService';
+import { useLiveData } from '../hooks/useLiveData';
 
 export default function TopNav({ currentView, setCurrentView, handleLogout, session, language, setLanguage }) {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -33,6 +34,14 @@ export default function TopNav({ currentView, setCurrentView, handleLogout, sess
     const timer = setInterval(fetchNotifications, 30000);
     return () => { cancelled = true; clearInterval(timer); };
   }, []);
+
+  // Live-refresh the bell as soon as the server broadcasts a v2 change (SSE),
+  // instead of waiting for the next 30s poll.
+  useLiveData(() => {
+    apiService.notifications.list().then((data) => {
+      if (Array.isArray(data)) setNotifications(data);
+    });
+  });
 
   const handleOpenNotifications = () => {
     setShowNotifications(!showNotifications);

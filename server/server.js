@@ -7,6 +7,7 @@ import path from 'path';
 import { calculateTotalValuation } from '../src/data/v2Data.js';
 import { bindSupabase, collection, object, ensureReady, persistAll, registerSeed, status as storeStatus } from './store.js';
 import { defaultSeed } from './seedData.js';
+import { getPool, createCompat, changes } from './db.js';
 
 // Auto-load .env file if it exists at project root
 const envPath = path.resolve(process.cwd(), '.env');
@@ -55,20 +56,31 @@ const upload = multer({
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
-export const supabase = (supabaseUrl && supabaseKey) 
+// Real Supabase client (hosted deployment) — null when not configured.
+const realSupabase = (supabaseUrl && supabaseKey)
   ? createClient(supabaseUrl, supabaseKey, {
       auth: { persistSession: false, autoRefreshToken: false }
     })
   : null;
 
-if (supabase) {
+// Local PostgreSQL facade: when no Supabase is configured but a local/remote
+// Postgres is reachable (DATABASE_URL / default local), legacy handlers go
+// through this drop-in compat object (server/db.js).
+const localCompat = (!realSupabase && getPool()) ? createCompat() : null;
+
+export const supabase = realSupabase || localCompat;
+
+if (realSupabase) {
   console.log(`[REST API] Connected to Supabase backend: ${supabaseUrl}`);
+} else if (localCompat) {
+  console.log(`[REST API] Connected to local PostgreSQL backend (v2 store + legacy tables).`);
 } else {
-  console.warn(`[REST API] Warning: SUPABASE_URL / VITE_SUPABASE_URL not found. Please provide credentials in .env or Vercel dashboard.`);
+  console.warn(`[REST API] Warning: no database configured — running IN-MEMORY (data is NOT durable). Set DATABASE_URL or Supabase keys.`);
 }
 
-// Bind the durable v2 collection store (QA-01 fix) and register master-data seeds (QA-03 fix)
-bindSupabase(supabase);
+// Bind the durable v2 collection store (QA-01 fix) and register master-data seeds (QA-03 fix).
+// store.js prefers the local Postgres pool (db.js) and falls back to Supabase.
+bindSupabase(realSupabase);
 registerSeed(defaultSeed);
 
 // Local in-memory fallback stores (used when offline or when Supabase keys are not set)
@@ -83,10 +95,42 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    supabase_connected: !!supabase,
+    supabase_connected: !!realSupabase,
+    postgres_connected: Boolean(getPool()),
     persistence: storeStatus()
   });
 });
+
+// -------------------------------------------------------------
+// REALTIME: Server-Sent Events stream of v2 collection changes
+// -------------------------------------------------------------
+// Clients (EventSource) receive a JSON event per written collection so the UI
+// can re-fetch and render live without polling. Placed BEFORE the /api/v2 auth
+// gate on purpose — EventSource cannot send an Authorization header.
+app.get('/api/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const send = (collection) => {
+    try { res.write(`data: ${JSON.stringify({ collection, at: Date.now() })}\n\n`); } catch { /* client gone */ }
+  };
+  const heartbeat = setInterval(() => { try { res.write(': ping\n\n'); } catch { /* ignore */ } }, 15000);
+  const onChange = (collection) => send(collection);
+
+  changes.on('change', onChange);
+  send('*'); // initial "connected" event
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    changes.off('change', onChange);
+  });
+});
+
+// Serve locally-uploaded documents (local PostgreSQL compat storage).
+app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'data', 'uploads')));
 
 // -------------------------------------------------------------
 // 1. AUTHENTICATION & USER PROFILE ENDPOINTS

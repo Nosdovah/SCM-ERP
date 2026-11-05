@@ -8,6 +8,7 @@ import {
   initialProducts, initialSerials, initialStockMovements, initialBins 
 } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
+import { useLiveData } from '../../hooks/useLiveData';
 
 // The inventory balances endpoint returns `stock_on_hand` / `available` /
 // `valuation`, while the rest of this view works with `stock`. Normalise once
@@ -108,8 +109,9 @@ export default function InventoryManagementV2({ session, language }) {
     s.sku.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // REST API Mount Fetch
-  useEffect(() => {
+  // REST API mount fetch + live re-fetch (SSE), so changes from any client render
+  // immediately without a manual refresh.
+  const loadInventory = () => {
     apiService.inventory.getBalances().then(data => {
       if (data && Array.isArray(data.products)) {
         const normalized = data.products.map(normalizeProduct);
@@ -134,7 +136,12 @@ export default function InventoryManagementV2({ session, language }) {
         try { localStorage.setItem('moai_v2_rma_cases', JSON.stringify(data)); } catch (err) { console.debug(err); }
       }
     });
-  }, []);
+  };
+
+  useEffect(loadInventory, []);
+
+  // Re-render live when inventory collections change server-side (SSE).
+  useLiveData(loadInventory, ['products', 'serials', 'movements', 'rma_cases']);
 
   // Handle Transfer
   const handleExecuteTransfer = (e) => {
