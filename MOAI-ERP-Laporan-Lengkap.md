@@ -148,14 +148,45 @@ MOAI ERP v2.0 adalah sistem supply-chain untuk distributor & integrator komputer
 ---
 
 # BAGIAN 5 — CONTOH ALUR HARIAN END-TO-END
+*(setiap langkah menyebut titik fitur `X.Y` beserta nama fiturnya)*
 
-1. **Master Data (6)** — pastikan produk, supplier, klien ada.
-2. **Reorder/PO (2.1–2.2)** — generate PR → konversi PO → setujui.
-3. **Terima barang (2.3)** — buat GRN → QC PASS → stok naik + AP Bill terbit.
-4. **Rakit (3)** — pilih resep → simulator → assembly order → complete → barang jadi + serial.
-5. **Jual (4)** — buat SO → pick → pack → SJ → stok turun (GI) + AR terbit.
-6. **Bayar (5)** — bayar AP, terima AR; pantau COGS/Warranty.
-7. **Pantau (1)** — ledger, serial, aging, RMA; opname bila ada selisih fisik.
+**FASE A — Setup Master Data**
+1. **6.1 Products Catalog** — pastikan SKU (prebuilt / barebone / spare-part) terdaftar dengan HPP & harga jual.
+2. **6.2 Warehouse & Bins** — pastikan layout gudang → zona → bin (PB-A, SP-CPU-A, QC-IN-01, dst.).
+3. **6.3 Brands · 6.4 Suppliers · 6.5 Clients** — daftar brand, supplier (lead time + defect rate), dan klien (segmen + credit limit).
+4. **1.1 3 Racks Overview** — cek occupancy awal rak Prebuilt / Barebone / Spare-part.
+
+**FASE B — Procure-to-Pay (belanja barang)**
+5. **2.2 Auto Reorder** — generate **Purchase Requisition (PR)** saat stok di bawah reorder point.
+6. **2.5 Price Comparison** — bandingkan harga multi-vendor sebelum menetapkan supplier.
+7. **2.1 Purchase Orders** — konversi PR → **Purchase Order (PO)**, lalu setujui.
+8. **2.3 Receiving & QC Gate** — buat **GRN** (penerimaan) → **Inspeksi QC** → PASS (atau Reject).
+9. **5.2 AP Bills** — **AP Bill** vendor otomatis terbit dari hasil QC → **Bayar**.
+10. *(otomatis)* **1.3 Stock Ledger** — mutasi `QC_RELEASE` menambah saldo komponen.
+
+**FASE C — Plan-to-Produce (rakit PC)**
+11. **3.1 BOM Recipes** — pilih resep perakitan (mis. Ares Elite / Office Pro).
+12. **3.3 Build Simulator** — cek kecukupan komponen untuk qty target.
+13. **3.2 Assembly Orders** — buat **Assembly Order** → **Complete** (konsumsi komponen = `ASM_OUT`, terima barang jadi = `ASM_IN`).
+14. **1.2 Serial Registry** — serial number baru terdaftar otomatis untuk unit rakit.
+15. **3.4 De-bundling** — *(opsional)* bongkar unit jadi komponen kembali.
+16. *(otomatis)* **5.1 HPP / COGS Roll-up** — HPP per unit dihitung dari BOM.
+
+**FASE D — Order-to-Cash (jual & kirim)**
+17. **4.1 Sales Orders** — buat **Sales Order** (multi-item).
+18. **4.2 Picking Engine** — single pick / wave pick barang.
+19. **4.3 Packing Station** — verifikasi fisik & kemas dus.
+20. **4.4 Delivery Notes** — buat **Surat Jalan** → otomatis `GI` (stok turun per baris) + AR Invoice terbit.
+21. **5.3 AR Invoices** — **AR Invoice** klien terbit → **Bayar** saat diterima.
+
+**FASE E — Kontrol & Audit**
+22. **1.4 Operations** — transfer antar-bin / adjustment selisih.
+23. **1.7 Stock Setup** — stock opname koreksi fisik massal (menulis ADJ_IN/OUT).
+24. **1.5 Aging & Obsolescence** — pantau umur stok + idle capital.
+25. **1.6 RMA & Defective** — kelola retur/defective (status serial → RMA).
+26. **2.4 Inbound Return** — retur barang ke vendor (RTV) bila QC reject / DOA.
+27. **5.4 Warranty Cost** — buka tiket garansi/servis + pantau provisi.
+28. **1.3 Stock Ledger** — audit akhir: pastikan **saldo ⇄ mutasi rekonsiliasi dua arah**.
 
 ---
 
