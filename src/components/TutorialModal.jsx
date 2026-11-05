@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 
 const steps = [
@@ -87,6 +87,16 @@ export default function TutorialModal({ forceOpen, setForceOpen, currentView, se
   const [targetRect, setTargetRect] = useState(null);
   const [prevForceOpen, setPrevForceOpen] = useState(forceOpen);
 
+  // Keep the latest view + navigation fn in refs so the tour advances to a step's
+  // view ONLY when the step changes (Next/Back), and no longer yanks the user
+  // back when they navigate manually via the sidebar or a URL slug.
+  const currentViewRef = useRef(currentView);
+  const setCurrentViewRef = useRef(setCurrentView);
+  useEffect(() => {
+    currentViewRef.current = currentView;
+    setCurrentViewRef.current = setCurrentView;
+  });
+
   if (forceOpen && !prevForceOpen) {
     setPrevForceOpen(forceOpen);
     setIsOpen(true);
@@ -130,9 +140,9 @@ export default function TutorialModal({ forceOpen, setForceOpen, currentView, se
     if (!isOpen) return;
 
     const step = steps[currentStep];
-    if (step.view && step.view !== currentView) {
-      if (setCurrentView) {
-        setCurrentView(step.view);
+    if (step.view && step.view !== currentViewRef.current) {
+      if (setCurrentViewRef.current) {
+        setCurrentViewRef.current(step.view);
       }
       const timer = setTimeout(() => {
         calculateRect();
@@ -144,7 +154,7 @@ export default function TutorialModal({ forceOpen, setForceOpen, currentView, se
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [currentStep, currentView, isOpen, calculateRect, setCurrentView]);
+  }, [currentStep, isOpen, calculateRect]);
 
   useEffect(() => {
     if (!isOpen) return;
