@@ -147,7 +147,28 @@ MOAI ERP v2.0 adalah sistem supply-chain untuk distributor & integrator komputer
 
 ---
 
-# BAGIAN 5 — CONTOH ALUR HARIAN END-TO-END
+# BAGIAN 5 — ALUR PENGGUNAAN SISTEM
+
+## 5.1 Cerita: Satu Hari dengan MOAI ERP *(untuk orang awam — tanpa istilah teknis)*
+
+**Pagi hari.** Kompakom (toko komputer) mendapat pesanan dari sebuah kantor pemerintah: *"minta 10 unit PC untuk ruang kerja, dikirim minggu ini."* Mbak Rina, admin gudang, membuka sistem. Ia cek **daftar barang** yang tersedia — ternyata beberapa komponen seperti prosesor dan kartu grafis **tinggal sedikit**.
+
+**Sistem yang mengingatkan.** Tanpa diminta, sistem menandai *"stok menipis, harus belanja lagi"*. Mbak Rina tinggal menekan satu tombol → muncul **daftar usulan belanja** (barang apa, berapa banyak). Ia **membandingkan harga** dari beberapa pemasok supaya dapat yang termurah dan tercepat, lalu mengirim **pesanan pembelian** ke pemasok terpilih.
+
+**Barang datang.** Ketika truk pemasok tiba, barang **diperiksa dulu** (dicek fisiknya, dites). Yang lolos **masuk ke rak gudang** — dan stoknya **naik sendiri secara otomatis**, lengkap dengan catatan "barang ini masuk kapan, dari pemasok mana, berapa". Yang rusak **dikembalikan** ke pemasok.
+
+**Merakit PC.** Tim teknisi mengambil komponen dari rak dan **merakit 10 PC sesuai "resep"** yang sudah tersimpan. Selesai satu PC, otomatis muncul **nomor seri unik** untuk tiap unit — seperti nomor rangka kendaraan, jadi tiap PC bisa dilacak satu per satu.
+
+**Mengirim pesanan.** Petugas **mengambil barang** dari rak sesuai pesanan, **membungkus**, lalu **mengirim** ke alamat kantor. Begitu dikirim, **stok otomatis berkurang** dan **tagihan ke pelanggan** langsung terbit.
+
+**Uang masuk.** Pelanggan membayar → catatan **uang masuk** tersimpan. Tagihan ke pemasok juga **dibayar** — semuanya tercatat rapi.
+
+**Jaga agar tetap benar.** Akhir bulan, Mbak Rina **menghitung ulang fisik barang** (opname) — kalau ada selisih sedikit, langsung dikoreksi. Barang yang lama mengendap di gudang **diberi tanda "sudah lama, segera jual/diskon"**. Barang rusak dari pelanggan dicatat sebagai **retur/garansi**. Dan setiap saat, bos bisa melihat: *"stok sekarang segini, karena kemarin masuk 20 dan keluar 10"* — karena **setiap barang masuk dan keluar selalu tercatat, dan catatannya tidak bisa diubah seenaknya**.
+
+> **Intinya:** sistem ini seperti "kasir + buku catatan + gudang" dalam satu aplikasi — tidak perlu menghafal istilah asing. Barang masuk, barang keluar, uang masuk, uang keluar — semua tercatat otomatis dan bisa ditelusuri kapan pun.
+
+## 5.2 Referensi Teknis — Rincian Fitur per Langkah *(untuk pelaksana/auditor)*
+
 *(setiap langkah menyebut titik fitur `X.Y` beserta nama fiturnya)*
 
 **FASE A — Setup Master Data**
