@@ -25,6 +25,8 @@ const createPurchaseOrderFromPR = (pr) => ({
 export default function SupplyChainV2({ language, activeFeature, onFeatureChange }) {
   const [localTab, setLocalTab] = useState('orders'); // 'orders' | 'reorder' | 'grn_qc' | 'inbound_return' | 'price_compare'
   const tab = activeFeature || localTab;
+  const [vendorPrices, setVendorPrices] = useState(null);
+  useEffect(() => { apiService.scm.getVendorPrices().then(d => { if (d) setVendorPrices(d); }); }, []);
   
   const [purchaseOrders, setPurchaseOrders] = useState(() => {
     try {
@@ -728,58 +730,28 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
             </p>
           </div>
 
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                  <th style={{ padding: '0.75rem 1rem' }}>Komponen</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Supplier A (Synnex)</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Supplier B (Asus ID)</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Supplier C (Silicon HK - USD)</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Rekomendasi Sistem</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: '700' }}>AMD Ryzen 7 7800X3D</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div style={{ fontWeight: '700', color: '#047857' }}>Rp 5.900.000</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Lead time: 3 hari</div>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div>Tidak sedia</div>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div style={{ fontWeight: '600' }}>$365 (Rp 5.712.250)</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Lead time: 14 hari</div>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: '700' }}>
-                      Synnex (Lead time tercepat)
-                    </span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: '700' }}>Samsung 990 PRO 1TB</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div style={{ fontWeight: '600' }}>Rp 1.850.000</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Lead time: 3 hari</div>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div>Tidak sedia</div>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div style={{ fontWeight: '700', color: '#047857' }}>$108 (Rp 1.690.200)</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Lead time: 12 hari</div>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: '700' }}>
-                      Silicon HK (Hemat 8.6%)
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {(vendorPrices?.comparison || []).map(row => (
+              <div key={row.sku} style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.9rem 1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <strong>{row.sku}</strong>
+                  <span style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: '700' }}>
+                    Best: {row.best_supplier} · Rp {Number(row.best_price || 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.8rem' }}>
+                  {row.suppliers.map(s => (
+                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>{s.supplier_name} <span style={{ color: 'var(--text-muted)' }}>(lead {s.lead_days}h · defect {s.defect_rate})</span></span>
+                      <strong>Rp {Number(s.price || 0).toLocaleString('id-ID')}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {(vendorPrices?.comparison?.length || 0) === 0 && (
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Belum ada data quote vendor.</div>
+            )}
           </div>
         </div>
       )}

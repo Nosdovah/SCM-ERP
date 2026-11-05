@@ -27,6 +27,8 @@ const normalizeProduct = (p) => {
 export default function InventoryManagementV2({ session, language, activeFeature, onFeatureChange }) {
   const [localTab, setLocalTab] = useState('overview'); // 'overview' | 'serials' | 'movements' | 'operations' | 'aging' | 'rma'
   const subTab = activeFeature || localTab;
+  const [agingData, setAgingData] = useState(null);
+  useEffect(() => { apiService.inventory.getAging().then(d => { if (d) setAgingData(d); }); }, []);
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -847,39 +849,33 @@ export default function InventoryManagementV2({ session, language, activeFeature
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
             {[
-              { bucket: '0–30 Hari', label: 'Fresh Stock', count: 'Rp 142.500.000', color: '#047857' },
-              { bucket: '31–60 Hari', label: 'Normal Turnover', count: 'Rp 65.000.000', color: '#0284c7' },
-              { bucket: '61–90 Hari', label: 'Slow Down', count: 'Rp 28.400.000', color: '#eab308' },
-              { bucket: '91–180 Hari', label: 'At Risk', count: 'Rp 12.800.000', color: '#f97316' },
-              { bucket: '>180 Hari', label: 'Dead Stock / Obsolescence', count: 'Rp 4.500.000', color: '#dc2626' }
+              { key: '0_30_days', bucket: '0–30 Hari', label: 'Fresh Stock', color: '#047857' },
+              { key: '31_60_days', bucket: '31–60 Hari', label: 'Normal Turnover', color: '#0284c7' },
+              { key: '61_90_days', bucket: '61–90 Hari', label: 'Slow Down', color: '#eab308' },
+              { key: '91_180_days', bucket: '91–180 Hari', label: 'At Risk', color: '#f97316' },
+              { key: 'over_180_days', bucket: '>180 Hari', label: 'Dead Stock / Obsolescence', color: '#dc2626' }
             ].map(b => (
               <div key={b.bucket} style={{ backgroundColor: '#ffffff', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: '700', color: b.color }}>{b.bucket}</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: '800', marginTop: '0.25rem' }}>{b.count}</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: '800', marginTop: '0.25rem' }}>Rp {Number(agingData?.buckets?.[b.key]?.value || 0).toLocaleString('id-ID')}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{b.label}</div>
               </div>
             ))}
           </div>
 
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.25rem' }}>
-            <h4 style={{ margin: '0 0 1rem 0', fontWeight: '700', color: 'var(--primary-color)' }}>
-              Rekomendasi Otomatis Barang Lambat Terjual (Slow Moving)
+            <h4 style={{ margin: '0 0 0.75rem 0', fontWeight: '700', color: 'var(--primary-color)' }}>
+              Idle Capital & Kelas Pergerakan (dari ledger mutasi)
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: '#fef3c7', borderRadius: '0.5rem', border: '1px solid #fde68a' }}>
-                <div>
-                  <strong>DeepCool CC560 V2 Mid-Tower ATX Case</strong> (Umur Stok: 112 Hari tanpa penjualan)
-                  <div style={{ fontSize: '0.8rem', color: '#92400e' }}>Stok: 25 pcs · Nilai Tertahan: Rp 18.750.000</div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              Nilai stok tertahan (&gt;90 hari): <strong style={{ color: '#b45309' }}>Rp {Number(agingData?.idle_capital || 0).toLocaleString('id-ID')}</strong>
+            </div>
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.85rem' }}>
+              {['fast','medium','slow','dead'].map(k => (
+                <div key={k} style={{ backgroundColor: '#f8fafc', padding: '0.5rem 0.9rem', borderRadius: '0.4rem', border: '1px solid #e2e8f0' }}>
+                  <strong>{k}:</strong> {((agingData?.movement_classes?.[k]) || []).length} SKU
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button style={{ padding: '0.35rem 0.75rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#d97706', color: '#ffffff', fontWeight: '600', fontSize: '0.75rem', cursor: 'pointer' }}>
-                    Bundling ke BOM PC
-                  </button>
-                  <button style={{ padding: '0.35rem 0.75rem', borderRadius: '0.375rem', border: '1px solid #d97706', backgroundColor: 'transparent', color: '#92400e', fontWeight: '600', fontSize: '0.75rem', cursor: 'pointer' }}>
-                    Promo Diskon
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>

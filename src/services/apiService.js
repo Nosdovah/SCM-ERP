@@ -74,6 +74,7 @@ export const apiService = {
     getBalances: () => fetchJson('/v2/inventory/balances'),
     getSerials: () => fetchJson('/v2/inventory/serials'),
     getMovements: () => fetchJson('/v2/inventory/movements'),
+    getAging: () => fetchJson('/v2/inventory/aging'),
     getTransfers: () => fetchJson('/v2/inventory/transfers'),
     postTransfer: (data) => fetchJson('/v2/inventory/transfers', { method: 'POST', body: JSON.stringify(data) }),
     getAdjustments: () => fetchJson('/v2/inventory/adjustments'),
@@ -95,12 +96,15 @@ export const apiService = {
     qcAction: (id, data) => fetchJson(`/v2/scm/qc-inspections/${id}/action`, { method: 'POST', body: JSON.stringify(data) }),
     getRTV: () => fetchJson('/v2/scm/rtv'),
     createRTV: (data) => fetchJson('/v2/scm/rtv', { method: 'POST', body: JSON.stringify(data) }),
-    shipRTV: (id) => fetchJson(`/v2/scm/rtv/${id}/ship`, { method: 'POST' })
+    shipRTV: (id) => fetchJson(`/v2/scm/rtv/${id}/ship`, { method: 'POST' }),
+    getVendorPrices: () => fetchJson('/v2/scm/vendor-prices'),
+    createVendorPrice: (data) => fetchJson('/v2/scm/vendor-prices', { method: 'POST', body: JSON.stringify(data) })
   },
 
   // Modul 3: Bill of Materials (BOM) & Assembly Engine
   assembly: {
     getBOMs: () => fetchJson('/v2/assembly/boms'),
+    createBOM: (data) => fetchJson('/v2/assembly/boms', { method: 'POST', body: JSON.stringify(data) }),
     getOrders: () => fetchJson('/v2/assembly/orders'),
     createOrder: (data) => fetchJson('/v2/assembly/orders', { method: 'POST', body: JSON.stringify(data) }),
     completeOrder: (id) => fetchJson(`/v2/assembly/orders/${id}/complete`, { method: 'PATCH' }),
@@ -116,6 +120,8 @@ export const apiService = {
     createDeliveryNote: (data) => fetchJson('/v2/outbound/delivery-notes', { method: 'POST', body: JSON.stringify(data) }),
     getPackTasks: () => fetchJson('/v2/outbound/pack-tasks'),
     createPackTask: (data) => fetchJson('/v2/outbound/pack-tasks', { method: 'POST', body: JSON.stringify(data) }),
+    getPickTasks: () => fetchJson('/v2/outbound/pick-tasks'),
+    createPickTask: (data) => fetchJson('/v2/outbound/pick-tasks', { method: 'POST', body: JSON.stringify(data) }),
     wavePicking: (data) => fetchJson('/v2/outbound/pick-tasks/wave', { method: 'POST', body: JSON.stringify(data) })
   },
 
@@ -125,7 +131,9 @@ export const apiService = {
     getAPBills: () => fetchJson('/v2/finance/ap-bills'),
     payAPBill: (id) => fetchJson(`/v2/finance/ap-bills/${id}/pay`, { method: 'POST' }),
     getARInvoices: () => fetchJson('/v2/finance/ar-invoices'),
-    reconcileARInvoice: (id) => fetchJson(`/v2/finance/ar-invoices/${id}/reconcile`, { method: 'POST' })
+    reconcileARInvoice: (id) => fetchJson(`/v2/finance/ar-invoices/${id}/pay`, { method: 'POST' }),
+    getWarrantyTickets: () => fetchJson('/v2/finance/warranty-tickets'),
+    createWarrantyTicket: (data) => fetchJson('/v2/finance/warranty-tickets', { method: 'POST', body: JSON.stringify(data) })
   },
 
   // Modul 6: Master Data v2.0
