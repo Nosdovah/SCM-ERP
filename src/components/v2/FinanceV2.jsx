@@ -10,6 +10,8 @@ import { useLiveData } from '../../hooks/useLiveData';
 export default function FinanceV2({ language, activeFeature, onFeatureChange }) {
   const [localTab, setLocalTab] = useState('cogs'); // 'cogs' | 'ap' | 'ar' | 'warranty' | 'currency'
   const activeTab = activeFeature || localTab;
+  const [warrantyData, setWarrantyData] = useState(null);
+  useEffect(() => { apiService.finance.getWarrantyTickets().then(d => { if (d) setWarrantyData(d); }); }, []);
   const [products] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_products');
@@ -340,9 +342,35 @@ export default function FinanceV2({ language, activeFeature, onFeatureChange }) 
             </p>
           </div>
 
-          <div style={{ backgroundColor: '#f8fafc', padding: '2rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Belum ada rekaman klaim biaya garansi atau tiket servis aktif yang tercatat.
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.85rem' }}>
+            <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>Tiket terbuka: <strong>{warrantyData?.open_count ?? 0}</strong></div>
+            <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>Estimasi biaya: <strong>Rp {Number(warrantyData?.total_cost_estimate || 0).toLocaleString('id-ID')}</strong></div>
+            <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>Provisi garansi ({warrantyData?.provision_pct ?? 2}%): <strong>Rp {Number(warrantyData?.provision || 0).toLocaleString('id-ID')}</strong></div>
           </div>
+          {(warrantyData?.tickets || []).length === 0 ? (
+            <div style={{ backgroundColor: '#f8fafc', padding: '2rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Belum ada rekaman klaim biaya garansi atau tiket servis aktif yang tercatat.
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '0.6rem' }}>Tiket</th><th style={{ padding: '0.6rem' }}>Serial</th><th style={{ padding: '0.6rem' }}>Masalah</th><th style={{ padding: '0.6rem' }}>Status</th><th style={{ padding: '0.6rem' }}>Estimasi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {warrantyData.tickets.map(t => (
+                  <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700' }}>{t.ticket_no}</td>
+                    <td style={{ padding: '0.6rem', fontFamily: 'monospace' }}>{t.serial_no}</td>
+                    <td style={{ padding: '0.6rem' }}>{t.issue}</td>
+                    <td style={{ padding: '0.6rem' }}>{t.status}</td>
+                    <td style={{ padding: '0.6rem' }}>Rp {Number(t.cost_estimate || 0).toLocaleString('id-ID')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>

@@ -50,6 +50,7 @@ function normalizeBOM(raw, products) {
 export default function AssemblyBOMV2({ session, language, activeFeature, onFeatureChange }) {
   const [localTab, setLocalTab] = useState('boms'); // 'boms' | 'orders' | 'simulator' | 'debundle'
   const activeTab = activeFeature || localTab;
+  const [bomList, setBomList] = useState([]);
   const [rawBom, setRawBom] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_bom');
@@ -120,7 +121,9 @@ export default function AssemblyBOMV2({ session, language, activeFeature, onFeat
   // REST API Mount Fetch + live re-fetch (SSE)
   const loadAssembly = () => {
     apiService.assembly.getBOMs().then(data => {
-      const raw = Array.isArray(data) ? data[0] : data;
+      const list = Array.isArray(data) ? data : (data ? [data] : []);
+      setBomList(list);
+      const raw = list[0];
       if (raw) {
         setRawBom(raw);
         try { localStorage.setItem('moai_v2_bom', JSON.stringify(raw)); } catch (err) { console.debug(err); }
@@ -282,6 +285,15 @@ export default function AssemblyBOMV2({ session, language, activeFeature, onFeat
       {/* ========================================================================= */}
       {activeTab === 'boms' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* All recipes (from /assembly/boms) */}
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1rem', fontSize: '0.85rem' }}>
+            <strong>Resep BOM tersedia ({bomList.length}):</strong>{' '}
+            {bomList.map((r, i) => (
+              <span key={r.target_sku || i} style={{ marginRight: '0.75rem', backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '0.25rem' }}>
+                {r.target_sku} — {r.name}
+              </span>
+            ))}
+          </div>
           {/* Active BOM Card */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

@@ -11,6 +11,8 @@ import { useLiveData } from '../../hooks/useLiveData';
 export default function OutboundV2({ language, activeFeature, onFeatureChange }) {
   const [localTab, setLocalTab] = useState('orders'); // 'orders' | 'picking' | 'packing' | 'surat_jalan'
   const activeTab = activeFeature || localTab;
+  const [pickTasks, setPickTasks] = useState([]);
+  useEffect(() => { apiService.outbound.getPickTasks().then(d => { if (Array.isArray(d)) setPickTasks(d); }); }, []);
 
   // Dynamic Sales Orders backed by localStorage
   const [salesOrders, setSalesOrders] = useState(() => {
@@ -413,9 +415,11 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
               1 Picker dialokasikan untuk menyelesaikan 1 nomor SO secara penuh. Daftar item diurutkan berdasarkan urutan bin terdekat: <strong>Zone → Rack → Shelf → Level</strong>.
             </p>
             <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-              <div>Task Aktif: <strong>PICK-2026-0081 (Ref: SO-2026-0102)</strong></div>
-              <div>Item: 10x Lenovo ThinkPad E14 Gen 5 (Bin PB-A-1-01)</div>
-              <div>Picker: Ahmad Outbound · Status: In Progress (Scan SN)</div>
+              {pickTasks.filter(t => !t.batch_number).length === 0 ? (
+                <div>Belum ada task single-pick aktif.</div>
+              ) : pickTasks.filter(t => !t.batch_number).slice(0, 3).map(t => (
+                <div key={t.id} style={{ padding: '0.2rem 0' }}>{t.pick_number || t.id} · {t.product_sku || t.product_name} x{t.qty} ({t.bin_code})</div>
+              ))}
             </div>
           </div>
 
@@ -429,8 +433,11 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
               Agregasi kuantitas item yang sama dari 10+ Sales Order sekaligus. Petugas mengambil sekali di rak lalu memilah ke staging bin (put-to-light).
             </p>
             <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-              <div>Wave Batch: <strong>WAVE-BATCH-09</strong> (4 SO Retail)</div>
-              <div>Total Komponen: 12x RAM 32GB + 8x SSD 1TB</div>
+              {pickTasks.filter(t => t.batch_number).length === 0 ? (
+                <div>Belum ada wave batch.</div>
+              ) : pickTasks.filter(t => t.batch_number).slice(0, 3).map(t => (
+                <div key={t.id} style={{ padding: '0.2rem 0' }}>{t.batch_number} · {t.assigned_orders?.length || 0} SO · {t.total_lines} line</div>
+              ))}
               <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <button 
                   id="btn-wave-picking"
