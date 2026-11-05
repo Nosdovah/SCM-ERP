@@ -1890,42 +1890,56 @@ app.post('/api/v2/scm/qc-inspections/:id/action', (req, res) => {
     const targetGR = v2GRNList.find(g => g.id === qc?.gr_id || g.gr_number === req.params.id || g.id === req.params.id);
     if (targetGR) targetGR.status = 'QC_RELEASED';
 
-    // Post QC_RELEASE movement
-    const mov = {
-      id: `mov-${Date.now()}`,
-      movement_type: 'QC_RELEASE',
-      product_name: 'AMD Ryzen 7 7800X3D Processor Box',
-      qty: 15,
-      bin_code: target_bin,
-      ref_doc: targetGR?.gr_number || 'GRN-2026-0043',
-      unit_cost: 5900000,
-      note: note || 'Lolos inspeksi segel dan boot test',
-      created_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      created_by: 'QC Inspector'
-    };
-    v2Movements.unshift(mov);
+    // Derive released lines from the GRN (items[] if provided, else the legacy
+    // product_sku/qty pair, else a default demo line) instead of a hardcoded CPU+15.
+    const rawLines = Array.isArray(targetGR?.items) && targetGR.items.length
+      ? targetGR.items
+      : (targetGR?.product_sku
+          ? [{ sku: targetGR.product_sku, name: targetGR.product_name, qty: targetGR.qty, bin_code: target_bin }]
+          : [{ sku: 'SP-CPU-7800X3D', name: 'AMD Ryzen 7 7800X3D Processor Box', qty: 15, bin_code: target_bin }]);
 
-    // Increment inventory product stock
-    const prod = v2Products.find(p => p.sku === 'SP-CPU-7800X3D');
-    if (prod) prod.stock += 15;
+    const stamped = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const movements = [];
+    let apAmount = 0;
+    for (const ln of rawLines) {
+      const qty = Number(ln.qty) || 0;
+      if (!ln.sku || qty <= 0) continue;
+      const prod = v2Products.find(p => p.sku === ln.sku);
+      const unitCost = Number(prod?.cost_price) || 0;
+      if (prod) prod.stock = (Number(prod.stock) || 0) + qty;
+      apAmount += unitCost * qty;
+      movements.push({
+        id: `mov-${Date.now()}-${movements.length}`,
+        movement_type: 'QC_RELEASE',
+        product_name: ln.name || prod?.name || ln.sku,
+        sku: ln.sku,
+        qty,
+        bin_code: ln.bin_code || target_bin,
+        ref_doc: targetGR?.gr_number || 'GRN-2026-0043',
+        unit_cost: unitCost,
+        note: note || 'Lolos inspeksi segel dan boot test',
+        created_at: stamped,
+        created_by: 'QC Inspector'
+      });
+    }
+    for (const m of movements) v2Movements.unshift(m);
 
-    // Auto-create AP Bill in Finance
-    const apBill = {
+    const apBill = apAmount > 0 ? {
       id: `ap-${Date.now()}`,
       bill_no: `BILL-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       vendor: targetGR?.supplier_name || 'Silicon Tech Global Ltd',
       due_date: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
-      amount: 15 * 5900000,
+      amount: apAmount,
       status: 'unpaid',
       term: 'NET 30'
-    };
-    v2ApBills.unshift(apBill);
+    } : null;
+    if (apBill) v2ApBills.unshift(apBill);
 
     return res.json({
       success: true,
       status: 'PASSED',
-      message: 'QC Passed! Released to category racks and AP Bill automatically created.',
-      movement: mov,
+      message: `QC Passed! Released ${movements.length} line(s)${apBill ? ' and AP Bill automatically created.' : '.'}`,
+      movements,
       ap_bill: apBill
     });
   }
@@ -2018,14 +2032,20 @@ app.get('/api/v2/assembly/orders', (_req, res) => res.json(v2AssemblyOrders));
 
 app.post('/api/v2/assembly/orders', (req, res) => {
   const qty = Number(req.body.qty_to_build) || 1;
-  const materialCost = v2BOM.components.reduce((acc, c) => acc + (c.cost * c.qty), 0);
-  const totalUnitHPP = materialCost + v2BOM.labor_cost + v2BOM.overhead_cost;
+  const outputSku = v2BOM.output_sku || v2BOM.target_sku;
+  const outputProduct = v2Products.find(p => p.sku === outputSku);
+  const materialCost = v2BOM.components.reduce((acc, c) => {
+    const compProd = v2Products.find(p => p.sku === (c.component_sku || c.sku));
+    const cost = Number(c.cost ?? compProd?.cost_price ?? 0) || 0;
+    return acc + cost * (Number(c.qty) || 0);
+  }, 0);
+  const totalUnitHPP = materialCost + (Number(v2BOM.labor_cost) || 0) + (Number(v2BOM.overhead_cost) || 0);
 
   const newOrder = {
     id: `asm-${Date.now()}`,
     assembly_number: `ASM-ORD-2026-${String(v2AssemblyOrders.length + 1).padStart(3, '0')}`,
-    product_name: v2BOM.product_name,
-    sku: v2BOM.output_sku,
+    product_name: v2BOM.product_name || outputProduct?.name || outputSku,
+    sku: outputSku,
     qty_to_build: qty,
     status: 'ISSUED',
     target_bin: req.body.target_bin || 'PB-A-1-01',
@@ -2051,12 +2071,13 @@ app.patch('/api/v2/assembly/orders/:id/complete', (req, res) => {
 
   // Deduct components (ASM_OUT) and receive prebuilt output (ASM_IN)
   v2BOM.components.forEach(comp => {
-    const compProd = v2Products.find(p => p.sku === comp.sku);
-    if (compProd) compProd.stock = Math.max(0, compProd.stock - (comp.qty * order.qty_to_build));
+    const compSku = comp.component_sku || comp.sku;
+    const compProd = v2Products.find(p => p.sku === compSku);
+    if (compProd) compProd.stock = Math.max(0, (Number(compProd.stock) || 0) - ((Number(comp.qty) || 0) * order.qty_to_build));
   });
 
   const outputProd = v2Products.find(p => p.sku === order.sku);
-  if (outputProd) outputProd.stock += order.qty_to_build;
+  if (outputProd) outputProd.stock = (Number(outputProd.stock) || 0) + order.qty_to_build;
 
   // Record movement ASM_IN
   v2Movements.unshift({
@@ -2090,12 +2111,13 @@ app.patch('/api/v2/assembly/orders/:id/complete', (req, res) => {
 app.post('/api/v2/assembly/simulate', (req, res) => {
   const qty = Number(req.body.qty) || 1;
   const results = v2BOM.components.map(c => {
-    const prod = v2Products.find(p => p.sku === c.sku);
-    const available = prod ? prod.stock : 0;
-    const required = c.qty * qty;
+    const sku = c.component_sku || c.sku;
+    const prod = v2Products.find(p => p.sku === sku);
+    const available = prod ? (Number(prod.stock) || 0) : 0;
+    const required = (Number(c.qty) || 0) * qty;
     return {
-      sku: c.sku,
-      name: c.name,
+      sku,
+      name: prod?.name || c.component_name || c.name || sku,
       required,
       available,
       isSufficient: available >= required,
@@ -2116,8 +2138,9 @@ app.post('/api/v2/assembly/debundle', (req, res) => {
 
   // Restore 7 spare parts components
   v2BOM.components.forEach(comp => {
-    const part = v2Products.find(p => p.sku === comp.sku);
-    if (part) part.stock += comp.qty;
+    const compSku = comp.component_sku || comp.sku;
+    const part = v2Products.find(p => p.sku === compSku);
+    if (part) part.stock = (Number(part.stock) || 0) + (Number(comp.qty) || 0);
   });
 
   // Record movements
@@ -2218,17 +2241,24 @@ app.post('/api/v2/outbound/delivery-notes', (req, res) => {
   if (so) so.status = 'SHIPPED';
 
   // Execute Goods Issue GI (-) on stock ledger
+  const giLine = (so?.items && so.items[0]) || {};
+  const giQty = Number(giLine.qty || 1);
+  const giProductName = giLine.name || 'Lenovo ThinkPad E14 Gen 5';
   v2Movements.unshift({
     id: `mov-${Date.now()}`,
     movement_type: 'GI',
-    product_name: so?.items?.[0]?.name || 'Lenovo ThinkPad E14 Gen 5',
-    qty: -Number(so?.items?.[0]?.qty || 1),
+    product_name: giProductName,
+    qty: -giQty,
     bin_code: 'PB-A-1-01',
     ref_doc: sj.sj_number,
     unit_cost: 14500000,
     created_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
     created_by: 'Outbound Admin'
   });
+
+  // Apply the goods issue to the stock balance (previously only recorded).
+  const giProd = v2Products.find(p => (giLine.sku && p.sku === giLine.sku) || (giLine.name && p.name === giLine.name));
+  if (giProd) giProd.stock = Math.max(0, (Number(giProd.stock) || 0) - giQty);
 
   // Create AR Invoice in Finance
   const arInv = {
