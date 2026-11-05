@@ -125,6 +125,39 @@ const BOM = {
   ]
 };
 
+// Second BOM recipe — MOAI Office Pro (proves multi-recipe support, 3.1).
+const BOM_OFFICE = {
+  target_product_id: PRODUCTS[1].id,
+  target_sku: PRODUCTS[1].sku,
+  name: 'Standard Assembly Build - MOAI Office Pro',
+  version: 'v1.0',
+  labor_cost: 150000,
+  overhead_cost: 100000,
+  components: [
+    { component_sku: 'SP-CPU-I513400', component_name: 'Intel Core i5-13400 Desktop Processor', qty: 1, scrap_pct: 0 },
+    { component_sku: 'SP-MB-B760MA', component_name: 'MSI PRO B760M-A WIFI DDR5 Motherboard', qty: 1, scrap_pct: 0 },
+    { component_sku: 'SP-RAM-DDR5-16G', component_name: 'Kingston FURY Beast DDR5 16GB (1x16GB) 5600MT/s', qty: 1, scrap_pct: 0 },
+    { component_sku: 'SP-SSD-KC3-512', component_name: 'Kingston KC3000 NVMe M.2 SSD 512GB PCIe 4.0', qty: 1, scrap_pct: 0 },
+    { component_sku: 'SP-PSU-RM750E', component_name: 'Corsair RM750e 750W 80+ Gold Fully Modular', qty: 1, scrap_pct: 0 },
+    { component_sku: 'SP-CASE-CC560', component_name: 'DeepCool CC560 V2 Mid-Tower ATX Case Black', qty: 1, scrap_pct: 0 }
+  ]
+};
+
+// Vendor price quote register (dynamic store backing 2.5 Price Comparison).
+const VENDOR_PRICES = [
+  { id: 'vp-001', supplier_name: 'PT Synnex Metrodata Indonesia', sku: 'SP-SSD-990P-1T', price: 1850000, lead_days: 3, defect_rate: '0.4%', rating: 'A', valid_from: '2026-09-01' },
+  { id: 'vp-002', supplier_name: 'Silicon Tech Global Trading Ltd', sku: 'SP-SSD-990P-1T', price: 1720000, lead_days: 12, defect_rate: '1.2%', rating: 'B+', valid_from: '2026-09-01' },
+  { id: 'vp-003', supplier_name: 'PT Asus Technology Indonesia', sku: 'SP-MB-B650PLUS', price: 3400000, lead_days: 5, defect_rate: '0.8%', rating: 'A', valid_from: '2026-09-01' },
+  { id: 'vp-004', supplier_name: 'PT Synnex Metrodata Indonesia', sku: 'SP-GPU-RTX4070', price: 9900000, lead_days: 5, defect_rate: '0.9%', rating: 'A', valid_from: '2026-09-01' },
+  { id: 'vp-005', supplier_name: 'Silicon Tech Global Trading Ltd', sku: 'SP-GPU-RTX4070', price: 9600000, lead_days: 14, defect_rate: '1.5%', rating: 'B+', valid_from: '2026-09-01' },
+  { id: 'vp-006', supplier_name: 'PT Asus Technology Indonesia', sku: 'SP-CPU-7800X3D', price: 6050000, lead_days: 4, defect_rate: '0.5%', rating: 'A', valid_from: '2026-09-01' }
+];
+
+// Warranty ticket register (dynamic store backing 5.4 Warranty Cost).
+const WARRANTY_TICKETS = [
+  { id: 'wt-001', ticket_no: 'WAR-2026-1001', serial_no: 'SN-LN-TP-9901', sku: 'PB-LN-E14G5', product_name: 'Lenovo ThinkPad E14 Gen 5 (i7-1355U / 16GB / 512GB)', issue: 'Keyboard tidak responsif', status: 'OPEN', cost_estimate: 850000, assigned_vendor: 'Lenovo Group', opened_at: '2026-10-20' }
+];
+
 const COMPANIES = [
   { id: COMPANY_ID, code: 'KOMPAKOM', name: 'PT Kompakom Integrasi Mandiri', base_currency: 'IDR' }
 ];
@@ -147,6 +180,8 @@ export function defaultSeed() {
     clients: CLIENTS,
     serials: SERIALS,
     movements: MOVEMENTS,
-    bom: BOM
+    boms: [BOM, BOM_OFFICE],
+    vendor_prices: VENDOR_PRICES,
+    warranty_tickets: WARRANTY_TICKETS
   };
 }

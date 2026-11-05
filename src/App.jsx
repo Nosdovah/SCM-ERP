@@ -37,8 +37,15 @@ const VIEW_BY_SLUG = Object.fromEntries(
 function viewFromLocation() {
   if (typeof window === 'undefined') return 'inventory';
   const hash = window.location.hash || '';
-  const slug = hash.startsWith('#/') ? hash.slice(1) : '';
-  return VIEW_BY_SLUG[slug] || 'inventory';
+  const parts = hash.replace(/^#\/?/, '').split('/');
+  return VIEW_BY_SLUG['/' + (parts[0] || '')] || 'inventory';
+}
+
+function featureFromLocation() {
+  if (typeof window === 'undefined') return null;
+  const hash = window.location.hash || '';
+  const parts = hash.replace(/^#\/?/, '').split('/');
+  return parts[1] || null;
 }
 
 function App() {
@@ -54,12 +61,15 @@ function App() {
   const [language, setLanguage] = useState('en');
 
   const [currentView, setCurrentViewState] = useState(viewFromLocation);
+  const [currentFeature, setCurrentFeatureState] = useState(featureFromLocation);
 
-  // Navigating sets the URL slug (and reacts to it) so every page is deep-linkable.
-  const setCurrentView = (view) => {
+  // Navigating sets the URL slug (module + optional feature) and reacts to it.
+  const setCurrentView = (view, feature) => {
     const slug = ROUTE_SLUGS[view] || '/inventory';
-    if (window.location.hash !== '#' + slug) window.location.hash = '#' + slug;
+    const target = '#' + (feature ? slug + '/' + feature : slug);
+    if (window.location.hash !== target) window.location.hash = target;
     setCurrentViewState(view);
+    setCurrentFeatureState(feature || null);
   };
 
   const [forceTutorial, setForceTutorial] = useState(false);
@@ -107,7 +117,10 @@ function App() {
   }, [session]);
 
   useEffect(() => {
-    const onHashChange = () => setCurrentViewState(viewFromLocation());
+    const onHashChange = () => {
+      setCurrentViewState(viewFromLocation());
+      setCurrentFeatureState(featureFromLocation());
+    };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
@@ -165,13 +178,13 @@ function App() {
             {currentView === 'help' ? <HelpDictionary language={language} onOpenTutorial={() => setForceTutorial(true)} /> :
              currentView === 'settings' ? <Settings session={session} language={language} /> :
              currentView === 'analytics' ? <Analytics session={session} language={language} /> :
-             currentView === 'master_data' ? <MasterDataV2 session={session} language={language} /> :
-             currentView === 'scm' ? <SupplyChainV2 session={session} language={language} /> :
-             currentView === 'assembly' ? <AssemblyBOMV2 session={session} language={language} /> :
-             currentView === 'outbound' ? <OutboundV2 session={session} language={language} /> :
-             currentView === 'finance' ? <FinanceV2 session={session} language={language} /> :
+             currentView === 'master_data' ? <MasterDataV2 session={session} language={language} activeFeature={currentFeature} onFeatureChange={(f) => setCurrentView('master_data', f)} /> :
+             currentView === 'scm' ? <SupplyChainV2 session={session} language={language} activeFeature={currentFeature} onFeatureChange={(f) => setCurrentView('scm', f)} /> :
+             currentView === 'assembly' ? <AssemblyBOMV2 session={session} language={language} activeFeature={currentFeature} onFeatureChange={(f) => setCurrentView('assembly', f)} /> :
+             currentView === 'outbound' ? <OutboundV2 session={session} language={language} activeFeature={currentFeature} onFeatureChange={(f) => setCurrentView('outbound', f)} /> :
+             currentView === 'finance' ? <FinanceV2 session={session} language={language} activeFeature={currentFeature} onFeatureChange={(f) => setCurrentView('finance', f)} /> :
              currentView === 'managerial' ? <ManagerialV2 session={session} language={language} /> :
-             <InventoryManagementV2 session={session} language={language} />}
+             <InventoryManagementV2 session={session} language={language} activeFeature={currentFeature} onFeatureChange={(f) => setCurrentView('inventory', f)} />}
           </div>
         </main>
       </div>

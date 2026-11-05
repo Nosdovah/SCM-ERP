@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 import { calculateTotalValuation } from '../src/data/v2Data.js';
-import { bindSupabase, collection, object, ensureReady, persistAll, registerSeed, status as storeStatus } from './store.js';
+import { bindSupabase, collection, ensureReady, persistAll, registerSeed, status as storeStatus } from './store.js';
 import { defaultSeed } from './seedData.js';
 import { getPool, createCompat, changes } from './db.js';
 
@@ -1019,7 +1019,20 @@ const v2Suppliers = collection('suppliers');
 const v2Clients = collection('clients');
 const v2Serials = collection('serials');
 const v2Movements = collection('movements');
-const v2BOM = object('bom', { target_product_id: '', target_sku: '', name: '', version: '1.0', components: [] });
+const v2BOMs = collection('boms');
+const v2VendorPrices = collection('vendor_prices');
+const v2WarrantyTickets = collection('warranty_tickets');
+
+// Resolve the BOM recipe that produces `targetSku` (falls back to the first recipe).
+function findBOM(targetSku) {
+  const sku = String(targetSku || '').trim();
+  if (!v2BOMs.length) return null;
+  if (sku) {
+    const exact = v2BOMs.find(b => (b.target_sku || b.output_sku) === sku);
+    if (exact) return exact;
+  }
+  return v2BOMs[0];
+}
 const v2AssemblyOrders = collection('assembly_orders');
 const v2PurchaseOrders = collection('purchase_orders');
 const v2Requisitions = collection('requisitions');
@@ -1769,22 +1782,52 @@ app.post('/api/v2/inventory/stock-setup', (req, res) => {
 });
 
 app.get('/api/v2/inventory/aging', (_req, res) => {
-  res.json({
-    buckets: {
-      '0_30_days': { qty: 110, value: 420000000 },
-      '31_60_days': { qty: 45, value: 180000000 },
-      '61_90_days': { qty: 20, value: 160000000 },
-      '91_180_days': { qty: 12, value: 84150000 },
-      'over_180_days': { qty: 4, value: 45700000 }
-    },
-    idle_capital: 45700000,
-    movement_classes: {
-      fast: ['SP-SSD-990P-1T', 'SP-RAM-DDR5-32G', 'SP-CPU-7800X3D'],
-      medium: ['PB-ARES-78X', 'PB-OFFICE-134', 'BB-NUC13-PRO'],
-      slow: ['SP-CASE-CC560', 'SP-PSU-RM750E'],
-      dead: ['SP-MB-B650PLUS (Old Batch)']
+  const now = Date.now();
+  const ageDays = (v) => {
+    const t = new Date(String(v || '').replace(' ', 'T'));
+    return Number.isNaN(t.getTime()) ? 0 : Math.max(0, Math.floor((now - t.getTime()) / 86400000));
+  };
+
+  // Derive stock age + recent activity from the movement ledger (not hardcoded).
+  const lastInbound = new Map();
+  const activity = new Map();
+  for (const m of v2Movements) {
+    const key = String(m.sku || m.product_name || '').trim();
+    if (!key) continue;
+    const age = ageDays(m.created_at);
+    if (/IN|RECEIPT|_IN/i.test(m.movement_type || '')) {
+      if (age < (lastInbound.get(key) ?? Infinity)) lastInbound.set(key, age);
     }
-  });
+    if (age <= 90) activity.set(key, (activity.get(key) || 0) + Math.abs(Number(m.qty) || 0));
+  }
+
+  const buckets = {
+    '0_30_days': { qty: 0, value: 0 },
+    '31_60_days': { qty: 0, value: 0 },
+    '61_90_days': { qty: 0, value: 0 },
+    '91_180_days': { qty: 0, value: 0 },
+    'over_180_days': { qty: 0, value: 0 }
+  };
+  const classes = { fast: [], medium: [], slow: [], dead: [] };
+  let idleCapital = 0;
+
+  for (const p of v2Products) {
+    const key = p.sku;
+    const stockQty = Number(p.stock ?? p.stock_on_hand ?? 0) || 0;
+    const value = stockQty * (Number(p.cost_price) || 0);
+    const age = lastInbound.has(key) ? lastInbound.get(key) : 0;
+    const bucket = age <= 30 ? '0_30_days' : age <= 60 ? '31_60_days' : age <= 90 ? '61_90_days' : age <= 180 ? '91_180_days' : 'over_180_days';
+    buckets[bucket].qty += stockQty;
+    buckets[bucket].value += value;
+    if (age > 90) idleCapital += value;
+    const act = activity.get(key) || 0;
+    if (stockQty === 0) classes.dead.push(key);
+    else if (act > 50) classes.fast.push(key);
+    else if (act > 15) classes.medium.push(key);
+    else classes.slow.push(key);
+  }
+
+  res.json({ buckets, idle_capital: idleCapital, movement_classes: classes });
 });
 
 app.get('/api/v2/inventory/rma', (_req, res) => res.json(v2RMACases));
@@ -1956,11 +1999,28 @@ app.post('/api/v2/scm/qc-inspections/:id/action', (req, res) => {
 });
 
 app.get('/api/v2/scm/vendor-prices', (_req, res) => {
-  res.json([
-    { supplier: 'PT Synnex Metrodata Indonesia', sku: 'SP-SSD-990P-1T', price: 1850000, lead_days: 3, defect_rate: '0.4%', rating: 'A' },
-    { supplier: 'Silicon Tech Global Ltd', sku: 'SP-SSD-990P-1T', price: 1720000, lead_days: 12, defect_rate: '1.2%', rating: 'B+' },
-    { supplier: 'PT Asus Technology Indonesia', sku: 'SP-MB-B650PLUS', price: 3400000, lead_days: 5, defect_rate: '0.8%', rating: 'A' }
-  ]);
+  const bySku = {};
+  for (const q of v2VendorPrices) (bySku[q.sku] = bySku[q.sku] || []).push(q);
+  const comparison = Object.entries(bySku).map(([sku, rows]) => {
+    const sorted = [...rows].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+    return { sku, suppliers: sorted, best_supplier: sorted[0]?.supplier_name, best_price: sorted[0]?.price };
+  });
+  res.json({ quotes: v2VendorPrices, comparison });
+});
+app.post('/api/v2/scm/vendor-prices', (req, res) => {
+  const q = {
+    id: `vp-${Date.now()}`,
+    supplier_name: req.body.supplier_name || '',
+    sku: String(req.body.sku || '').trim(),
+    price: Number(req.body.price) || 0,
+    lead_days: Number(req.body.lead_days) || 0,
+    defect_rate: req.body.defect_rate || '',
+    rating: req.body.rating || '',
+    valid_from: req.body.valid_from || new Date().toISOString().substring(0, 10)
+  };
+  if (!q.sku) return res.status(400).json({ error: 'sku is required' });
+  v2VendorPrices.unshift(q);
+  res.status(201).json(q);
 });
 
 app.get('/api/v2/scm/rtv', (_req, res) => res.json(v2RTVCases));
@@ -2024,29 +2084,42 @@ app.post('/api/v2/scm/rtv/:id/ship', (req, res) => {
 });
 
 // --- MODULE 4: BOM & PC ASSEMBLY ENGINE ENDPOINTS ---
-app.get('/api/v2/assembly/boms', (_req, res) => res.json([v2BOM]));
+app.get('/api/v2/assembly/boms', (_req, res) => res.json(v2BOMs));
 app.post('/api/v2/assembly/boms', (req, res) => {
-  Object.assign(v2BOM, req.body);
-  res.status(201).json(v2BOM);
+  const incoming = { ...req.body };
+  const sku = String(incoming.target_sku || incoming.output_sku || '').trim();
+  if (!sku) return res.status(400).json({ error: 'BOM recipe requires target_sku' });
+  const existing = v2BOMs.findIndex(b => (b.target_sku || b.output_sku) === sku);
+  const recipe = {
+    ...incoming,
+    id: incoming.id || `bom-${Date.now()}`,
+    version: incoming.version || 'v1.0',
+    components: Array.isArray(incoming.components) ? incoming.components : []
+  };
+  if (existing >= 0) v2BOMs[existing] = recipe;
+  else v2BOMs.unshift(recipe);
+  res.status(201).json(recipe);
 });
 
 app.get('/api/v2/assembly/orders', (_req, res) => res.json(v2AssemblyOrders));
 
 app.post('/api/v2/assembly/orders', (req, res) => {
   const qty = Number(req.body.qty_to_build) || 1;
-  const outputSku = v2BOM.output_sku || v2BOM.target_sku;
+  const bom = findBOM(req.body.target_sku) || v2BOMs[0];
+  if (!bom) return res.status(400).json({ error: 'No BOM recipe defined. Create one first.' });
+  const outputSku = bom.output_sku || bom.target_sku;
   const outputProduct = v2Products.find(p => p.sku === outputSku);
-  const materialCost = v2BOM.components.reduce((acc, c) => {
+  const materialCost = (bom.components || []).reduce((acc, c) => {
     const compProd = v2Products.find(p => p.sku === (c.component_sku || c.sku));
     const cost = Number(c.cost ?? compProd?.cost_price ?? 0) || 0;
     return acc + cost * (Number(c.qty) || 0);
   }, 0);
-  const totalUnitHPP = materialCost + (Number(v2BOM.labor_cost) || 0) + (Number(v2BOM.overhead_cost) || 0);
+  const totalUnitHPP = materialCost + (Number(bom.labor_cost) || 0) + (Number(bom.overhead_cost) || 0);
 
   const newOrder = {
     id: `asm-${Date.now()}`,
     assembly_number: `ASM-ORD-2026-${String(v2AssemblyOrders.length + 1).padStart(3, '0')}`,
-    product_name: v2BOM.product_name || outputProduct?.name || outputSku,
+    product_name: bom.product_name || outputProduct?.name || outputSku,
     sku: outputSku,
     qty_to_build: qty,
     status: 'ISSUED',
@@ -2075,7 +2148,8 @@ app.patch('/api/v2/assembly/orders/:id/complete', (req, res) => {
   const movements = [];
 
   // Consume components: ASM_OUT journal PER component + balance deduction (P2).
-  v2BOM.components.forEach((comp, i) => {
+  const bom = findBOM(order.sku) || v2BOMs[0];
+  (bom?.components || []).forEach((comp, i) => {
     const compSku = comp.component_sku || comp.sku;
     const compProd = v2Products.find(p => p.sku === compSku);
     const used = (Number(comp.qty) || 0) * order.qty_to_build;
@@ -2133,7 +2207,8 @@ app.patch('/api/v2/assembly/orders/:id/complete', (req, res) => {
 
 app.post('/api/v2/assembly/simulate', (req, res) => {
   const qty = Number(req.body.qty) || 1;
-  const results = v2BOM.components.map(c => {
+  const bom = findBOM(req.body.target_sku) || v2BOMs[0];
+  const results = (bom?.components || []).map(c => {
     const sku = c.component_sku || c.sku;
     const prod = v2Products.find(p => p.sku === sku);
     const available = prod ? (Number(prod.stock) || 0) : 0;
@@ -2179,7 +2254,8 @@ app.post('/api/v2/assembly/debundle', (req, res) => {
   });
 
   // Restore components WITH an ASM_IN journal per part (P2).
-  v2BOM.components.forEach((comp, i) => {
+  const bom = findBOM(prebuilt_sku) || v2BOMs[0];
+  (bom?.components || []).forEach((comp, i) => {
     const compSku = comp.component_sku || comp.sku;
     const part = v2Products.find(p => p.sku === compSku);
     if (part) part.stock = (Number(part.stock) || 0) + (Number(comp.qty) || 0);
@@ -2230,15 +2306,32 @@ app.patch('/api/v2/outbound/sales-orders/:id/status', (req, res) => {
 
 app.get('/api/v2/outbound/pick-tasks', (_req, res) => res.json(v2PickTasks));
 
+app.post('/api/v2/outbound/pick-tasks', (req, res) => {
+  const pickTask = {
+    id: `pick-${Date.now()}`,
+    pick_number: `PICK-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    status: 'IN_PROGRESS',
+    order_id: req.body.order_id || '',
+    product_sku: req.body.product_sku || '',
+    product_name: req.body.product_name || '',
+    qty: Number(req.body.qty) || 0,
+    bin_code: req.body.bin_code || '',
+    created_at: new Date().toISOString()
+  };
+  v2PickTasks.unshift(pickTask);
+  res.status(201).json({ success: true, pick_task: pickTask });
+});
+
 app.post('/api/v2/outbound/pick-tasks/wave', (req, res) => {
   const waveTask = {
     id: `wave-${Date.now()}`,
     batch_number: `WAVE-BATCH-${Math.floor(10 + Math.random() * 90)}`,
     status: 'IN_PROGRESS',
-    assigned_orders: req.body.order_ids || ['so-02', 'so-03'],
-    total_lines: 8,
+    assigned_orders: req.body.order_ids || [],
+    total_lines: Number(req.body.total_lines) || (Array.isArray(req.body.order_ids) ? req.body.order_ids.length : 8),
     created_at: new Date().toISOString()
   };
+  v2PickTasks.unshift(waveTask);
   res.status(201).json({ success: true, wave_task: waveTask });
 });
 
@@ -2382,7 +2475,35 @@ app.post('/api/v2/finance/payments', (req, res) => {
 });
 
 app.get('/api/v2/finance/warranty-tickets', (_req, res) => {
-  res.json([]);
+  const shippedValue = v2SalesOrders
+    .filter(s => s.status === 'SHIPPED')
+    .reduce((sum, s) => sum + (Number(s.total) || 0), 0);
+  const provision = Math.round(shippedValue * 0.02); // 2% warranty provision on shipped revenue
+  const open = v2WarrantyTickets.filter(t => t.status === 'OPEN');
+  const totalEstimate = open.reduce((sum, t) => sum + (Number(t.cost_estimate) || 0), 0);
+  res.json({
+    tickets: v2WarrantyTickets,
+    open_count: open.length,
+    total_cost_estimate: totalEstimate,
+    provision,
+    provision_pct: 2
+  });
+});
+app.post('/api/v2/finance/warranty-tickets', (req, res) => {
+  const t = {
+    id: `wt-${Date.now()}`,
+    ticket_no: `WAR-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    serial_no: req.body.serial_no || '',
+    sku: req.body.sku || '',
+    product_name: req.body.product_name || '',
+    issue: req.body.issue || '',
+    status: req.body.status || 'OPEN',
+    cost_estimate: Number(req.body.cost_estimate) || 0,
+    assigned_vendor: req.body.assigned_vendor || '',
+    opened_at: new Date().toISOString().substring(0, 10)
+  };
+  v2WarrantyTickets.unshift(t);
+  res.status(201).json(t);
 });
 
 app.get('/api/v2/finance/exchange-rates', (_req, res) => {

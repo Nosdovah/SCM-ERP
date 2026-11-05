@@ -47,8 +47,9 @@ function normalizeBOM(raw, products) {
   };
 }
 
-export default function AssemblyBOMV2({ session, language }) {
-  const [activeTab, setActiveTab] = useState('boms'); // 'boms' | 'orders' | 'simulator' | 'debundle'
+export default function AssemblyBOMV2({ session, language, activeFeature, onFeatureChange }) {
+  const [localTab, setLocalTab] = useState('boms'); // 'boms' | 'orders' | 'simulator' | 'debundle'
+  const activeTab = activeFeature || localTab;
   const [rawBom, setRawBom] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_bom');
@@ -258,7 +259,7 @@ export default function AssemblyBOMV2({ session, language }) {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { setLocalTab(tab.id); if (onFeatureChange) onFeatureChange(tab.id); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
                   padding: '0.5rem 0.85rem', borderRadius: '0.375rem',

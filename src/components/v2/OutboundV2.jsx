@@ -8,8 +8,9 @@ import {
 import { apiService } from '../../services/apiService';
 import { useLiveData } from '../../hooks/useLiveData';
 
-export default function OutboundV2({ language }) {
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'picking' | 'packing' | 'surat_jalan'
+export default function OutboundV2({ language, activeFeature, onFeatureChange }) {
+  const [localTab, setLocalTab] = useState('orders'); // 'orders' | 'picking' | 'packing' | 'surat_jalan'
+  const activeTab = activeFeature || localTab;
 
   // Dynamic Sales Orders backed by localStorage
   const [salesOrders, setSalesOrders] = useState(() => {
@@ -262,7 +263,7 @@ export default function OutboundV2({ language }) {
               <button
                 key={t.id}
                 id={`tab-outbound-${t.id}`}
-                onClick={() => setActiveTab(t.id)}
+                onClick={() => { setLocalTab(t.id); if (onFeatureChange) onFeatureChange(t.id); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
                   padding: '0.5rem 0.85rem', borderRadius: '0.375rem',
