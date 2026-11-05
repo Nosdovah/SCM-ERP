@@ -11,6 +11,15 @@ export default function FinanceV2({ language, activeFeature, onFeatureChange }) 
   const [localTab, setLocalTab] = useState('cogs'); // 'cogs' | 'ap' | 'ar' | 'warranty' | 'currency'
   const activeTab = activeFeature || localTab;
   const [warrantyData, setWarrantyData] = useState(null);
+  const [warrantyForm, setWarrantyForm] = useState({ serial_no: '', sku: '', issue: '', cost_estimate: '' });
+  const handleCreateWarranty = (e) => {
+    e.preventDefault();
+    apiService.finance.createWarrantyTicket({
+      serial_no: warrantyForm.serial_no, sku: warrantyForm.sku.trim(),
+      issue: warrantyForm.issue, cost_estimate: Number(warrantyForm.cost_estimate) || 0
+    }).then(t => { if (t) setWarrantyData(prev => prev ? { ...prev, tickets: [t, ...(prev.tickets || [])], open_count: (prev.open_count || 0) + 1, total_cost_estimate: (prev.total_cost_estimate || 0) + (Number(t.cost_estimate) || 0) } : prev); });
+    setWarrantyForm({ serial_no: '', sku: '', issue: '', cost_estimate: '' });
+  };
   useEffect(() => { apiService.finance.getWarrantyTickets().then(d => { if (d) setWarrantyData(d); }); }, []);
   const [products] = useState(() => {
     try {
@@ -347,6 +356,13 @@ export default function FinanceV2({ language, activeFeature, onFeatureChange }) 
             <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>Estimasi biaya: <strong>Rp {Number(warrantyData?.total_cost_estimate || 0).toLocaleString('id-ID')}</strong></div>
             <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>Provisi garansi ({warrantyData?.provision_pct ?? 2}%): <strong>Rp {Number(warrantyData?.provision || 0).toLocaleString('id-ID')}</strong></div>
           </div>
+          <form onSubmit={handleCreateWarranty} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+              <input placeholder="Serial No" value={warrantyForm.serial_no} onChange={e => setWarrantyForm({ ...warrantyForm, serial_no: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '150px' }} />
+              <input placeholder="SKU" value={warrantyForm.sku} onChange={e => setWarrantyForm({ ...warrantyForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '130px' }} />
+              <input placeholder="Masalah" value={warrantyForm.issue} onChange={e => setWarrantyForm({ ...warrantyForm, issue: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '180px' }} />
+              <input type="number" placeholder="Estimasi biaya" value={warrantyForm.cost_estimate} onChange={e => setWarrantyForm({ ...warrantyForm, cost_estimate: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '130px' }} />
+              <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Buka Tiket</button>
+            </form>
           {(warrantyData?.tickets || []).length === 0 ? (
             <div style={{ backgroundColor: '#f8fafc', padding: '2rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               Belum ada rekaman klaim biaya garansi atau tiket servis aktif yang tercatat.
