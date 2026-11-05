@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { initialBOM, initialAssemblyOrders, initialProducts } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
+import { useLiveData } from '../../hooks/useLiveData';
 
 const generateAssemblySerial = () => `SN-ARES-PC-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -115,8 +116,8 @@ export default function AssemblyBOMV2({ session, language }) {
 
   const canBuildAll = simulationResults.every(r => r.isSufficient);
 
-  // REST API Mount Fetch
-  useEffect(() => {
+  // REST API Mount Fetch + live re-fetch (SSE)
+  const loadAssembly = () => {
     apiService.assembly.getBOMs().then(data => {
       const raw = Array.isArray(data) ? data[0] : data;
       if (raw) {
@@ -136,7 +137,9 @@ export default function AssemblyBOMV2({ session, language }) {
         try { localStorage.setItem('moai_v2_products', JSON.stringify(data)); } catch (err) { console.debug(err); }
       }
     });
-  }, []);
+  };
+  useEffect(loadAssembly, []);
+  useLiveData(loadAssembly, ['bom', 'assembly_orders', 'products']);
 
   // Handle Execute Assembly Order
   const handleCreateOrder = (e) => {

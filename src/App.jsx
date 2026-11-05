@@ -16,6 +16,31 @@ import OutboundV2 from './components/v2/OutboundV2';
 import FinanceV2 from './components/v2/FinanceV2';
 import ManagerialV2 from './components/v2/ManagerialV2';
 
+// --- Route slugs (hash-based; no router dependency) ---------------------------
+// Each page gets a stable URL slug so it can be deep-linked and QA'd directly.
+const ROUTE_SLUGS = {
+  inventory: '/inventory',
+  scm: '/scm',
+  assembly: '/assembly',
+  outbound: '/outbound',
+  finance: '/finance',
+  master_data: '/master-data',
+  managerial: '/managerial',
+  analytics: '/analytics',
+  help: '/help',
+  settings: '/settings',
+};
+const VIEW_BY_SLUG = Object.fromEntries(
+  Object.entries(ROUTE_SLUGS).map(([view, slug]) => [slug, view])
+);
+
+function viewFromLocation() {
+  if (typeof window === 'undefined') return 'inventory';
+  const hash = window.location.hash || '';
+  const slug = hash.startsWith('#/') ? hash.slice(1) : '';
+  return VIEW_BY_SLUG[slug] || 'inventory';
+}
+
 function App() {
   const [session, setSession] = useState(() => {
     try {
@@ -28,12 +53,14 @@ function App() {
   });
   const [language, setLanguage] = useState('en');
 
-  const [currentView, setCurrentView] = useState(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#help') {
-      return 'help';
-    }
-    return 'inventory'; // Default to v2.0 Inventory Management
-  });
+  const [currentView, setCurrentViewState] = useState(viewFromLocation);
+
+  // Navigating sets the URL slug (and reacts to it) so every page is deep-linkable.
+  const setCurrentView = (view) => {
+    const slug = ROUTE_SLUGS[view] || '/inventory';
+    if (window.location.hash !== '#' + slug) window.location.hash = '#' + slug;
+    setCurrentViewState(view);
+  };
 
   const [forceTutorial, setForceTutorial] = useState(false);
 
@@ -80,15 +107,9 @@ function App() {
   }, [session]);
 
   useEffect(() => {
-    const handleHashChange = () => {
-      if (window.location.hash === '#help') {
-        setCurrentView('help');
-      } else if (window.location.hash === '') {
-        setCurrentView('inventory');
-      }
-    };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    const onHashChange = () => setCurrentViewState(viewFromLocation());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   if (!session) {
@@ -97,7 +118,7 @@ function App() {
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-color)' }}>
           <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
             <button
-              onClick={() => { setCurrentView('inventory'); window.location.hash = ''; }}
+              onClick={() => setCurrentView('inventory')}
               className="btn btn-primary"
               style={{ marginBottom: '2rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '500' }}
             >
@@ -113,7 +134,7 @@ function App() {
     }
     return (
       <Auth
-        onGoToHelp={() => { setCurrentView('help'); window.location.hash = '#help'; }}
+        onGoToHelp={() => setCurrentView('help')}
         onDemoLogin={(demoSession) => {
           const sessionWithToken = {
             ...demoSession,

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { initialProducts, initialApBills, initialArInvoices } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
+import { useLiveData } from '../../hooks/useLiveData';
 
 export default function FinanceV2({ language }) {
   const [activeTab, setActiveTab] = useState('cogs'); // 'cogs' | 'ap' | 'ar' | 'warranty' | 'currency'
@@ -43,8 +44,8 @@ export default function FinanceV2({ language }) {
     return initialArInvoices;
   });
 
-  // REST API Mount Fetch
-  useEffect(() => {
+  // REST API Mount Fetch + live re-fetch (SSE)
+  const loadFinance = () => {
     apiService.finance.getAPBills().then(data => {
       if (data && Array.isArray(data)) {
         setApBills(data);
@@ -57,7 +58,9 @@ export default function FinanceV2({ language }) {
         try { localStorage.setItem('moai_v2_ar_invoices', JSON.stringify(data)); } catch (err) { console.debug(err); }
       }
     });
-  }, []);
+  };
+  useEffect(loadFinance, []);
+  useLiveData(loadFinance, ['ap_bills', 'ar_invoices', 'payments']);
 
   const handlePayBill = (billId) => {
     const updatedBills = apBills.map(b => {

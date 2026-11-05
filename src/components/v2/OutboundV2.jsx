@@ -6,6 +6,7 @@ import {
   initialSalesOrders, initialDeliveryNotes, initialArInvoices 
 } from '../../data/v2Data';
 import { apiService } from '../../services/apiService';
+import { useLiveData } from '../../hooks/useLiveData';
 
 export default function OutboundV2({ language }) {
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'picking' | 'packing' | 'surat_jalan'
@@ -72,8 +73,8 @@ export default function OutboundV2({ language }) {
   const isId = language === 'id';
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 
-  // REST API Mount Fetch
-  useEffect(() => {
+  // REST API Mount Fetch + live re-fetch (SSE)
+  const loadOutbound = () => {
     apiService.outbound.getSalesOrders().then(data => {
       if (data && Array.isArray(data)) {
         setSalesOrders(data);
@@ -89,7 +90,9 @@ export default function OutboundV2({ language }) {
     apiService.masterData.getProducts().then(data => {
       if (data && Array.isArray(data)) setProducts(data);
     });
-  }, []);
+  };
+  useEffect(loadOutbound, []);
+  useLiveData(loadOutbound, ['sales_orders', 'delivery_notes', 'products']);
 
   // Flow #13 Order Intake Handler
   const handleCreateSO = (e) => {
