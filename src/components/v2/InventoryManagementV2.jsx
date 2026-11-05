@@ -28,6 +28,18 @@ export default function InventoryManagementV2({ session, language, activeFeature
   const [localTab, setLocalTab] = useState('overview'); // 'overview' | 'serials' | 'movements' | 'operations' | 'aging' | 'rma'
   const subTab = activeFeature || localTab;
   const [agingData, setAgingData] = useState(null);
+  const [serialForm, setSerialForm] = useState({ serial_no: '', sku: '', product_name: '', status: 'IN_STOCK', bin_code: '', unit_cost: '' });
+  const handleRegisterSerial = (e) => {
+    e.preventDefault();
+    apiService.inventory.postSerial({ ...serialForm, unit_cost: Number(serialForm.unit_cost) || 0 }).then(s => { if (s) setSerials(prev => [s, ...prev]); });
+    setSerialForm({ serial_no: '', sku: '', product_name: '', status: 'IN_STOCK', bin_code: '', unit_cost: '' });
+  };
+  const [movementForm, setMovementForm] = useState({ movement_type: 'ADJ_IN', sku: '', product_name: '', qty: 0, bin_code: '', unit_cost: '' });
+  const handlePostMovement = (e) => {
+    e.preventDefault();
+    apiService.inventory.postMovement({ ...movementForm, qty: Number(movementForm.qty) || 0, unit_cost: Number(movementForm.unit_cost) || 0 }).then(m => { if (m) setMovements(prev => [m, ...prev]); });
+    setMovementForm({ movement_type: 'ADJ_IN', sku: '', product_name: '', qty: 0, bin_code: '', unit_cost: '' });
+  };
   useEffect(() => { apiService.inventory.getAging().then(d => { if (d) setAgingData(d); }); }, []);
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -544,6 +556,17 @@ export default function InventoryManagementV2({ session, language, activeFeature
       {/* ========================================================================= */}
       {subTab === 'serials' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={handleRegisterSerial} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+            <input placeholder="Serial No" value={serialForm.serial_no} onChange={e => setSerialForm({ ...serialForm, serial_no: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '140px' }} />
+            <input placeholder="SKU" value={serialForm.sku} onChange={e => setSerialForm({ ...serialForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '120px' }} />
+            <input placeholder="Nama produk" value={serialForm.product_name} onChange={e => setSerialForm({ ...serialForm, product_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '170px' }} />
+            <select value={serialForm.status} onChange={e => setSerialForm({ ...serialForm, status: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
+              {['IN_STOCK','ALLOCATED','SOLD','RMA','DEFECTIVE'].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <input placeholder="Bin" value={serialForm.bin_code} onChange={e => setSerialForm({ ...serialForm, bin_code: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '110px' }} />
+            <input type="number" placeholder="HPP unit" value={serialForm.unit_cost} onChange={e => setSerialForm({ ...serialForm, unit_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '120px' }} />
+            <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Daftar Serial</button>
+          </form>
           {/* Search bar */}
           <div style={{ backgroundColor: '#ffffff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', display: 'flex', gap: '1rem' }}>
             <div style={{ position: 'relative', flex: 1 }}>
@@ -628,6 +651,17 @@ export default function InventoryManagementV2({ session, language, activeFeature
       {/* ========================================================================= */}
       {subTab === 'movements' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={handlePostMovement} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+            <select value={movementForm.movement_type} onChange={e => setMovementForm({ ...movementForm, movement_type: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
+              {['ADJ_IN','ADJ_OUT','OPN_IN','GI','QC_RELEASE'].map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <input placeholder="SKU" value={movementForm.sku} onChange={e => setMovementForm({ ...movementForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '120px' }} />
+            <input placeholder="Nama produk" value={movementForm.product_name} onChange={e => setMovementForm({ ...movementForm, product_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '160px' }} />
+            <input type="number" placeholder="Qty (+/-)" value={movementForm.qty} onChange={e => setMovementForm({ ...movementForm, qty: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '100px' }} />
+            <input placeholder="Bin" value={movementForm.bin_code} onChange={e => setMovementForm({ ...movementForm, bin_code: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '110px' }} />
+            <input type="number" placeholder="Biaya/unit" value={movementForm.unit_cost} onChange={e => setMovementForm({ ...movementForm, unit_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '120px' }} />
+            <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>Catat Mutasi</button>
+          </form>
           {/* Banner rule */}
           <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', padding: '0.85rem 1.25rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem', color: '#92400e' }}>
             <AlertTriangle size={18} />
