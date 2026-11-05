@@ -7,8 +7,9 @@ import { initialProducts, initialApBills, initialArInvoices } from '../../data/v
 import { apiService } from '../../services/apiService';
 import { useLiveData } from '../../hooks/useLiveData';
 
-export default function FinanceV2({ language }) {
-  const [activeTab, setActiveTab] = useState('cogs'); // 'cogs' | 'ap' | 'ar' | 'warranty' | 'currency'
+export default function FinanceV2({ language, activeFeature, onFeatureChange }) {
+  const [localTab, setLocalTab] = useState('cogs'); // 'cogs' | 'ap' | 'ar' | 'warranty' | 'currency'
+  const activeTab = activeFeature || localTab;
   const [products] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_products');
@@ -129,7 +130,7 @@ export default function FinanceV2({ language }) {
             return (
               <button
                 key={t.id}
-                onClick={() => setActiveTab(t.id)}
+                onClick={() => { setLocalTab(t.id); if (onFeatureChange) onFeatureChange(t.id); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
                   padding: '0.5rem 0.85rem', borderRadius: '0.375rem',

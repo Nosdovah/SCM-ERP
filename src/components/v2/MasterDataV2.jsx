@@ -134,8 +134,9 @@ function EntityCardActions({ isId, archived, onEdit, onDelete, onRestore, testId
   );
 }
 
-export default function MasterDataV2({ language }) {
-  const [activeTab, setActiveTab] = useState('products'); // 'products' | 'hierarchy' | 'brands' | 'suppliers' | 'clients'
+export default function MasterDataV2({ language, activeFeature, onFeatureChange }) {
+  const [localTab, setLocalTab] = useState('products'); // 'products' | 'hierarchy' | 'brands' | 'suppliers' | 'clients'
+  const activeTab = activeFeature || localTab;
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   
@@ -531,7 +532,7 @@ export default function MasterDataV2({ language }) {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { setLocalTab(tab.id); if (onFeatureChange) onFeatureChange(tab.id); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
                   padding: '0.5rem 0.85rem', borderRadius: '0.375rem',

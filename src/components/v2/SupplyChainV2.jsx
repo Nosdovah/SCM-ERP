@@ -22,8 +22,9 @@ const createPurchaseOrderFromPR = (pr) => ({
   items_count: 1
 });
 
-export default function SupplyChainV2({ language }) {
-  const [tab, setTab] = useState('orders'); // 'orders' | 'reorder' | 'grn_qc' | 'inbound_return' | 'price_compare'
+export default function SupplyChainV2({ language, activeFeature, onFeatureChange }) {
+  const [localTab, setLocalTab] = useState('orders'); // 'orders' | 'reorder' | 'grn_qc' | 'inbound_return' | 'price_compare'
+  const tab = activeFeature || localTab;
   
   const [purchaseOrders, setPurchaseOrders] = useState(() => {
     try {
@@ -348,7 +349,7 @@ export default function SupplyChainV2({ language }) {
               <button
                 key={t.id}
                 id={`tab-scm-${t.id}`}
-                onClick={() => setTab(t.id)}
+                onClick={() => { setLocalTab(t.id); if (onFeatureChange) onFeatureChange(t.id); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
                   padding: '0.5rem 0.85rem', borderRadius: '0.375rem',

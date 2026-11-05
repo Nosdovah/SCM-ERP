@@ -24,8 +24,9 @@ const normalizeProduct = (p) => {
   };
 };
 
-export default function InventoryManagementV2({ session, language }) {
-  const [subTab, setSubTab] = useState('overview'); // 'overview' | 'serials' | 'movements' | 'operations' | 'aging' | 'rma'
+export default function InventoryManagementV2({ session, language, activeFeature, onFeatureChange }) {
+  const [localTab, setLocalTab] = useState('overview'); // 'overview' | 'serials' | 'movements' | 'operations' | 'aging' | 'rma'
+  const subTab = activeFeature || localTab;
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -384,7 +385,7 @@ export default function InventoryManagementV2({ session, language }) {
                 key={tab.id}
                 id={`tab-${tab.id}`}
                 data-testid={`tab-${tab.id}`}
-                onClick={() => setSubTab(tab.id)}
+                onClick={() => { setLocalTab(tab.id); if (onFeatureChange) onFeatureChange(tab.id); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
                   padding: '0.5rem 0.85rem', borderRadius: '0.375rem',
