@@ -26,6 +26,19 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
   const [localTab, setLocalTab] = useState('orders'); // 'orders' | 'reorder' | 'grn_qc' | 'inbound_return' | 'price_compare'
   const tab = activeFeature || localTab;
   const [vendorPrices, setVendorPrices] = useState(null);
+  const [vendorForm, setVendorForm] = useState({ supplier_name: '', sku: '', price: '', lead_days: '', defect_rate: '', rating: '' });
+  const handleCreateVendorPrice = (e) => {
+    e.preventDefault();
+    apiService.scm.createVendorPrice({
+      supplier_name: vendorForm.supplier_name,
+      sku: vendorForm.sku.trim(),
+      price: Number(vendorForm.price) || 0,
+      lead_days: Number(vendorForm.lead_days) || 0,
+      defect_rate: vendorForm.defect_rate,
+      rating: vendorForm.rating
+    }).then(() => apiService.scm.getVendorPrices().then(d => { if (d) setVendorPrices(d); }));
+    setVendorForm({ supplier_name: '', sku: '', price: '', lead_days: '', defect_rate: '', rating: '' });
+  };
   useEffect(() => { apiService.scm.getVendorPrices().then(d => { if (d) setVendorPrices(d); }); }, []);
   
   const [purchaseOrders, setPurchaseOrders] = useState(() => {
@@ -731,6 +744,14 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <form onSubmit={handleCreateVendorPrice} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', marginBottom: '0.5rem' }}>
+              <input placeholder="Supplier" value={vendorForm.supplier_name} onChange={e => setVendorForm({ ...vendorForm, supplier_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '150px' }} />
+              <input placeholder="SKU" value={vendorForm.sku} onChange={e => setVendorForm({ ...vendorForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '130px' }} />
+              <input type="number" placeholder="Harga" value={vendorForm.price} onChange={e => setVendorForm({ ...vendorForm, price: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '120px' }} />
+              <input type="number" placeholder="Lead days" value={vendorForm.lead_days} onChange={e => setVendorForm({ ...vendorForm, lead_days: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '100px' }} />
+              <input placeholder="Defect %" value={vendorForm.defect_rate} onChange={e => setVendorForm({ ...vendorForm, defect_rate: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '90px' }} />
+              <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Tambah Quote</button>
+            </form>
             {(vendorPrices?.comparison || []).map(row => (
               <div key={row.sku} style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.9rem 1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>

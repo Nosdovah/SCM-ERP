@@ -12,6 +12,15 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
   const [localTab, setLocalTab] = useState('orders'); // 'orders' | 'picking' | 'packing' | 'surat_jalan'
   const activeTab = activeFeature || localTab;
   const [pickTasks, setPickTasks] = useState([]);
+  const [pickForm, setPickForm] = useState({ order_id: '', product_sku: '', product_name: '', qty: 1, bin_code: '' });
+  const handleCreatePick = (e) => {
+    e.preventDefault();
+    apiService.outbound.createPickTask({
+      order_id: pickForm.order_id, product_sku: pickForm.product_sku.trim(),
+      product_name: pickForm.product_name, qty: Number(pickForm.qty) || 0, bin_code: pickForm.bin_code
+    }).then(r => { if (r?.pick_task) setPickTasks(prev => [r.pick_task, ...prev]); });
+    setPickForm({ order_id: '', product_sku: '', product_name: '', qty: 1, bin_code: '' });
+  };
   useEffect(() => { apiService.outbound.getPickTasks().then(d => { if (Array.isArray(d)) setPickTasks(d); }); }, []);
 
   // Dynamic Sales Orders backed by localStorage
@@ -414,6 +423,13 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
             <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               1 Picker dialokasikan untuk menyelesaikan 1 nomor SO secara penuh. Daftar item diurutkan berdasarkan urutan bin terdekat: <strong>Zone → Rack → Shelf → Level</strong>.
             </p>
+            <form onSubmit={handleCreatePick} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', marginBottom: '0.75rem' }}>
+              <input placeholder="Order ID" value={pickForm.order_id} onChange={e => setPickForm({ ...pickForm, order_id: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '130px' }} />
+              <input placeholder="SKU" value={pickForm.product_sku} onChange={e => setPickForm({ ...pickForm, product_sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '120px' }} />
+              <input type="number" placeholder="Qty" value={pickForm.qty} onChange={e => setPickForm({ ...pickForm, qty: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '70px' }} />
+              <input placeholder="Bin" value={pickForm.bin_code} onChange={e => setPickForm({ ...pickForm, bin_code: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '110px' }} />
+              <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: '#1d4ed8', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Single Pick</button>
+            </form>
             <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
               {pickTasks.filter(t => !t.batch_number).length === 0 ? (
                 <div>Belum ada task single-pick aktif.</div>

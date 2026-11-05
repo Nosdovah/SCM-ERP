@@ -51,6 +51,24 @@ export default function AssemblyBOMV2({ session, language, activeFeature, onFeat
   const [localTab, setLocalTab] = useState('boms'); // 'boms' | 'orders' | 'simulator' | 'debundle'
   const activeTab = activeFeature || localTab;
   const [bomList, setBomList] = useState([]);
+  const [newBomForm, setNewBomForm] = useState({ target_sku: '', name: '', labor_cost: 0, overhead_cost: 0, components_text: '' });
+  const handleCreateBOM = (e) => {
+    e.preventDefault();
+    const comps = String(newBomForm.components_text || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+      const i = l.indexOf(':');
+      const sku = i >= 0 ? l.slice(0, i).trim() : l.trim();
+      const qty = i >= 0 ? Number(l.slice(i + 1)) : 1;
+      return { component_sku: sku, component_name: sku, qty: Number.isFinite(qty) && qty > 0 ? qty : 1 };
+    });
+    apiService.assembly.createBOM({
+      target_sku: String(newBomForm.target_sku || '').trim(),
+      name: String(newBomForm.name || '').trim() || ('Custom - ' + newBomForm.target_sku),
+      labor_cost: Number(newBomForm.labor_cost) || 0,
+      overhead_cost: Number(newBomForm.overhead_cost) || 0,
+      components: comps
+    }).then(saved => { if (saved) { setBomList(prev => [saved, ...prev]); loadAssembly(); } });
+    setNewBomForm({ target_sku: '', name: '', labor_cost: 0, overhead_cost: 0, components_text: '' });
+  };
   const [rawBom, setRawBom] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_bom');
@@ -293,6 +311,17 @@ export default function AssemblyBOMV2({ session, language, activeFeature, onFeat
                 {r.target_sku} — {r.name}
               </span>
             ))}
+          </div>
+          <div style={{ backgroundColor: '#f0fdf4', borderRadius: '0.75rem', border: '1px solid #bbf7d0', padding: '1rem' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: '700', color: '#166534' }}>Tambah Resep BOM Baru</h4>
+            <form onSubmit={handleCreateBOM} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <input placeholder="target_sku (mis. PB-X)" value={newBomForm.target_sku} onChange={e => setNewBomForm({ ...newBomForm, target_sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '150px' }} />
+              <input placeholder="Nama resep" value={newBomForm.name} onChange={e => setNewBomForm({ ...newBomForm, name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '160px' }} />
+              <input type="number" placeholder="Labor" value={newBomForm.labor_cost} onChange={e => setNewBomForm({ ...newBomForm, labor_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '100px' }} />
+              <input type="number" placeholder="Overhead" value={newBomForm.overhead_cost} onChange={e => setNewBomForm({ ...newBomForm, overhead_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '110px' }} />
+              <textarea placeholder={'Komponen (SKU:qty per baris)\nSP-CPU-7800X3D:1'} value={newBomForm.components_text} onChange={e => setNewBomForm({ ...newBomForm, components_text: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '220px', minHeight: '58px' }} />
+              <button type="submit" style={{ padding: '0.5rem 1rem', backgroundColor: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>Simpan Resep</button>
+            </form>
           </div>
           {/* Active BOM Card */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
