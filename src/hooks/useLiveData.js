@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 // pass null/undefined to react to every change.
 export function useLiveData(onChange, collections = null) {
   const cbRef = useRef(onChange);
-  cbRef.current = onChange;
+  useEffect(() => { cbRef.current = onChange; });
 
   const deps = Array.isArray(collections) ? collections.join(',') : (collections ?? '');
 

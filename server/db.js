@@ -198,8 +198,6 @@ class Query {
     if (!this._data || !this._data.length) return { data: [], error: { message: 'no rows to insert' } };
     const rows = this._data;
     const keys = Object.keys(rows[0]);
-    const cols = keys.map(k => qid(k)).join(', ');
-    const nowIso = new Date().toISOString();
 
     // gather values; ensure jsonb for object/array columns
     let values = [];
@@ -283,7 +281,7 @@ export function createCompat() {
     from: (table) => new Query(table),
 
     auth: {
-      async signInWithPassword({ email, password }) {
+      async signInWithPassword({ email }) {
         const user = { email, user_metadata: { company_name: 'DEFAULT', role: 'Admin' } };
         const session = { user, access_token: `local_token_${Date.now()}` };
         return { data: { session, user }, error: null };
@@ -304,7 +302,7 @@ export function createCompat() {
         const dir = path.resolve(process.cwd(), 'server', 'data', 'uploads', bucket);
         fs.mkdirSync(dir, { recursive: true });
         return {
-          async upload(name, buffer, opts = {}) {
+          async upload(name, buffer) {
             try {
               fs.writeFileSync(path.join(dir, name), buffer);
               return { error: null };
