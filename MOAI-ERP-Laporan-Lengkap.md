@@ -149,23 +149,25 @@ MOAI ERP v2.0 adalah sistem supply-chain untuk distributor & integrator komputer
 
 # BAGIAN 5 — ALUR PENGGUNAAN SISTEM
 
-## 5.1 Cerita: Satu Hari dengan MOAI ERP *(untuk orang awam — tanpa istilah teknis)*
+## 5.1 Cerita: Satu Hari dengan MOAI ERP *(storytelling + penunjuk fitur di tiap tahap)*
 
-**Pagi hari.** Kompakom (toko komputer) mendapat pesanan dari sebuah kantor pemerintah: *"minta 10 unit PC untuk ruang kerja, dikirim minggu ini."* Mbak Rina, admin gudang, membuka sistem. Ia cek **daftar barang** yang tersedia — ternyata beberapa komponen seperti prosesor dan kartu grafis **tinggal sedikit**.
+**Pagi hari.** Kompakom mendapat pesanan dari sebuah kantor pemerintah: *"minta 10 PC, kirim minggu ini."* Mbak Rina, admin gudang, membuka **daftar barang** — *(di sini ia memakai fitur **6.1 Products Catalog**)* — dan melihat beberapa komponen seperti prosesor dan kartu grafis **tinggal sedikit**; ia juga cek **posisi rak** lewat *(**1.1 3 Racks Overview**)*.
 
-**Sistem yang mengingatkan.** Tanpa diminta, sistem menandai *"stok menipis, harus belanja lagi"*. Mbak Rina tinggal menekan satu tombol → muncul **daftar usulan belanja** (barang apa, berapa banyak). Ia **membandingkan harga** dari beberapa pemasok supaya dapat yang termurah dan tercepat, lalu mengirim **pesanan pembelian** ke pemasok terpilih.
+**Sistem yang mengingatkan.** Tanpa diminta, sistem menandai *"stok menipis, harus belanja"* — *(ini fitur **2.2 Auto Reorder**)*. Mbak Rina menekan satu tombol, muncul **usulan belanja**; ia **membandingkan harga** antar pemasok — *(**2.5 Price Comparison**)* — lalu mengirim **pesanan pembelian** ke pemasok terpilih — *(**2.1 Purchase Orders**)*.
 
-**Barang datang.** Ketika truk pemasok tiba, barang **diperiksa dulu** (dicek fisiknya, dites). Yang lolos **masuk ke rak gudang** — dan stoknya **naik sendiri secara otomatis**, lengkap dengan catatan "barang ini masuk kapan, dari pemasok mana, berapa". Yang rusak **dikembalikan** ke pemasok.
+**Barang datang.** Truk pemasok tiba, barang **diperiksa fisik & dites** dulu — *(**2.3 Receiving & QC Gate**)*. Yang lolos **masuk rak**, stok **naik otomatis + tercatat** — *(**1.3 Stock Ledger**)*. Yang rusak **dikembalikan** ke pemasok — *(**2.4 Inbound Return**)*.
 
-**Merakit PC.** Tim teknisi mengambil komponen dari rak dan **merakit 10 PC sesuai "resep"** yang sudah tersimpan. Selesai satu PC, otomatis muncul **nomor seri unik** untuk tiap unit — seperti nomor rangka kendaraan, jadi tiap PC bisa dilacak satu per satu.
+**Merakit PC.** Tim teknisi merakit 10 PC mengikuti **"resep"** tersimpan — *(**3.1 BOM Recipes**)*, setelah cek dulu komponen cukup — *(**3.3 Build Simulator**)* — lalu jalankan **perintah rakit** — *(**3.2 Assembly Orders**)*. Tiap PC jadi langsung dapat **nomor seri unik** (seperti nomor rangka kendaraan) — *(**1.2 Serial Registry**)*. Kalau salah rakit, bisa **dibongkar balik** — *(**3.4 De-bundling**)*.
 
-**Mengirim pesanan.** Petugas **mengambil barang** dari rak sesuai pesanan, **membungkus**, lalu **mengirim** ke alamat kantor. Begitu dikirim, **stok otomatis berkurang** dan **tagihan ke pelanggan** langsung terbit.
+**Mengirim pesanan.** Petugas **mengambil barang dari rak** — *(**4.2 Picking Engine**)* — **membungkus** — *(**4.3 Packing Station**)* — lalu **membuat surat jalan & mengirim** — *(**4.4 Delivery Notes**)*. Begitu terkirim, **stok turun otomatis** dan **tagihan ke pelanggan** terbit — *(**5.3 AR Invoices**)*.
 
-**Uang masuk.** Pelanggan membayar → catatan **uang masuk** tersimpan. Tagihan ke pemasok juga **dibayar** — semuanya tercatat rapi.
+**Uang masuk & keluar.** Pelanggan membayar — *(**5.3 AR Invoices**)*; tagihan ke pemasok dibayar — *(**5.2 AP Bills**)*. Biaya pokok tiap unit terhitung otomatis dari resep — *(**5.1 HPP/COGS Roll-up**)*.
 
-**Jaga agar tetap benar.** Akhir bulan, Mbak Rina **menghitung ulang fisik barang** (opname) — kalau ada selisih sedikit, langsung dikoreksi. Barang yang lama mengendap di gudang **diberi tanda "sudah lama, segera jual/diskon"**. Barang rusak dari pelanggan dicatat sebagai **retur/garansi**. Dan setiap saat, bos bisa melihat: *"stok sekarang segini, karena kemarin masuk 20 dan keluar 10"* — karena **setiap barang masuk dan keluar selalu tercatat, dan catatannya tidak bisa diubah seenaknya**.
+**Jaga agar tetap benar.** Bulanan, Mbak Rina **menghitung ulang fisik barang** — *(**1.7 Stock Setup**)*; kalau ada beda sedikit atau pindah rak, pakai *(**1.4 Operations**)*. Barang lama mengendap **diberi tanda "segera jual/diskon"** — *(**1.5 Aging & Obsolescence**)*. Barang rusak dari pelanggan dicatat **retur/servis** — *(**1.6 RMA & Defective**)* dan **biaya garansi** — *(**5.4 Warranty Cost**)*. Pengaturan awal barang/pemasok/klien/gudang semuanya dari **modul Master Data** — *(**6.2 Warehouse & Bins, 6.3 Brands, 6.4 Suppliers, 6.5 Clients**)*.
 
-> **Intinya:** sistem ini seperti "kasir + buku catatan + gudang" dalam satu aplikasi — tidak perlu menghafal istilah asing. Barang masuk, barang keluar, uang masuk, uang keluar — semua tercatat otomatis dan bisa ditelusuri kapan pun.
+**Penutup.** Kapan pun bos bertanya *"kok stok segini?"*, jawabannya selalu bisa ditelusuri dari **catatan mutasi** — *(**1.3 Stock Ledger**, prinsip saldo ⇄ mutasi)*. Semua barang masuk-keluar & uang masuk-keluar tercatat otomatis, tidak bisa diubah seenaknya.
+
+> **Intinya:** tiap tahap di atas ada fiturnya sendiri — awam cukup membaca ceritanya, sedangkan angka `X.Y` di kurung menunjuk fitur mana yang dipakai.
 
 ## 5.2 Referensi Teknis — Rincian Fitur per Langkah *(untuk pelaksana/auditor)*
 
