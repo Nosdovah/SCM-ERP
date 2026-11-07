@@ -408,6 +408,7 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
                           ✓ Selesai / Terkirim
                         </span>
                       )}
+                      <button onClick={() => { if (window.confirm(`Void SO ${so.so_number}?`)) apiService.outbound.soCrud.remove(so.id || so.so_number).then(loadOutbound); }} style={{ display: 'block', marginTop: '0.3rem', background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.75rem', fontWeight: '600' }}>Void</button>
                     </td>
                   </tr>
                 ))}
@@ -451,7 +452,7 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
               {pickTasks.filter(t => !t.batch_number).length === 0 ? (
                 <div>Belum ada task single-pick aktif.</div>
               ) : pickTasks.filter(t => !t.batch_number).slice(0, 3).map(t => (
-                <div key={t.id} style={{ padding: '0.2rem 0' }}>{t.pick_number || t.id} · {t.product_sku || t.product_name} x{t.qty} ({t.bin_code})</div>
+                <div key={t.id} style={{ padding: '0.2rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{t.pick_number || t.id} · {t.product_sku || t.product_name} x{t.qty} ({t.bin_code}) <button onClick={() => { if (window.confirm('Hapus task pick ini?')) apiService.outbound.pickCrud.remove(t.id).then(loadOutbound); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontWeight: '800' }}>✕</button></div>
               ))}
             </div>
           </div>
@@ -666,6 +667,7 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     Ledger: Movement GI (-) Tercatat
                   </div>
+                  <button onClick={() => { if (window.confirm(`Void SJ ${dn.sj_number}?`)) apiService.outbound.dnCrud.remove(dn.id).then(loadOutbound); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.75rem', fontWeight: '600' }}>Void</button>
                 </div>
               </div>
             ))}

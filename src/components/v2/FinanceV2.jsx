@@ -284,6 +284,7 @@ export default function FinanceV2({ language, activeFeature, onFeatureChange }) 
                       ) : (
                         <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.75rem' }}>✓ Lunas (Paid)</span>
                       )}
+                      <button onClick={() => { if (window.confirm(`Void tagihan ${b.bill_no}?`)) apiService.finance.apCrud.remove(b.id).then(loadFinance); }} style={{ display: 'block', marginTop: '0.3rem', background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.75rem', fontWeight: '600' }}>Void</button>
                     </td>
                   </tr>
                 ))}
@@ -338,6 +339,7 @@ export default function FinanceV2({ language, activeFeature, onFeatureChange }) 
                       ) : (
                         <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.75rem' }}>✓ Lunas (Paid)</span>
                       )}
+                      <button onClick={() => { if (window.confirm(`Void invoice ${inv.inv_no}?`)) apiService.finance.arCrud.remove(inv.id).then(loadFinance); }} style={{ display: 'block', marginTop: '0.3rem', background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.75rem', fontWeight: '600' }}>Void</button>
                     </td>
                   </tr>
                 ))}
