@@ -46,6 +46,8 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
   });
 
   const [products, setProducts] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [bins, setBins] = useState([]);
 
   // Order Intake (Flow #13 / F13) state
   const [showNewSOModal, setShowNewSOModal] = useState(false);
@@ -101,6 +103,12 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
     });
     apiService.masterData.getProducts().then(data => {
       if (data && Array.isArray(data)) setProducts(data);
+    });
+    apiService.masterData.getClients().then(data => {
+      if (data && Array.isArray(data)) setClients(data);
+    });
+    apiService.masterData.getBins().then(data => {
+      if (data && Array.isArray(data)) setBins(data);
     });
   };
   useEffect(loadOutbound, []);
@@ -424,13 +432,19 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
               1 Picker dialokasikan untuk menyelesaikan 1 nomor SO secara penuh. Daftar item diurutkan berdasarkan urutan bin terdekat: <strong>Zone → Rack → Shelf → Level</strong>.
             </p>
             <form onSubmit={handleCreatePick} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', marginBottom: '0.75rem' }}>
-              <input placeholder="Order ID" value={pickForm.order_id} onChange={e => setPickForm({ ...pickForm, order_id: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '130px' }} />
+              <select value={pickForm.order_id} onChange={e => setPickForm({ ...pickForm, order_id: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '170px', backgroundColor: '#fff' }}>
+                <option value="">— Pilih Sales Order —</option>
+                {salesOrders.map(so => <option key={so.id} value={so.so_number}>{so.so_number} ({so.client_name})</option>)}
+              </select>
               <select value={pickForm.product_sku} onChange={e => setPickForm({ ...pickForm, product_sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '170px', backgroundColor: '#fff' }}>
                 <option value="">— Pilih produk (SKU) —</option>
                 {products.map(p => <option key={p.sku} value={p.sku}>{p.sku} · {p.name}</option>)}
               </select>
               <input type="number" placeholder="Qty" value={pickForm.qty} onChange={e => setPickForm({ ...pickForm, qty: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '70px' }} />
-              <input placeholder="Bin" value={pickForm.bin_code} onChange={e => setPickForm({ ...pickForm, bin_code: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '110px' }} />
+              <select value={pickForm.bin_code} onChange={e => setPickForm({ ...pickForm, bin_code: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '140px', backgroundColor: '#fff' }}>
+                <option value="">— Bin —</option>
+                {bins.map(b => <option key={b.id || b.code} value={b.code}>{b.code}</option>)}
+              </select>
               <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: '#1d4ed8', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Single Pick</button>
             </form>
             <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
@@ -675,14 +689,16 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
             <form onSubmit={handleCreateSO} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Nama Klien / Pembeli</label>
-                <input
+                <select
                   id="so-client-name"
-                  type="text"
                   required
                   value={newSoForm.client_name}
                   onChange={e => setNewSoForm({ ...newSoForm, client_name: e.target.value })}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem' }}
-                />
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-color)', fontSize: '0.85rem', marginTop: '0.25rem', backgroundColor: '#fff' }}
+                >
+                  <option value="">— Pilih klien —</option>
+                  {clients.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem' }}>

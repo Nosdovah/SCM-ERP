@@ -571,7 +571,10 @@ export default function InventoryManagementV2({ session, language, activeFeature
             <select value={serialForm.status} onChange={e => setSerialForm({ ...serialForm, status: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
               {['IN_STOCK','ALLOCATED','SOLD','RMA','DEFECTIVE'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <input placeholder="Bin" value={serialForm.bin_code} onChange={e => setSerialForm({ ...serialForm, bin_code: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '110px' }} />
+            <select value={serialForm.bin_code} onChange={e => setSerialForm({ ...serialForm, bin_code: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '130px', backgroundColor: '#fff' }}>
+              <option value="">— Bin —</option>
+              {bins.map(b => <option key={b.id || b.code} value={b.code}>{b.code}</option>)}
+            </select>
             <input type="number" placeholder="HPP unit" value={serialForm.unit_cost} onChange={e => setSerialForm({ ...serialForm, unit_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '120px' }} />
             <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Daftar Serial</button>
           </form>
@@ -672,7 +675,10 @@ export default function InventoryManagementV2({ session, language, activeFeature
             </select>
             {movementForm.product_name && <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: '600' }}>{movementForm.product_name}</span>}
             <input type="number" placeholder="Qty (+/-)" value={movementForm.qty} onChange={e => setMovementForm({ ...movementForm, qty: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '100px' }} />
-            <input placeholder="Bin" value={movementForm.bin_code} onChange={e => setMovementForm({ ...movementForm, bin_code: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '110px' }} />
+            <select value={movementForm.bin_code} onChange={e => setMovementForm({ ...movementForm, bin_code: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '130px', backgroundColor: '#fff' }}>
+              <option value="">— Bin —</option>
+              {bins.map(b => <option key={b.id || b.code} value={b.code}>{b.code}</option>)}
+            </select>
             <input type="number" placeholder="Biaya/unit" value={movementForm.unit_cost} onChange={e => setMovementForm({ ...movementForm, unit_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '120px' }} />
             <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>Catat Mutasi</button>
           </form>
