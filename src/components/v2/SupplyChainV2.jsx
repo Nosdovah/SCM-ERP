@@ -602,7 +602,7 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
                       {!isPassed ? (
                         <button
                           id="btn-start-qc"
-                          onClick={() => { setSelectedPO(purchaseOrders[1] || purchaseOrders[0]); setShowQCModal(true); }}
+                          onClick={() => { setSelectedPO({ po_number: grn.po_number || grn.gr_number }); setShowQCModal(true); }}
                           style={{ backgroundColor: 'var(--accent-color)', color: '#ffffff', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
                         >
                           Mulai Inspeksi QC & Putaway

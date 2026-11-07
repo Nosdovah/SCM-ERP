@@ -30,3 +30,10 @@ Consultant_Report.md
 # Environment variables
 .env
 .env.example
+
+# Playwright QA artifacts
+test-results/
+playwright-report/
+blob-report/
+qa_screenshots/
+*.pdf
