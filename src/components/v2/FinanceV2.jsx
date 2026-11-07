@@ -21,7 +21,7 @@ export default function FinanceV2({ language, activeFeature, onFeatureChange }) 
     setWarrantyForm({ serial_no: '', sku: '', issue: '', cost_estimate: '' });
   };
   useEffect(() => { apiService.finance.getWarrantyTickets().then(d => { if (d) setWarrantyData(d); }); }, []);
-  const [products] = useState(() => {
+  const [products, setProducts] = useState(() => {
     try {
       const saved = localStorage.getItem('moai_v2_products');
       if (saved) return JSON.parse(saved);
@@ -68,6 +68,12 @@ export default function FinanceV2({ language, activeFeature, onFeatureChange }) 
       if (data && Array.isArray(data)) {
         setArInvoices(data);
         try { localStorage.setItem('moai_v2_ar_invoices', JSON.stringify(data)); } catch (err) { console.debug(err); }
+      }
+    });
+    apiService.masterData.getProducts().then(data => {
+      if (data && Array.isArray(data)) {
+        setProducts(data);
+        try { localStorage.setItem('moai_v2_products', JSON.stringify(data)); } catch (err) { console.debug(err); }
       }
     });
   };
@@ -358,7 +364,10 @@ export default function FinanceV2({ language, activeFeature, onFeatureChange }) 
           </div>
           <form onSubmit={handleCreateWarranty} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
               <input placeholder="Serial No" value={warrantyForm.serial_no} onChange={e => setWarrantyForm({ ...warrantyForm, serial_no: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '150px' }} />
-              <input placeholder="SKU" value={warrantyForm.sku} onChange={e => setWarrantyForm({ ...warrantyForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '130px' }} />
+              <select value={warrantyForm.sku} onChange={e => setWarrantyForm({ ...warrantyForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '170px', backgroundColor: '#fff' }}>
+                <option value="">— Pilih produk (SKU) —</option>
+                {products.map(p => <option key={p.sku} value={p.sku}>{p.sku} · {p.name}</option>)}
+              </select>
               <input placeholder="Masalah" value={warrantyForm.issue} onChange={e => setWarrantyForm({ ...warrantyForm, issue: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '180px' }} />
               <input type="number" placeholder="Estimasi biaya" value={warrantyForm.cost_estimate} onChange={e => setWarrantyForm({ ...warrantyForm, cost_estimate: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '130px' }} />
               <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Buka Tiket</button>
