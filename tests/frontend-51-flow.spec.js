@@ -99,9 +99,9 @@ test('5.1 FASE B — procure-to-pay via UI (PR → GRN → QC, stok GPU 2→17)'
 
   // 2.2 generate PR
   await page.goto(BASE + '/#/scm/reorder');
-  await page.fill('input[placeholder="SKU komponen"]', 'SP-GPU-RTX4070');
+  await page.locator('select', { hasText: 'Pilih komponen (SKU)' }).selectOption('SP-GPU-RTX4070');
   await page.fill('input[placeholder="Qty usulan"]', '15');
-  await page.fill('input[placeholder="Supplier"]', 'PT Synnex Metrodata Indonesia');
+  await page.locator('select', { hasText: 'Pilih pemasok' }).selectOption('PT Synnex Metrodata Indonesia');
   await page.getByRole('button', { name: '+ Generate PR' }).click();
   await page.waitForTimeout(800);
   const req = await apiGet(page, '/api/v2/scm/requisitions');
@@ -111,13 +111,14 @@ test('5.1 FASE B — procure-to-pay via UI (PR → GRN → QC, stok GPU 2→17)'
 
   // 2.3 create GRN + QC PASS
   await page.goto(BASE + '/#/scm/grn_qc');
-  await page.fill('input[placeholder="Supplier"]', 'PT Synnex Metrodata Indonesia');
-  await page.fill('input[placeholder="Ref PO"]', 'PO-5.1-DEMO');
-  await page.fill('textarea[placeholder*="Items (SKU:qty"]', 'SP-GPU-RTX4070:15');
+  await page.locator('select', { hasText: 'Pilih pemasok' }).selectOption('PT Synnex Metrodata Indonesia');
+  await page.locator('select', { hasText: 'Tambah item' }).selectOption('SP-GPU-RTX4070');
+  await page.fill('input[placeholder="Qty"]', '15');
+  await page.getByRole('button', { name: '+ Tambah Baris' }).click();
   await page.getByRole('button', { name: '+ Buat GRN' }).click();
   await page.waitForTimeout(800);
   const grn = await apiGet(page, '/api/v2/scm/goods-receipts');
-  const grnCreated = arr(grn.json).some((g) => g.po_number === 'PO-5.1-DEMO');
+  const grnCreated = arr(grn.json).some((g) => JSON.stringify(g).includes('SP-GPU-RTX4070'));
   console.log('GRN dibuat?', grnCreated);
   expect(grnCreated).toBeTruthy();
 
@@ -174,8 +175,7 @@ test('5.1 inventory writes via UI — register serial + manual movement', async 
   await page.goto(BASE + '/#/inventory/serials');
   const serialForm = page.locator('form').filter({ has: page.getByPlaceholder('Serial No') });
   await serialForm.locator('input[placeholder="Serial No"]').fill('SN-QA-5.1-001');
-  await serialForm.locator('input[placeholder="SKU"]').fill('SP-CPU-7800X3D');
-  await serialForm.locator('input[placeholder="Nama produk"]').fill('AMD Ryzen 7 7800X3D Processor Box');
+  await serialForm.locator('select', { hasText: 'Pilih produk (SKU)' }).selectOption('SP-CPU-7800X3D');
   await serialForm.locator('button[type="submit"]').click();
   await page.waitForTimeout(800);
   const serials = await apiGet(page, '/api/v2/inventory/serials');

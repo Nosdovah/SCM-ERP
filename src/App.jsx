@@ -15,6 +15,7 @@ import SupplyChainV2 from './components/v2/SupplyChainV2';
 import OutboundV2 from './components/v2/OutboundV2';
 import FinanceV2 from './components/v2/FinanceV2';
 import ManagerialV2 from './components/v2/ManagerialV2';
+import FlowGuide from './components/FlowGuide';
 
 // --- Route slugs (hash-based; no router dependency) ---------------------------
 // Each page gets a stable URL slug so it can be deep-linked and QA'd directly.
@@ -173,6 +174,10 @@ function App() {
 
         {/* Main Content */}
         <main className="main-content">
+          {/* End-to-end process flow guide (across the function-grouped modules) */}
+          {['inventory', 'scm', 'assembly', 'outbound', 'finance', 'master_data'].includes(currentView) && (
+            <FlowGuide currentView={currentView} currentFeature={currentFeature} />
+          )}
           {/* Content Area */}
           <div className="content-area">
             {currentView === 'help' ? <HelpDictionary language={language} onOpenTutorial={() => setForceTutorial(true)} /> :

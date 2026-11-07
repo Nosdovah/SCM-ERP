@@ -32,12 +32,23 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
     apiService.scm.createRequisition({ source: 'AUTO_REORDER', items: [{ sku: reorderForm.sku.trim(), qty: Number(reorderForm.qty) || 1 }], supplier_name: reorderForm.supplier_name }).then(pr => { if (pr) setRequisitions(prev => [pr, ...prev]); });
     setReorderForm({ sku: '', qty: '', supplier_name: '' });
   };
-  const [grnForm, setGrnForm] = useState({ supplier_name: '', po_number: '', items_text: '' });
+  const [grnForm, setGrnForm] = useState({ supplier_name: '', po_number: '', items: [] });
+  const [grnLine, setGrnLine] = useState({ sku: '', qty: '' });
+  const addGrnLine = () => {
+    const sku = String(grnLine.sku || '').trim();
+    const qty = Number(grnLine.qty) || 0;
+    if (!sku || qty <= 0) { alert('Pilih komponen dan isi qty (>0) untuk baris item.'); return; }
+    if (grnForm.items.some(i => i.sku === sku)) { alert('SKU tersebut sudah ada di daftar item.'); return; }
+    setGrnForm({ ...grnForm, items: [...grnForm.items, { sku, qty }] });
+    setGrnLine({ sku: '', qty: '' });
+  };
+  const removeGrnLine = (sku) => setGrnForm({ ...grnForm, items: grnForm.items.filter(i => i.sku !== sku) });
   const handleCreateGRN = (e) => {
     e.preventDefault();
-    const items = String(grnForm.items_text || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => { const i = l.indexOf(':'); const sku = i >= 0 ? l.slice(0, i).trim() : l.trim(); const qty = i >= 0 ? Number(l.slice(i + 1)) : 1; return { sku, qty: Number.isFinite(qty) && qty > 0 ? qty : 1 }; });
-    apiService.scm.createGoodsReceipt({ supplier_name: grnForm.supplier_name, po_number: grnForm.po_number, items }).then(grn => { if (grn) setGrnList(prev => [grn, ...prev]); });
-    setGrnForm({ supplier_name: '', po_number: '', items_text: '' });
+    if (!grnForm.supplier_name) { alert('Pilih pemasok terlebih dahulu.'); return; }
+    if (!grnForm.items.length) { alert('Tambahkan minimal 1 baris item (Pilih SKU + Qty).'); return; }
+    apiService.scm.createGoodsReceipt({ supplier_name: grnForm.supplier_name, po_number: grnForm.po_number, items: grnForm.items }).then(grn => { if (grn) setGrnList(prev => [grn, ...prev]); });
+    setGrnForm({ supplier_name: '', po_number: '', items: [] });
   };
   const [vendorForm, setVendorForm] = useState({ supplier_name: '', sku: '', price: '', lead_days: '', defect_rate: '', rating: '' });
   const handleCreateVendorPrice = (e) => {
@@ -503,9 +514,15 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
       {tab === 'reorder' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <form onSubmit={handleGeneratePR} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-            <input placeholder="SKU komponen" value={reorderForm.sku} onChange={e => setReorderForm({ ...reorderForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '150px' }} />
+            <select value={reorderForm.sku} onChange={e => setReorderForm({ ...reorderForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '230px', backgroundColor: '#fff' }}>
+              <option value="">— Pilih komponen (SKU) —</option>
+              {products.map(p => <option key={p.sku} value={p.sku}>{p.sku} · {p.name}</option>)}
+            </select>
             <input type="number" placeholder="Qty usulan" value={reorderForm.qty} onChange={e => setReorderForm({ ...reorderForm, qty: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '120px' }} />
-            <input placeholder="Supplier" value={reorderForm.supplier_name} onChange={e => setReorderForm({ ...reorderForm, supplier_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '180px' }} />
+            <select value={reorderForm.supplier_name} onChange={e => setReorderForm({ ...reorderForm, supplier_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '200px', backgroundColor: '#fff' }}>
+              <option value="">— Pilih pemasok —</option>
+              {suppliers.map(s => <option key={s.id || s.code} value={s.name}>{s.name}</option>)}
+            </select>
             <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: '#1d4ed8', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Generate PR</button>
           </form>
           <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '1rem', borderRadius: '0.75rem', color: '#1e40af', fontSize: '0.85rem' }}>
@@ -567,11 +584,36 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
       {/* ========================================================================= */}
       {tab === 'grn_qc' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <form onSubmit={handleCreateGRN} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-            <input placeholder="Supplier" value={grnForm.supplier_name} onChange={e => setGrnForm({ ...grnForm, supplier_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '160px' }} />
-            <input placeholder="Ref PO" value={grnForm.po_number} onChange={e => setGrnForm({ ...grnForm, po_number: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '130px' }} />
-            <textarea placeholder={'Items (SKU:qty per baris)\nSP-CPU-7800X3D:4'} value={grnForm.items_text} onChange={e => setGrnForm({ ...grnForm, items_text: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '220px', minHeight: '56px' }} />
-            <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Buat GRN</button>
+          <form onSubmit={handleCreateGRN} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <select value={grnForm.supplier_name} onChange={e => setGrnForm({ ...grnForm, supplier_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '180px', backgroundColor: '#fff' }}>
+                <option value="">— Pilih pemasok —</option>
+                {suppliers.map(s => <option key={s.id || s.code} value={s.name}>{s.name}</option>)}
+              </select>
+              <select value={grnForm.po_number} onChange={e => setGrnForm({ ...grnForm, po_number: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '170px', backgroundColor: '#fff' }}>
+                <option value="">— Ref PO (opsional) —</option>
+                {purchaseOrders.map(po => <option key={po.id || po.po_number} value={po.po_number}>{po.po_number}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <select value={grnLine.sku} onChange={e => setGrnLine({ ...grnLine, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '230px', backgroundColor: '#fff' }}>
+                <option value="">— Tambah item: pilih SKU —</option>
+                {products.map(p => <option key={p.sku} value={p.sku}>{p.sku} · {p.name}</option>)}
+              </select>
+              <input type="number" placeholder="Qty" value={grnLine.qty} onChange={e => setGrnLine({ ...grnLine, qty: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '90px' }} />
+              <button type="button" onClick={addGrnLine} style={{ padding: '0.5rem 0.8rem', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Tambah Baris</button>
+              <button type="submit" style={{ padding: '0.5rem 0.9rem', backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Buat GRN</button>
+            </div>
+            {grnForm.items.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {grnForm.items.map(it => (
+                  <span key={it.sku} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', backgroundColor: '#eef2ff', color: '#1e40af', padding: '0.25rem 0.55rem', borderRadius: '0.4rem', fontSize: '0.8rem', fontWeight: '600' }}>
+                    {it.sku} × {it.qty}
+                    <button type="button" onClick={() => removeGrnLine(it.sku)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e40af', fontWeight: '800' }} title="Hapus">✕</button>
+                  </span>
+                ))}
+              </div>
+            )}
           </form>
           <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', padding: '1rem', borderRadius: '0.75rem', color: '#92400e', fontSize: '0.85rem' }}>
             <strong>Alur Inbound QC:</strong> PO Disetujui → Barang Datang (GRN) → Scan SN/IMEI → Masuk Zona Karantina (<code>QC-IN-01</code>) → Inspeksi QC (Fisik & Booting) → Lolos: Posting <code>QC_RELEASE</code> ke rak utama (PB/BB/SP). Gagal: <code>RETURN_VENDOR</code> atau Scrap.
@@ -770,8 +812,14 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <form onSubmit={handleCreateVendorPrice} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', marginBottom: '0.5rem' }}>
-              <input placeholder="Supplier" value={vendorForm.supplier_name} onChange={e => setVendorForm({ ...vendorForm, supplier_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '150px' }} />
-              <input placeholder="SKU" value={vendorForm.sku} onChange={e => setVendorForm({ ...vendorForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '130px' }} />
+              <select value={vendorForm.supplier_name} onChange={e => setVendorForm({ ...vendorForm, supplier_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '180px', backgroundColor: '#fff' }}>
+                <option value="">— Pilih pemasok —</option>
+                {suppliers.map(s => <option key={s.id || s.code} value={s.name}>{s.name}</option>)}
+              </select>
+              <select value={vendorForm.sku} onChange={e => setVendorForm({ ...vendorForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '180px', backgroundColor: '#fff' }}>
+                <option value="">— Pilih produk (SKU) —</option>
+                {products.map(p => <option key={p.sku} value={p.sku}>{p.sku} · {p.name}</option>)}
+              </select>
               <input type="number" placeholder="Harga" value={vendorForm.price} onChange={e => setVendorForm({ ...vendorForm, price: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '120px' }} />
               <input type="number" placeholder="Lead days" value={vendorForm.lead_days} onChange={e => setVendorForm({ ...vendorForm, lead_days: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '100px' }} />
               <input placeholder="Defect %" value={vendorForm.defect_rate} onChange={e => setVendorForm({ ...vendorForm, defect_rate: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '90px' }} />

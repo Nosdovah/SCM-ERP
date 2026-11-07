@@ -558,8 +558,11 @@ export default function InventoryManagementV2({ session, language, activeFeature
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <form onSubmit={handleRegisterSerial} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
             <input placeholder="Serial No" value={serialForm.serial_no} onChange={e => setSerialForm({ ...serialForm, serial_no: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '140px' }} />
-            <input placeholder="SKU" value={serialForm.sku} onChange={e => setSerialForm({ ...serialForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '120px' }} />
-            <input placeholder="Nama produk" value={serialForm.product_name} onChange={e => setSerialForm({ ...serialForm, product_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '170px' }} />
+            <select value={serialForm.sku} onChange={e => { const sku = e.target.value; const p = products.find(x => x.sku === sku); setSerialForm({ ...serialForm, sku, product_name: p ? p.name : '' }); }} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '220px', backgroundColor: '#fff' }}>
+              <option value="">— Pilih produk (SKU) —</option>
+              {products.map(p => <option key={p.sku} value={p.sku}>{p.sku} · {p.name}</option>)}
+            </select>
+            {serialForm.product_name && <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: '600' }}>{serialForm.product_name}</span>}
             <select value={serialForm.status} onChange={e => setSerialForm({ ...serialForm, status: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
               {['IN_STOCK','ALLOCATED','SOLD','RMA','DEFECTIVE'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -655,8 +658,11 @@ export default function InventoryManagementV2({ session, language, activeFeature
             <select value={movementForm.movement_type} onChange={e => setMovementForm({ ...movementForm, movement_type: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
               {['ADJ_IN','ADJ_OUT','OPN_IN','GI','QC_RELEASE'].map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <input placeholder="SKU" value={movementForm.sku} onChange={e => setMovementForm({ ...movementForm, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '120px' }} />
-            <input placeholder="Nama produk" value={movementForm.product_name} onChange={e => setMovementForm({ ...movementForm, product_name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '160px' }} />
+            <select value={movementForm.sku} onChange={e => { const sku = e.target.value; const p = products.find(x => x.sku === sku); setMovementForm({ ...movementForm, sku, product_name: p ? p.name : '' }); }} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '200px', backgroundColor: '#fff' }}>
+              <option value="">— Pilih produk (SKU) —</option>
+              {products.map(p => <option key={p.sku} value={p.sku}>{p.sku} · {p.name}</option>)}
+            </select>
+            {movementForm.product_name && <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: '600' }}>{movementForm.product_name}</span>}
             <input type="number" placeholder="Qty (+/-)" value={movementForm.qty} onChange={e => setMovementForm({ ...movementForm, qty: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '100px' }} />
             <input placeholder="Bin" value={movementForm.bin_code} onChange={e => setMovementForm({ ...movementForm, bin_code: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '110px' }} />
             <input type="number" placeholder="Biaya/unit" value={movementForm.unit_cost} onChange={e => setMovementForm({ ...movementForm, unit_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '120px' }} />

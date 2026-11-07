@@ -315,7 +315,10 @@ export default function AssemblyBOMV2({ session, language, activeFeature, onFeat
           <div style={{ backgroundColor: '#f0fdf4', borderRadius: '0.75rem', border: '1px solid #bbf7d0', padding: '1rem' }}>
             <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: '700', color: '#166534' }}>Tambah Resep BOM Baru</h4>
             <form onSubmit={handleCreateBOM} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <input placeholder="target_sku (mis. PB-X)" value={newBomForm.target_sku} onChange={e => setNewBomForm({ ...newBomForm, target_sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '150px' }} />
+              <select value={newBomForm.target_sku} onChange={e => { const sku = e.target.value; const p = products.find(x => x.sku === sku); setNewBomForm({ ...newBomForm, target_sku: sku, name: newBomForm.name || (p ? p.name : '') }); }} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '200px', backgroundColor: '#fff' }}>
+              <option value="">— Pilih produk jadi (target) —</option>
+              {products.map(p => <option key={p.sku} value={p.sku}>{p.sku} · {p.name}</option>)}
+            </select>
               <input placeholder="Nama resep" value={newBomForm.name} onChange={e => setNewBomForm({ ...newBomForm, name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '160px' }} />
               <input type="number" placeholder="Labor" value={newBomForm.labor_cost} onChange={e => setNewBomForm({ ...newBomForm, labor_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '100px' }} />
               <input type="number" placeholder="Overhead" value={newBomForm.overhead_cost} onChange={e => setNewBomForm({ ...newBomForm, overhead_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '110px' }} />
