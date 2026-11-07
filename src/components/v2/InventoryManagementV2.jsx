@@ -991,6 +991,7 @@ export default function InventoryManagementV2({ session, language, activeFeature
                         ✓ {c.status === 'SERVICE_TICKET_CREATED' ? 'Dialihkan ke Servis Garansi' : 'RTV Out Diposting'}
                       </span>
                     )}
+                    <button onClick={() => { if (window.confirm(`Void RMA ${c.rma_number}?`)) apiService.inventory.rmaCrud.remove(c.id).then(loadInventory); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.75rem', fontWeight: '600' }}>Void</button>
                   </div>
                 </div>
               ))}

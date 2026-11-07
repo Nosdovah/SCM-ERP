@@ -499,6 +499,7 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
                           Terima & Inspeksi QC
                         </button>
                       )}
+                      <button onClick={() => { if (window.confirm(`Void PO ${po.po_number}?`)) apiService.scm.poCrud.remove(po.id || po.po_number).then(loadSCM); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.75rem', fontWeight: '600' }}>Void</button>
                     </td>
                   </tr>
                 ))}
@@ -570,6 +571,7 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
                           Konversi ke PO (1 Klik)
                         </button>
                       )}
+                      <button onClick={() => { if (window.confirm(`Hapus PR ${pr.pr_number}?`)) apiService.scm.reqCrud.remove(pr.id).then(loadSCM); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.75rem', fontWeight: '600' }}>Hapus</button>
                     </td>
                   </tr>
                 ))}
@@ -654,6 +656,7 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
                           Selesai Diproses
                         </span>
                       )}
+                      <button onClick={() => { if (window.confirm(`Void GRN ${grn.gr_number}?`)) apiService.scm.grnCrud.remove(grn.id || grn.gr_number).then(loadSCM); }} style={{ display: 'block', marginTop: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.75rem', fontWeight: '600' }}>Void</button>
                     </div>
                   </div>
                 );
@@ -787,6 +790,7 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
                           ✓ Dikirim ({ret.shipped_at})
                         </span>
                       )}
+                      <button onClick={() => { if (window.confirm(`Void RTV ${ret.ret_number}?`)) apiService.scm.rtvCrud.remove(ret.id).then(loadSCM); }} style={{ display: 'block', marginTop: '0.3rem', background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.75rem', fontWeight: '600' }}>Void</button>
                     </td>
                   </tr>
                 ))}
