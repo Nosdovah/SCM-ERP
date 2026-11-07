@@ -51,23 +51,29 @@ export default function AssemblyBOMV2({ session, language, activeFeature, onFeat
   const [localTab, setLocalTab] = useState('boms'); // 'boms' | 'orders' | 'simulator' | 'debundle'
   const activeTab = activeFeature || localTab;
   const [bomList, setBomList] = useState([]);
-  const [newBomForm, setNewBomForm] = useState({ target_sku: '', name: '', labor_cost: 0, overhead_cost: 0, components_text: '' });
+  const [newBomForm, setNewBomForm] = useState({ target_sku: '', name: '', labor_cost: 0, overhead_cost: 0, components: [] });
+  const [bomLine, setBomLine] = useState({ sku: '', qty: '' });
+  const addBomLine = () => {
+    const sku = String(bomLine.sku || '').trim();
+    const qty = Number(bomLine.qty) || 0;
+    if (!sku || qty <= 0) { alert('Pilih komponen dan isi qty (>0).'); return; }
+    if (newBomForm.components.some(c => c.component_sku === sku)) { alert('Komponen tersebut sudah ada di daftar.'); return; }
+    setNewBomForm({ ...newBomForm, components: [...newBomForm.components, { component_sku: sku, component_name: sku, qty }] });
+    setBomLine({ sku: '', qty: '' });
+  };
+  const removeBomLine = (sku) => setNewBomForm({ ...newBomForm, components: newBomForm.components.filter(c => c.component_sku !== sku) });
   const handleCreateBOM = (e) => {
     e.preventDefault();
-    const comps = String(newBomForm.components_text || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
-      const i = l.indexOf(':');
-      const sku = i >= 0 ? l.slice(0, i).trim() : l.trim();
-      const qty = i >= 0 ? Number(l.slice(i + 1)) : 1;
-      return { component_sku: sku, component_name: sku, qty: Number.isFinite(qty) && qty > 0 ? qty : 1 };
-    });
+    if (!String(newBomForm.target_sku || '').trim()) { alert('Pilih produk jadi (target) terlebih dahulu.'); return; }
+    if (!newBomForm.components.length) { alert('Tambahkan minimal 1 komponen.'); return; }
     apiService.assembly.createBOM({
       target_sku: String(newBomForm.target_sku || '').trim(),
       name: String(newBomForm.name || '').trim() || ('Custom - ' + newBomForm.target_sku),
       labor_cost: Number(newBomForm.labor_cost) || 0,
       overhead_cost: Number(newBomForm.overhead_cost) || 0,
-      components: comps
+      components: newBomForm.components
     }).then(saved => { if (saved) { setBomList(prev => [saved, ...prev]); loadAssembly(); } });
-    setNewBomForm({ target_sku: '', name: '', labor_cost: 0, overhead_cost: 0, components_text: '' });
+    setNewBomForm({ target_sku: '', name: '', labor_cost: 0, overhead_cost: 0, components: [] });
   };
   const [rawBom, setRawBom] = useState(() => {
     try {
@@ -328,8 +334,23 @@ export default function AssemblyBOMV2({ session, language, activeFeature, onFeat
               <input placeholder="Nama resep" value={newBomForm.name} onChange={e => setNewBomForm({ ...newBomForm, name: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '160px' }} />
               <input type="number" placeholder="Labor" value={newBomForm.labor_cost} onChange={e => setNewBomForm({ ...newBomForm, labor_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '100px' }} />
               <input type="number" placeholder="Overhead" value={newBomForm.overhead_cost} onChange={e => setNewBomForm({ ...newBomForm, overhead_cost: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '110px' }} />
-              <textarea placeholder={'Komponen (SKU:qty per baris)\nSP-CPU-7800X3D:1'} value={newBomForm.components_text} onChange={e => setNewBomForm({ ...newBomForm, components_text: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '220px', minHeight: '58px' }} />
+              <select value={bomLine.sku} onChange={e => setBomLine({ ...bomLine, sku: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '200px', backgroundColor: '#fff' }}>
+              <option value="">— Komponen: pilih SKU —</option>
+              {products.map(p => <option key={p.sku} value={p.sku}>{p.sku} · {p.name}</option>)}
+            </select>
+              <input type="number" placeholder="Qty" value={bomLine.qty} onChange={e => setBomLine({ ...bomLine, qty: e.target.value })} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '80px' }} />
+              <button type="button" onClick={addBomLine} style={{ padding: '0.5rem 0.8rem', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>+ Komponen</button>
               <button type="submit" style={{ padding: '0.5rem 1rem', backgroundColor: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.375rem', fontWeight: '600', cursor: 'pointer' }}>Simpan Resep</button>
+              {newBomForm.components.length > 0 && (
+                <span style={{ flexBasis: '100%', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  {newBomForm.components.map(c => (
+                    <span key={c.component_sku} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', backgroundColor: '#eef2ff', color: '#1e40af', padding: '0.25rem 0.55rem', borderRadius: '0.4rem', fontSize: '0.8rem', fontWeight: '600' }}>
+                      {c.component_sku} × {c.qty}
+                      <button type="button" onClick={() => removeBomLine(c.component_sku)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e40af', fontWeight: '800' }}>✕</button>
+                    </span>
+                  ))}
+                </span>
+              )}
             </form>
           </div>
           {/* Active BOM Card */}
