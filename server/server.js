@@ -1933,19 +1933,27 @@ app.get('/api/v2/scm/qc-inspections', (_req, res) => res.json(v2QCInspections));
 app.post('/api/v2/scm/qc-inspections/:id/action', (req, res) => {
   const { action, target_bin = 'SP-CPU-A-01', note } = req.body;
   const qc = v2QCInspections.find(q => q.id === req.params.id || q.gr_number === req.params.id);
+  // Resolve the received batch by gr_number / id / the buyer's PO reference.
+  // The SCM UI passes the PO number here, so without the po_number match the GRN
+  // is never found and QC silently falls back to a hardcoded demo line (wrong SKU).
+  const targetGR = v2GRNList.find(g =>
+    g.id === req.params.id || g.gr_number === req.params.id || g.po_number === req.params.id || g.id === qc?.gr_id
+  );
 
   if (action === 'PASS' || action === 'RELEASE') {
     if (qc) qc.status = 'PASSED';
-    const targetGR = v2GRNList.find(g => g.id === qc?.gr_id || g.gr_number === req.params.id || g.id === req.params.id);
     if (targetGR) targetGR.status = 'QC_RELEASED';
 
     // Derive released lines from the GRN (items[] if provided, else the legacy
-    // product_sku/qty pair, else a default demo line) instead of a hardcoded CPU+15.
+    // product_sku/qty pair) instead of a hardcoded CPU+15.
     const rawLines = Array.isArray(targetGR?.items) && targetGR.items.length
       ? targetGR.items
       : (targetGR?.product_sku
           ? [{ sku: targetGR.product_sku, name: targetGR.product_name, qty: targetGR.qty, bin_code: target_bin }]
-          : [{ sku: 'SP-CPU-7800X3D', name: 'AMD Ryzen 7 7800X3D Processor Box', qty: 15, bin_code: target_bin }]);
+          : []);
+    if (!rawLines.length) {
+      return res.status(404).json({ success: false, status: 'NOT_FOUND', message: `No GRN/PO matched reference "${req.params.id}" — cannot release stock.` });
+    }
 
     const stamped = new Date().toISOString().replace('T', ' ').substring(0, 16);
     const movements = [];
