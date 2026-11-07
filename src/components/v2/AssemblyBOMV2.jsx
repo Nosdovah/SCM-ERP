@@ -160,6 +160,11 @@ export default function AssemblyBOMV2({ session, language, activeFeature, onFeat
       }
     });
   };
+  const handleDeleteBom = (r) => {
+    if (!window.confirm(`Hapus resep BOM ${r.target_sku}?`)) return;
+    apiService.assembly.bomCrud.remove(r.id || r.target_sku).then(() => loadAssembly());
+  };
+
   useEffect(loadAssembly, []);
   useLiveData(loadAssembly, ['bom', 'assembly_orders', 'products']);
 
@@ -307,8 +312,9 @@ export default function AssemblyBOMV2({ session, language, activeFeature, onFeat
           <div style={{ backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid var(--border-color)', padding: '1rem', fontSize: '0.85rem' }}>
             <strong>Resep BOM tersedia ({bomList.length}):</strong>{' '}
             {bomList.map((r, i) => (
-              <span key={r.target_sku || i} style={{ marginRight: '0.75rem', backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '0.25rem' }}>
+              <span key={r.target_sku || i} style={{ marginRight: '0.75rem', backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                 {r.target_sku} — {r.name}
+                <button onClick={() => handleDeleteBom(r)} title="Hapus resep" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontWeight: '800' }}>✕</button>
               </span>
             ))}
           </div>
