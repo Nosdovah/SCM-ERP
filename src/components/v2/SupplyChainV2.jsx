@@ -839,9 +839,12 @@ export default function SupplyChainV2({ language, activeFeature, onFeatureChange
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.8rem' }}>
                   {row.suppliers.map(s => (
-                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
                       <span>{s.supplier_name} <span style={{ color: 'var(--text-muted)' }}>(lead {s.lead_days}h · defect {s.defect_rate})</span></span>
-                      <strong>Rp {Number(s.price || 0).toLocaleString('id-ID')}</strong>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <strong>Rp {Number(s.price || 0).toLocaleString('id-ID')}</strong>
+                        <button onClick={() => { if (window.confirm(`Hapus quote ${s.supplier_name}?`)) apiService.scm.vendorCrud.remove(s.id).then(() => apiService.scm.getVendorPrices().then(d => { if (d) setVendorPrices(d); })); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontWeight: '800' }}>✕</button>
+                      </span>
                     </div>
                   ))}
                 </div>

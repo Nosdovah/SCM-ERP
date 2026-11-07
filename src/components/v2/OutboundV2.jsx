@@ -608,6 +608,9 @@ export default function OutboundV2({ language, activeFeature, onFeatureChange })
                         ✓ {p.status}
                       </span>
                     </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <button onClick={() => { if (window.confirm(`Hapus paket ${p.pack_no}?`)) { setPackedOrders(packedOrders.filter(x => x.id !== p.id)); apiService.outbound.packCrud.remove(p.id); } }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.8rem', fontWeight: '600' }}>✕</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
