@@ -149,25 +149,71 @@ MOAI ERP v2.0 adalah sistem supply-chain untuk distributor & integrator komputer
 
 # BAGIAN 5 — ALUR PENGGUNAAN SISTEM
 
-## 5.1 Cerita: Satu Hari dengan MOAI ERP *(storytelling + penunjuk fitur di tiap tahap)*
+## 5.1 Cerita: Satu Hari dengan MOAI ERP *(data contoh mengalir sinkron dari awal ke akhir)*
 
-**Pagi hari.** Kompakom mendapat pesanan dari sebuah kantor pemerintah: *"minta 10 PC, kirim minggu ini."* Mbak Rina, admin gudang, membuka **daftar barang** — *(di sini ia memakai fitur **6.1 Products Catalog**)* — dan melihat beberapa komponen seperti prosesor dan kartu grafis **tinggal sedikit**; ia juga cek **posisi rak** lewat *(**1.1 3 Racks Overview**)*.
+**Skema contoh:** PT Kompakom melayani pesanan **3 unit PC gaming "MOAI Ares Elite"** dari **Toko Jaya Makmur Komputer** (klien retail, bayar COD). Ikuti angkanya — semuanya saling cocok dari awal sampai akhir.
 
-**Sistem yang mengingatkan.** Tanpa diminta, sistem menandai *"stok menipis, harus belanja"* — *(ini fitur **2.2 Auto Reorder**)*. Mbak Rina menekan satu tombol, muncul **usulan belanja**; ia **membandingkan harga** antar pemasok — *(**2.5 Price Comparison**)* — lalu mengirim **pesanan pembelian** ke pemasok terpilih — *(**2.1 Purchase Orders**)*.
+**FASE A — Data induk sudah siap (Master Data).**
+- **6.1 Products Catalog** — barang jadi `PB-ARES-78X` "MOAI Ares Elite Gaming PC (Ryzen 7 7800X3D / RTX 4070)", harga jual **Rp 27.500.000**/unit, memakai nomor seri, jenis *rakitan*. Komponen tercatat sebagai *spare part* (CPU, motherboard, RAM, SSD, VGA, PSU, casing).
+- **6.2 Warehouse & Bins** — gudang `WH-JKT-01` "Gudang Pusat Cikarang"; VGA di bin `SP-GPU-C-01`, PC jadi di `PB-A-1-01`.
+- **6.3 Brands · 6.4 Suppliers · 6.5 Clients** — brand: MOAI, AMD, Gigabyte, Kingston, Samsung, Corsair. Pemasok `SUPP-SYNNEX` (PT Synnex Metrodata, kirim 7 hari, cacat 1,2%, NET 30). Klien `CLI-JAYA` (Toko Jaya Makmur, COD, kredit Rp 100 jt).
 
-**Barang datang.** Truk pemasok tiba, barang **diperiksa fisik & dites** dulu — *(**2.3 Receiving & QC Gate**)*. Yang lolos **masuk rak**, stok **naik otomatis + tercatat** — *(**1.3 Stock Ledger**)*. Yang rusak **dikembalikan** ke pemasok — *(**2.4 Inbound Return**)*.
+**FASE B — Belanja komponen (Procure-to-Pay).**
+- **1.1 3 Racks Overview** — cek rak: stok VGA `SP-GPU-RTX4070` tinggal **2 pcs** di bin `SP-GPU-C-01`.
+- **2.2 Auto Reorder** — sistem mendeteksi `SP-GPU-RTX4070`: **2 pcs < reorder point 12** → usulan **Purchase Requisition: VGA 15 pcs**. (CPU 7800X3D juga ditandai: 3 < 15, tapi 3 cukup untuk order ini, jadi ditangguhkan.)
+- **2.5 Price Comparison** — bandingkan penawaran VGA: Synnex Rp 9.900.000 (5 hari, cacat 0,9%) vs Silicon Rp 9.600.000 (14 hari, cacat 1,5%). Harga beli final **Rp 9.800.000** (harga pokok standar MOAI).
+- **2.1 Purchase Orders** — PO ke PT Synnex: **15 × Rp 9.800.000 = Rp 147.000.000**.
+- **2.3 Receiving & QC Gate** — GRN masuk **15 VGA** → inspeksi QC → **15 PASS**.
+- **5.2 AP Bills** — AP Bill Synnex **Rp 147.000.000** (NET 30) → **Dibayar**.
+- **1.3 Stock Ledger** *(otomatis)* — stok VGA: **2 + 15 = 17 pcs** (mutasi `QC_RELEASE`).
 
-**Merakit PC.** Tim teknisi merakit 10 PC mengikuti **"resep"** tersimpan — *(**3.1 BOM Recipes**)*, setelah cek dulu komponen cukup — *(**3.3 Build Simulator**)* — lalu jalankan **perintah rakit** — *(**3.2 Assembly Orders**)*. Tiap PC jadi langsung dapat **nomor seri unik** (seperti nomor rangka kendaraan) — *(**1.2 Serial Registry**)*. Kalau salah rakit, bisa **dibongkar balik** — *(**3.4 De-bundling**)*.
+**FASE C — Merakit 3 PC (Plan-to-Produce).**
+- **3.1 BOM Recipes** — resep "Ares Elite v1.0" (7 komponen ×1 per unit): CPU 7800X3D Rp 5.900.000, motherboard B650 Rp 2.600.000, RAM 32GB Rp 1.650.000, SSD 1TB Rp 1.850.000, VGA RTX 4070 Rp 9.800.000, PSU 750W Rp 1.750.000, casing Rp 750.000 + jasa rakit Rp 250.000 + overhead Rp 100.000 → **bahan Rp 24.300.000 / unit, total Rp 24.650.000 / unit**.
+- **3.3 Build Simulator** — cek untuk **3 unit**: CPU butuh 3 (stok 3 ✓), VGA butuh 3 (stok 17 ✓), semua komponen ✓ → **"cukup"**.
+- **3.2 Assembly Orders** — buat Assembly Order **3 unit** → **Complete**: konsumsi 3× tiap komponen (`ASM_OUT`), terima 3 unit jadi (`ASM_IN`). Stok `PB-ARES-78X`: **6 + 3 = 9 unit**; CPU **3 − 3 = 0**; VGA **17 − 3 = 14**.
+- **1.2 Serial Registry** *(otomatis)* — 3 unit baru dapat nomor seri `SN-ARES-2026-001`, `SN-ARES-2026-002`, `SN-ARES-2026-003`.
+- **3.4 De-bundling** — *(opsional; tidak dipakai di contoh ini)* untuk membongkar unit jadi komponen kembali.
+- **5.1 HPP / COGS Roll-up** *(otomatis)* — HPP terkunci **Rp 24.650.000/unit**.
 
-**Mengirim pesanan.** Petugas **mengambil barang dari rak** — *(**4.2 Picking Engine**)* — **membungkus** — *(**4.3 Packing Station**)* — lalu **membuat surat jalan & mengirim** — *(**4.4 Delivery Notes**)*. Begitu terkirim, **stok turun otomatis** dan **tagihan ke pelanggan** terbit — *(**5.3 AR Invoices**)*.
+**FASE D — Jual & kirim (Order-to-Cash).**
+- **4.1 Sales Orders** — buat SO untuk Toko Jaya Makmur: **3 × Rp 27.500.000 = Rp 82.500.000**.
+- **4.2 Picking Engine** — single pick **3 unit** dari bin `PB-A-1-01`.
+- **4.3 Packing Station** — kemas 3 dus, verifikasi fisik.
+- **4.4 Delivery Notes** — buat Surat Jalan → `GI` 3 unit: stok `PB-ARES-78X` **9 − 3 = 6 unit**.
+- **5.3 AR Invoices** — AR Invoice **Rp 82.500.000** (COD) → **Dibayar tunai**.
 
-**Uang masuk & keluar.** Pelanggan membayar — *(**5.3 AR Invoices**)*; tagihan ke pemasok dibayar — *(**5.2 AP Bills**)*. Biaya pokok tiap unit terhitung otomatis dari resep — *(**5.1 HPP/COGS Roll-up**)*.
+**FASE E — Kendali & audit (agar angka tetap benar).**
+- **1.4 Operations** — *(contoh)* pindahkan sisa VGA dari `SP-GPU-C-01` ke rak cadangan bila penuh.
+- **1.7 Stock Setup** — opname akhir pekan: hitung fisik, ternyata **selisih 0** (semua cocok).
+- **1.5 Aging & Obsolescence** — 14 VGA sisa berumur < 30 hari (kelas *fast-moving*), modal menganggur Rp 0.
+- **1.6 RMA & Defective** — 1 unit Ares Elite dikembalikan klien (DOA) → serialnya berstatus **RMA**.
+- **2.4 Inbound Return** — 1 VGA hasil servis dikirim balik (RTV) ke Synnex + credit note.
+- **5.4 Warranty Cost** — buka tiket garansi `WAR-2026-####` untuk unit DOA (estimasi Rp 850.000).
+- **1.3 Stock Ledger** — audit akhir: **saldo = mutasi, semua cocok dua arah**.
 
-**Jaga agar tetap benar.** Bulanan, Mbak Rina **menghitung ulang fisik barang** — *(**1.7 Stock Setup**)*; kalau ada beda sedikit atau pindah rak, pakai *(**1.4 Operations**)*. Barang lama mengendap **diberi tanda "segera jual/diskon"** — *(**1.5 Aging & Obsolescence**)*. Barang rusak dari pelanggan dicatat **retur/servis** — *(**1.6 RMA & Defective**)* dan **biaya garansi** — *(**5.4 Warranty Cost**)*. Pengaturan awal barang/pemasok/klien/gudang semuanya dari **modul Master Data** — *(**6.2 Warehouse & Bins, 6.3 Brands, 6.4 Suppliers, 6.5 Clients**)*.
+**Jejak sinkron — stok dari awal ke akhir:**
 
-**Penutup.** Kapan pun bos bertanya *"kok stok segini?"*, jawabannya selalu bisa ditelusuri dari **catatan mutasi** — *(**1.3 Stock Ledger**, prinsip saldo ⇄ mutasi)*. Semua barang masuk-keluar & uang masuk-keluar tercatat otomatis, tidak bisa diubah seenaknya.
+| SKU | Saldo awal | + Masuk | − Keluar | Saldo akhir | Sebab |
+|---|---|---|---|---|---|
+| SP-GPU-RTX4070 | 2 | +15 | −3 | 14 | beli 15 → rakit 3 |
+| SP-CPU-7800X3D | 3 | 0 | −3 | 0 | rakit 3 |
+| SP-MB-B650PLUS | 9 | 0 | −3 | 6 | rakit 3 |
+| SP-RAM-DDR5-32G | 50 | 0 | −3 | 47 | rakit 3 |
+| SP-SSD-990P-1T | 40 | 0 | −3 | 37 | rakit 3 |
+| SP-PSU-RM750E | 30 | 0 | −3 | 27 | rakit 3 |
+| SP-CASE-CC560 | 25 | 0 | −3 | 22 | rakit 3 |
+| PB-ARES-78X | 6 | +3 | −3 | 6 | rakit 3 → jual 3 |
 
-> **Intinya:** tiap tahap di atas ada fiturnya sendiri — awam cukup membaca ceritanya, sedangkan angka `X.Y` di kurung menunjuk fitur mana yang dipakai.
+**Jejak sinkron — uang:**
+
+| Alur | Nilai |
+|---|---|
+| Belanja VGA (AP, dibayar) | Rp 147.000.000 |
+| Penjualan 3 PC (AR, COD) | Rp 82.500.000 |
+| HPP 3 PC (bahan + jasa + overhead) | Rp 73.950.000 |
+| Laba kotor | Rp 8.550.000 |
+
+> **Intinya:** satu pesanan menghasilkan rantai angka yang saling cocok — beli 15 VGA (Rp 147 jt) → rakit 3 PC (HPP Rp 73,95 jt) → jual 3 PC (Rp 82,5 jt, laba kotor Rp 8,55 jt). Di tiap tahap, fitur `X.Y` mencatat angkanya, dan di akhir semuanya bisa ditelusuri dari ledger.
 
 ## 5.2 Referensi Teknis — Rincian Fitur per Langkah *(untuk pelaksana/auditor)*
 
