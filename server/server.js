@@ -1391,6 +1391,38 @@ function registerMasterEntityCrud(cfg) {
   });
 }
 
+// Registers generic UPDATE (PUT) + DELETE (soft-void by default, ?hard=true to
+// remove) for v2 reference / config / transactional collections, so every
+// module + feature has a full create/read/update/delete surface. Identity keys
+// are never overwritten on update. Transactions void (status=VOID) rather than
+// hard-delete so the ledger keeps its audit trail ("saldo ⇄ mutasi").
+function registerCollectionCrud({ route, arr, idKeys = ['id'], editable = true }) {
+  const findOne = (id) => arr.find(x => idKeys.some(k => String(x[k]) === String(id)));
+
+  app.put(`${route}/:id`, (req, res) => {
+    if (!editable) return res.status(405).json({ error: 'This collection is not editable' });
+    const cur = findOne(req.params.id);
+    if (!cur) return res.status(404).json({ error: 'Not found' });
+    const body = { ...(req.body || {}) };
+    idKeys.forEach((k) => delete body[k]);
+    ['id', 'created_at'].forEach((k) => delete body[k]);
+    Object.assign(cur, body, { updated_at: new Date().toISOString() });
+    res.json(cur);
+  });
+
+  app.delete(`${route}/:id`, (req, res) => {
+    const idx = arr.findIndex(x => idKeys.some(k => String(x[k]) === String(req.params.id)));
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    const hard = String(req.query.hard || '').toLowerCase() === 'true';
+    if (hard) {
+      arr.splice(idx, 1);
+      return res.json({ deleted: true, hard: true, id: req.params.id });
+    }
+    Object.assign(arr[idx], { status: 'VOID', voided_at: new Date().toISOString() });
+    res.json({ ...arr[idx], voided: true });
+  });
+}
+
 // GET is archive-aware: archived rows are hidden unless ?include_archived=true
 function listMasterEntities(arr) {
   return (req, res) => {
@@ -2519,6 +2551,30 @@ app.get('/api/v2/finance/exchange-rates', (_req, res) => {
 });
 
 // --- MODULE 6: MANAGERIAL, BILLING & WORKER ANALYTICS ENDPOINTS ---
+// --- Generic CRUD surface: every module/feature gets UPDATE + DELETE ---------
+// (create + read already exist per collection). Identity keys can't be spoofed.
+registerCollectionCrud({ route: '/api/v2/master/products', arr: v2Products, idKeys: ['id', 'sku'], editable: false });
+registerCollectionCrud({ route: '/api/v2/master/bins', arr: v2Bins, idKeys: ['id', 'code'] });
+registerCollectionCrud({ route: '/api/v2/master/warehouses', arr: v2Warehouses, idKeys: ['id', 'code'] });
+registerCollectionCrud({ route: '/api/v2/master/zones', arr: v2Zones, idKeys: ['id', 'code'] });
+registerCollectionCrud({ route: '/api/v2/inventory/serials', arr: v2Serials, idKeys: ['id', 'serial_no'] });
+registerCollectionCrud({ route: '/api/v2/inventory/rma', arr: v2RMACases, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/scm/requisitions', arr: v2Requisitions, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/scm/purchase-orders', arr: v2PurchaseOrders, idKeys: ['id', 'po_number'] });
+registerCollectionCrud({ route: '/api/v2/scm/goods-receipts', arr: v2GRNList, idKeys: ['id', 'gr_number'] });
+registerCollectionCrud({ route: '/api/v2/scm/vendor-prices', arr: v2VendorPrices, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/scm/rtv', arr: v2RTVCases, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/assembly/boms', arr: v2BOMs, idKeys: ['id', 'target_sku'] });
+registerCollectionCrud({ route: '/api/v2/assembly/orders', arr: v2AssemblyOrders, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/outbound/sales-orders', arr: v2SalesOrders, idKeys: ['id', 'so_number'] });
+registerCollectionCrud({ route: '/api/v2/outbound/pick-tasks', arr: v2PickTasks, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/outbound/pack-tasks', arr: v2PackTasks, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/outbound/delivery-notes', arr: v2DeliveryNotes, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/finance/ap-bills', arr: v2ApBills, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/finance/ar-invoices', arr: v2ArInvoices, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/finance/payments', arr: v2Payments, idKeys: ['id'] });
+registerCollectionCrud({ route: '/api/v2/finance/warranty-tickets', arr: v2WarrantyTickets, idKeys: ['id'] });
+
 app.get('/api/v2/managerial/executive-dashboard', (_req, res) => {
   const totalValuation = calculateTotalValuation(v2Products);
   const totalSales = v2SalesOrders.reduce((sum, s) => sum + (s.total || 0), 0);

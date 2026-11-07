@@ -20,6 +20,10 @@ export default function FinanceV2({ language, activeFeature, onFeatureChange }) 
     }).then(t => { if (t) setWarrantyData(prev => prev ? { ...prev, tickets: [t, ...(prev.tickets || [])], open_count: (prev.open_count || 0) + 1, total_cost_estimate: (prev.total_cost_estimate || 0) + (Number(t.cost_estimate) || 0) } : prev); });
     setWarrantyForm({ serial_no: '', sku: '', issue: '', cost_estimate: '' });
   };
+  const handleDeleteWarranty = (t) => {
+    if (!window.confirm(`Hapus tiket garansi ${t.ticket_no}?`)) return;
+    apiService.finance.warrantyCrud.remove(t.id).then(() => apiService.finance.getWarrantyTickets().then(d => { if (d) setWarrantyData(d); }));
+  };
   useEffect(() => { apiService.finance.getWarrantyTickets().then(d => { if (d) setWarrantyData(d); }); }, []);
   const [products, setProducts] = useState(() => {
     try {
@@ -391,6 +395,9 @@ export default function FinanceV2({ language, activeFeature, onFeatureChange }) 
                     <td style={{ padding: '0.6rem' }}>{t.issue}</td>
                     <td style={{ padding: '0.6rem' }}>{t.status}</td>
                     <td style={{ padding: '0.6rem' }}>Rp {Number(t.cost_estimate || 0).toLocaleString('id-ID')}</td>
+                    <td style={{ padding: '0.6rem' }}>
+                      <button onClick={() => handleDeleteWarranty(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.8rem', fontWeight: '600' }}>Hapus</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

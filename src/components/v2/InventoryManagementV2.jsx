@@ -153,6 +153,11 @@ export default function InventoryManagementV2({ session, language, activeFeature
     });
   };
 
+  const handleDeleteSerial = (s) => {
+    if (!window.confirm(`Hapus nomor seri ${s.serial_no}?`)) return;
+    apiService.inventory.serialCrud.remove(s.id || s.serial_no).then(() => loadInventory());
+  };
+
   useEffect(loadInventory, []);
 
   // Re-render live when inventory collections change server-side (SSE).
@@ -639,6 +644,9 @@ export default function InventoryManagementV2({ session, language, activeFeature
                       </td>
                       <td style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         {s.note || (s.status === 'SOLD' ? `Terjual ke klien (Garansi s.d ${s.customer_warranty_end})` : '-')}
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem' }}>
+                        <button onClick={() => handleDeleteSerial(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.8rem', fontWeight: '600' }}>Hapus</button>
                       </td>
                     </tr>
                   );

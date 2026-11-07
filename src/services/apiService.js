@@ -68,6 +68,14 @@ const fetchJsonStrict = async (url, options = {}) => {
   return body;
 };
 
+// Generic UPDATE (PUT /:id) + DELETE (soft-void; ?hard=true to remove) for the
+// reference/config/transactional v2 collections. Every module + feature exposes
+// a full create/read/update/delete surface in the client.
+const crud = (base) => ({
+  update: (id, data) => fetchJson(`${base}/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  remove: (id, hard = false) => fetchJson(`${base}/${encodeURIComponent(id)}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
+});
+
 export const apiService = {
   // Modul 1: Inventory Management & Serial Registry
   inventory: {
@@ -84,7 +92,11 @@ export const apiService = {
     // Bulk absolute stock setup: { items: [{ sku, qty, bin_code? }], reason?, note? }
     setStockSetup: (data) => fetchJson('/v2/inventory/stock-setup', { method: 'POST', body: JSON.stringify(data) }),
     getRMACases: () => fetchJson('/v2/inventory/rma'),
-    postRMA: (data) => fetchJson('/v2/inventory/rma', { method: 'POST', body: JSON.stringify(data) })
+    postRMA: (data) => fetchJson('/v2/inventory/rma', { method: 'POST', body: JSON.stringify(data) }),
+    serialCrud: crud('/v2/inventory/serials'),
+    rmaCrud: crud('/v2/inventory/rma'),
+    transferCrud: crud('/v2/inventory/transfers'),
+    adjustmentCrud: crud('/v2/inventory/adjustments')
   },
 
   // Modul 2: Supply Chain Management (SCM) & Inbound
@@ -102,7 +114,12 @@ export const apiService = {
     createRTV: (data) => fetchJson('/v2/scm/rtv', { method: 'POST', body: JSON.stringify(data) }),
     shipRTV: (id) => fetchJson(`/v2/scm/rtv/${id}/ship`, { method: 'POST' }),
     getVendorPrices: () => fetchJson('/v2/scm/vendor-prices'),
-    createVendorPrice: (data) => fetchJson('/v2/scm/vendor-prices', { method: 'POST', body: JSON.stringify(data) })
+    createVendorPrice: (data) => fetchJson('/v2/scm/vendor-prices', { method: 'POST', body: JSON.stringify(data) }),
+    poCrud: crud('/v2/scm/purchase-orders'),
+    reqCrud: crud('/v2/scm/requisitions'),
+    grnCrud: crud('/v2/scm/goods-receipts'),
+    vendorCrud: crud('/v2/scm/vendor-prices'),
+    rtvCrud: crud('/v2/scm/rtv')
   },
 
   // Modul 3: Bill of Materials (BOM) & Assembly Engine
@@ -113,7 +130,9 @@ export const apiService = {
     createOrder: (data) => fetchJson('/v2/assembly/orders', { method: 'POST', body: JSON.stringify(data) }),
     completeOrder: (id) => fetchJson(`/v2/assembly/orders/${id}/complete`, { method: 'PATCH' }),
     debundle: (data) => fetchJson('/v2/assembly/debundle', { method: 'POST', body: JSON.stringify(data) }),
-    simulate: (data) => fetchJson('/v2/assembly/simulate', { method: 'POST', body: JSON.stringify(data) })
+    simulate: (data) => fetchJson('/v2/assembly/simulate', { method: 'POST', body: JSON.stringify(data) }),
+    bomCrud: crud('/v2/assembly/boms'),
+    orderCrud: crud('/v2/assembly/orders')
   },
 
   // Modul 4: Outbound / Sales & Fulfillment
@@ -126,7 +145,11 @@ export const apiService = {
     createPackTask: (data) => fetchJson('/v2/outbound/pack-tasks', { method: 'POST', body: JSON.stringify(data) }),
     getPickTasks: () => fetchJson('/v2/outbound/pick-tasks'),
     createPickTask: (data) => fetchJson('/v2/outbound/pick-tasks', { method: 'POST', body: JSON.stringify(data) }),
-    wavePicking: (data) => fetchJson('/v2/outbound/pick-tasks/wave', { method: 'POST', body: JSON.stringify(data) })
+    wavePicking: (data) => fetchJson('/v2/outbound/pick-tasks/wave', { method: 'POST', body: JSON.stringify(data) }),
+    soCrud: crud('/v2/outbound/sales-orders'),
+    pickCrud: crud('/v2/outbound/pick-tasks'),
+    packCrud: crud('/v2/outbound/pack-tasks'),
+    dnCrud: crud('/v2/outbound/delivery-notes')
   },
 
   // Modul 5: Finance & Costing
@@ -137,17 +160,26 @@ export const apiService = {
     getARInvoices: () => fetchJson('/v2/finance/ar-invoices'),
     reconcileARInvoice: (id) => fetchJson(`/v2/finance/ar-invoices/${id}/pay`, { method: 'POST' }),
     getWarrantyTickets: () => fetchJson('/v2/finance/warranty-tickets'),
-    createWarrantyTicket: (data) => fetchJson('/v2/finance/warranty-tickets', { method: 'POST', body: JSON.stringify(data) })
+    createWarrantyTicket: (data) => fetchJson('/v2/finance/warranty-tickets', { method: 'POST', body: JSON.stringify(data) }),
+    apCrud: crud('/v2/finance/ap-bills'),
+    arCrud: crud('/v2/finance/ar-invoices'),
+    paymentCrud: crud('/v2/finance/payments'),
+    warrantyCrud: crud('/v2/finance/warranty-tickets')
   },
 
   // Modul 6: Master Data v2.0
   masterData: {
     getProducts: () => fetchJson('/v2/master/products'),
     createProduct: (data) => fetchJson('/v2/master/products', { method: 'POST', body: JSON.stringify(data) }),
+    updateProduct: (data) => fetchJson('/v2/master/products', { method: 'PUT', body: JSON.stringify(data) }),
     getBins: () => fetchJson('/v2/master/bins'),
     createBin: (data) => fetchJson('/v2/master/bins', { method: 'POST', body: JSON.stringify(data) }),
     getWarehouses: () => fetchJson('/v2/master/warehouses'),
     getZones: () => fetchJson('/v2/master/zones'),
+    productCrud: crud('/v2/master/products'),
+    binCrud: crud('/v2/master/bins'),
+    warehouseCrud: crud('/v2/master/warehouses'),
+    zoneCrud: crud('/v2/master/zones'),
 
     // ---- Master entities: full CRUD (Brands / Suppliers / Clients) --------
     // DELETE archives by default; pass hard=true to remove a record that is not
