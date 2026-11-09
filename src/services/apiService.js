@@ -13,10 +13,28 @@ const getAuthToken = () => {
   return null;
 };
 
+// Multi-tenant: read the logged-in company from the session so every request
+// can be scoped server-side to that tenant.
+const getCompanyName = () => {
+  try {
+    const s = JSON.parse(localStorage.getItem('moai_auth_session') || 'null');
+    return (s && s.user && s.user.user_metadata && s.user.user_metadata.company_name) || '';
+  } catch {
+    return '';
+  }
+};
+
+const withCompany = (url) => {
+  const c = getCompanyName();
+  if (!c) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}company_name=${encodeURIComponent(c)}`;
+};
+
 const fetchJson = async (url, options = {}) => {
   try {
     const token = getAuthToken();
-    const res = await fetch(`${BASE_URL}${url}`, {
+    const res = await fetch(`${BASE_URL}${withCompany(url)}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -49,7 +67,7 @@ const fetchJson = async (url, options = {}) => {
 // not-found, 400 validation…).
 const fetchJsonStrict = async (url, options = {}) => {
   const token = getAuthToken();
-  const res = await fetch(`${BASE_URL}${url}`, {
+  const res = await fetch(`${BASE_URL}${withCompany(url)}`, {
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

@@ -7,6 +7,13 @@ async function gotoAuth(page) {
   await page.evaluate(() => localStorage.setItem('moai_tutorial_completed', 'true'));
 }
 
+test.beforeAll(async ({ request }) => {
+  // Ensure the login-test user exists even after a local DB truncate/reseed.
+  await request.post('http://localhost:5000/api/auth/register', {
+    data: { email: 'friend.test@example.com', password: 'secret123', company_name: 'PT TEMAN ANDA', role: 'Admin' }
+  }).catch(() => {});
+});
+
 test('register — POST /api/auth/register fire & user masuk dashboard', async ({ page }) => {
   const email = `qa.${Date.now()}@example.com`;
   let registerStatus = 0;
