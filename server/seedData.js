@@ -167,21 +167,29 @@ const WAREHOUSES = [
   { id: WH_SBY, company_id: COMPANY_ID, code: 'WH-SBY-01', name: 'Gudang Regional Surabaya (Transit)', type: 'regional', address: 'Komplek Pergudangan Margomulyo Permai, Surabaya' }
 ];
 
+export const DEMO_COMPANY_NAME = COMPANIES[0].name; // 'PT Kompakom Integrasi Mandiri'
+
+// Tag every seed record with the demo company so the multi-tenant scope filter
+// can separate the demo tenant from newly-registered companies.
+function tag(arr) {
+  return arr.map(r => ({ ...r, company_name: DEMO_COMPANY_NAME }));
+}
+
 export function defaultSeed() {
   return {
     companies: COMPANIES,
-    warehouses: WAREHOUSES,
-    zones: ZONES,
-    bins: BINS,
-    brands: BRANDS,
-    products: PRODUCTS,
-    product_operational: PRODUCT_OPERATIONAL,
-    suppliers: SUPPLIERS,
-    clients: CLIENTS,
-    serials: SERIALS,
-    movements: MOVEMENTS,
-    boms: [BOM, BOM_OFFICE],
-    vendor_prices: VENDOR_PRICES,
-    warranty_tickets: WARRANTY_TICKETS
+    warehouses: tag(WAREHOUSES),
+    zones: tag(ZONES),
+    bins: tag(BINS),
+    brands: tag(BRANDS),
+    products: tag(PRODUCTS),
+    product_operational: tag(PRODUCT_OPERATIONAL),
+    suppliers: tag(SUPPLIERS),
+    clients: tag(CLIENTS),
+    serials: tag(SERIALS),
+    movements: tag(MOVEMENTS),
+    boms: tag([BOM, BOM_OFFICE]),
+    vendor_prices: tag(VENDOR_PRICES),
+    warranty_tickets: tag(WARRANTY_TICKETS)
   };
 }

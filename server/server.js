@@ -1147,6 +1147,35 @@ async function v2Persistence(req, res, next) {
 }
 
 app.use('/api/v2', authenticate);
+
+// --- Multi-tenant scoping (per-company data separation) ---------------------
+// The client sends its company on every request (?company_name= or X-Company
+// header). Reads are filtered to that tenant; writes are stamped with it so
+// each company's records stay isolated. An untagged record (legacy/shared) is
+// visible to every tenant; a tagged record is visible ONLY to its company.
+function scopeCompany(arr, req) {
+  const companyName = req && req.companyName;
+  if (!companyName || !Array.isArray(arr)) return arr;
+  const want = String(companyName).trim().toUpperCase();
+  return arr.filter((it) => {
+    if (!it || typeof it !== 'object') return true;
+    const c = it.company_name;
+    if (!c) return true; // untagged (legacy/shared) => visible to all
+    return String(c).trim().toUpperCase() === want;
+  });
+}
+
+app.use('/api/v2', (req, res, next) => {
+  const src = req.query.company_name || req.headers['x-company'];
+  req.companyName = src ? String(src) : null;
+  // Stamp writes with the caller's company so new records are tenant-tagged.
+  if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)
+      && !req.body.company_name && req.companyName) {
+    req.body.company_name = req.companyName;
+  }
+  next();
+});
+
 app.use('/api/v2', v2Persistence);
 
 
@@ -1187,7 +1216,7 @@ app.get('/api/v2/master/products', async (req, res) => {
       console.debug('Error querying Supabase items:', err);
     }
   }
-  let results = [...v2Products];
+  let results = scopeCompany([...v2Products], req);
   if (category) results = results.filter(p => p.category === category);
   if (item_type) results = results.filter(p => p.item_type === item_type);
   if (search) {
@@ -1261,14 +1290,14 @@ app.put('/api/v2/master/products', async (req, res) => {
 });
 
 app.get('/api/v2/master/products/:id', (req, res) => {
-  const p = v2Products.find(item => item.id === req.params.id || item.sku === req.params.id);
+  const p = scopeCompany(v2Products, req).find(item => item.id === req.params.id || item.sku === req.params.id);
   if (!p) return res.status(404).json({ error: 'Product not found' });
   res.json(p);
 });
 
-app.get('/api/v2/master/warehouses', (_req, res) => res.json(v2Warehouses));
-app.get('/api/v2/master/zones', (_req, res) => res.json(v2Zones));
-app.get('/api/v2/master/bins', (_req, res) => res.json(v2Bins));
+app.get('/api/v2/master/warehouses', (req, res) => res.json(scopeCompany(v2Warehouses, req)));
+app.get('/api/v2/master/zones', (req, res) => res.json(scopeCompany(v2Zones, req)));
+app.get('/api/v2/master/bins', (req, res) => res.json(scopeCompany(v2Bins, req)));
 app.post('/api/v2/master/bins', (req, res) => {
   const newBin = { id: `bin-${Date.now()}`, ...req.body };
   v2Bins.push(newBin);
@@ -1445,7 +1474,7 @@ function registerCollectionCrud({ route, arr, idKeys = ['id'], editable = true }
 function listMasterEntities(arr) {
   return (req, res) => {
     const includeArchived = String(req.query.include_archived || '').toLowerCase() === 'true';
-    res.json(includeArchived ? arr : activeRows(arr));
+    res.json(scopeCompany(includeArchived ? arr : activeRows(arr), req));
   };
 }
 
@@ -1535,7 +1564,7 @@ app.get('/api/v2/master/suppliers', async (req, res) => {
       console.debug('Error querying Supabase suppliers:', err);
     }
   }
-  res.json(includeArchived ? v2Suppliers : activeRows(v2Suppliers));
+  res.json(scopeCompany(includeArchived ? v2Suppliers : activeRows(v2Suppliers), req));
 });
 
 registerMasterEntityCrud({
@@ -1570,8 +1599,8 @@ registerMasterEntityCrud({
 });
 
 app.get('/api/v2/master/clients', listMasterEntities(v2Clients));
-app.get('/api/v2/master/operational', (_req, res) => {
-  const opData = v2Products.map(p => ({
+app.get('/api/v2/master/operational', (req, res) => {
+  const opData = scopeCompany(v2Products, req).map(p => ({
     product_id: p.id,
     sku: p.sku,
     min_stock: 5,
@@ -1585,7 +1614,7 @@ app.get('/api/v2/master/operational', (_req, res) => {
 });
 
 // --- MODULE 1: INVENTORY MANAGEMENT & SERIAL REGISTRY ENDPOINTS ---
-app.get('/api/v2/inventory/movements', (_req, res) => res.json(v2Movements));
+app.get('/api/v2/inventory/movements', (req, res) => res.json(scopeCompany(v2Movements, req)));
 
 app.post('/api/v2/inventory/movements', (req, res) => {
   const movement = {
@@ -1606,7 +1635,7 @@ app.post('/api/v2/inventory/movements', (req, res) => {
 });
 
 app.get('/api/v2/inventory/balances', async (req, res) => {
-  let productsList = [...v2Products];
+  let productsList = scopeCompany([...v2Products], req);
   if (supabase && productsList.length === 0) {
     try {
       const { company_name } = req.query;
@@ -1662,14 +1691,14 @@ app.get('/api/v2/inventory/balances', async (req, res) => {
 
 app.get('/api/v2/inventory/serials', (req, res) => {
   const { status, sku } = req.query;
-  let results = [...v2Serials];
+  let results = scopeCompany([...v2Serials], req);
   if (status) results = results.filter(s => s.status === status);
   if (sku) results = results.filter(s => s.sku === sku);
   res.json(results);
 });
 
 app.get('/api/v2/inventory/serials/:serial_no', (req, res) => {
-  const sn = v2Serials.find(s => s.serial_no === req.params.serial_no);
+  const sn = scopeCompany(v2Serials, req).find(s => s.serial_no === req.params.serial_no);
   if (!sn) return res.status(404).json({ error: 'Serial number not found in registry' });
   res.json({
     ...sn,
@@ -1683,8 +1712,8 @@ app.post('/api/v2/inventory/serials', (req, res) => {
   res.status(201).json(newSN);
 });
 
-app.get('/api/v2/inventory/transfers', (_req, res) => {
-  const trfMovements = v2Movements.filter(m => m.movement_type.startsWith('TRF_'));
+app.get('/api/v2/inventory/transfers', (req, res) => {
+  const trfMovements = scopeCompany(v2Movements, req).filter(m => m.movement_type.startsWith('TRF_'));
   res.json(trfMovements);
 });
 
@@ -1697,6 +1726,7 @@ app.post('/api/v2/inventory/transfers', (req, res) => {
 
   const movOut = {
     id: `mov-${Date.now()}`,
+    company_name: req.companyName,
     movement_type: 'TRF_OUT',
     product_name: prod ? prod.name : product_sku,
     qty: -numQty,
@@ -1708,6 +1738,7 @@ app.post('/api/v2/inventory/transfers', (req, res) => {
   };
   const movIn = {
     id: `mov-${Date.now() + 1}`,
+    company_name: req.companyName,
     movement_type: 'TRF_IN',
     product_name: prod ? prod.name : product_sku,
     qty: numQty,
@@ -1722,8 +1753,8 @@ app.post('/api/v2/inventory/transfers', (req, res) => {
   res.status(201).json({ success: true, ref: refCode, movements: [movOut, movIn] });
 });
 
-app.get('/api/v2/inventory/adjustments', (_req, res) => {
-  const adjMovements = v2Movements.filter(m => m.movement_type.startsWith('ADJ_'));
+app.get('/api/v2/inventory/adjustments', (req, res) => {
+  const adjMovements = scopeCompany(v2Movements, req).filter(m => m.movement_type.startsWith('ADJ_'));
   res.json(adjMovements);
 });
 
@@ -1735,6 +1766,7 @@ app.post('/api/v2/inventory/adjustments', (req, res) => {
 
   const mov = {
     id: `mov-${Date.now()}`,
+    company_name: req.companyName,
     movement_type: movType,
     product_name: prod ? prod.name : product_sku,
     qty: numQty,
@@ -1797,6 +1829,7 @@ app.post('/api/v2/inventory/stock-setup', (req, res) => {
     if (delta !== 0) {
       const mov = {
         id: `mov-${Date.now()}-${applied.length}`,
+        company_name: req.companyName,
         movement_type: delta > 0 ? 'ADJ_IN' : 'ADJ_OUT',
         product_name: prod.name,
         sku: prod.sku,
@@ -1831,7 +1864,7 @@ app.post('/api/v2/inventory/stock-setup', (req, res) => {
   });
 });
 
-app.get('/api/v2/inventory/aging', (_req, res) => {
+app.get('/api/v2/inventory/aging', (req, res) => {
   const now = Date.now();
   const ageDays = (v) => {
     const t = new Date(String(v || '').replace(' ', 'T'));
@@ -1841,7 +1874,7 @@ app.get('/api/v2/inventory/aging', (_req, res) => {
   // Derive stock age + recent activity from the movement ledger (not hardcoded).
   const lastInbound = new Map();
   const activity = new Map();
-  for (const m of v2Movements) {
+  for (const m of scopeCompany(v2Movements, req)) {
     const key = String(m.sku || m.product_name || '').trim();
     if (!key) continue;
     const age = ageDays(m.created_at);
@@ -1861,7 +1894,7 @@ app.get('/api/v2/inventory/aging', (_req, res) => {
   const classes = { fast: [], medium: [], slow: [], dead: [] };
   let idleCapital = 0;
 
-  for (const p of v2Products) {
+  for (const p of scopeCompany(v2Products, req)) {
     const key = p.sku;
     const stockQty = Number(p.stock ?? p.stock_on_hand ?? 0) || 0;
     const value = stockQty * (Number(p.cost_price) || 0);
@@ -1880,7 +1913,7 @@ app.get('/api/v2/inventory/aging', (_req, res) => {
   res.json({ buckets, idle_capital: idleCapital, movement_classes: classes });
 });
 
-app.get('/api/v2/inventory/rma', (_req, res) => res.json(v2RMACases));
+app.get('/api/v2/inventory/rma', (req, res) => res.json(scopeCompany(v2RMACases, req)));
 app.post('/api/v2/inventory/rma', (req, res) => {
   const newRMA = {
     id: `rma-${Date.now()}`,
@@ -1900,7 +1933,7 @@ app.post('/api/v2/inventory/rma', (req, res) => {
 });
 
 // --- MODULE 3: SUPPLY CHAIN MANAGEMENT (SCM) ENDPOINTS ---
-app.get('/api/v2/scm/purchase-orders', (_req, res) => res.json(v2PurchaseOrders));
+app.get('/api/v2/scm/purchase-orders', (req, res) => res.json(scopeCompany(v2PurchaseOrders, req)));
 
 app.post('/api/v2/scm/purchase-orders', (req, res) => {
   const newPO = {
@@ -1922,7 +1955,7 @@ app.patch('/api/v2/scm/purchase-orders/:id/status', (req, res) => {
   res.json(po);
 });
 
-app.get('/api/v2/scm/requisitions', (_req, res) => res.json(v2Requisitions));
+app.get('/api/v2/scm/requisitions', (req, res) => res.json(scopeCompany(v2Requisitions, req)));
 
 app.post('/api/v2/scm/requisitions', (req, res) => {
   const newPR = {
@@ -1963,7 +1996,7 @@ app.post('/api/v2/scm/requisitions/:id/convert', (req, res) => {
   res.json({ success: true, message: 'PR successfully converted to PO', purchase_order: newPO });
 });
 
-app.get('/api/v2/scm/goods-receipts', (_req, res) => res.json(v2GRNList));
+app.get('/api/v2/scm/goods-receipts', (req, res) => res.json(scopeCompany(v2GRNList, req)));
 
 app.post('/api/v2/scm/goods-receipts', (req, res) => {
   const newGR = {
@@ -1978,7 +2011,7 @@ app.post('/api/v2/scm/goods-receipts', (req, res) => {
   res.status(201).json(newGR);
 });
 
-app.get('/api/v2/scm/qc-inspections', (_req, res) => res.json(v2QCInspections));
+app.get('/api/v2/scm/qc-inspections', (req, res) => res.json(scopeCompany(v2QCInspections, req)));
 
 app.post('/api/v2/scm/qc-inspections/:id/action', (req, res) => {
   const { action, target_bin = 'SP-CPU-A-01', note } = req.body;
@@ -2056,18 +2089,19 @@ app.post('/api/v2/scm/qc-inspections/:id/action', (req, res) => {
   res.json({ success: true, status: 'REJECTED', message: 'Item rejected and quarantined for vendor return.' });
 });
 
-app.get('/api/v2/scm/vendor-prices', (_req, res) => {
+app.get('/api/v2/scm/vendor-prices', (req, res) => {
   const bySku = {};
-  for (const q of v2VendorPrices) (bySku[q.sku] = bySku[q.sku] || []).push(q);
+  for (const q of scopeCompany(v2VendorPrices, req)) (bySku[q.sku] = bySku[q.sku] || []).push(q);
   const comparison = Object.entries(bySku).map(([sku, rows]) => {
     const sorted = [...rows].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
     return { sku, suppliers: sorted, best_supplier: sorted[0]?.supplier_name, best_price: sorted[0]?.price };
   });
-  res.json({ quotes: v2VendorPrices, comparison });
+  res.json({ quotes: scopeCompany(v2VendorPrices, req), comparison });
 });
 app.post('/api/v2/scm/vendor-prices', (req, res) => {
   const q = {
     id: `vp-${Date.now()}`,
+    company_name: req.companyName,
     supplier_name: req.body.supplier_name || '',
     sku: String(req.body.sku || '').trim(),
     price: Number(req.body.price) || 0,
@@ -2081,7 +2115,7 @@ app.post('/api/v2/scm/vendor-prices', (req, res) => {
   res.status(201).json(q);
 });
 
-app.get('/api/v2/scm/rtv', (_req, res) => res.json(v2RTVCases));
+app.get('/api/v2/scm/rtv', (req, res) => res.json(scopeCompany(v2RTVCases, req)));
 app.post('/api/v2/scm/rtv', (req, res) => {
   // Create the return case as DRAFT. The physical goods-issue (RTV_OUT) and its
   // balance effect happen at /rtv/:id/ship — matching the two-step UI flow
@@ -2142,7 +2176,7 @@ app.post('/api/v2/scm/rtv/:id/ship', (req, res) => {
 });
 
 // --- MODULE 4: BOM & PC ASSEMBLY ENGINE ENDPOINTS ---
-app.get('/api/v2/assembly/boms', (_req, res) => res.json(v2BOMs));
+app.get('/api/v2/assembly/boms', (req, res) => res.json(scopeCompany(v2BOMs, req)));
 app.post('/api/v2/assembly/boms', (req, res) => {
   const incoming = { ...req.body };
   const sku = String(incoming.target_sku || incoming.output_sku || '').trim();
@@ -2159,7 +2193,7 @@ app.post('/api/v2/assembly/boms', (req, res) => {
   res.status(201).json(recipe);
 });
 
-app.get('/api/v2/assembly/orders', (_req, res) => res.json(v2AssemblyOrders));
+app.get('/api/v2/assembly/orders', (req, res) => res.json(scopeCompany(v2AssemblyOrders, req)));
 
 app.post('/api/v2/assembly/orders', (req, res) => {
   const qty = Number(req.body.qty_to_build) || 1;
@@ -2176,6 +2210,7 @@ app.post('/api/v2/assembly/orders', (req, res) => {
 
   const newOrder = {
     id: `asm-${Date.now()}`,
+    company_name: req.companyName,
     assembly_number: `ASM-ORD-2026-${String(v2AssemblyOrders.length + 1).padStart(3, '0')}`,
     product_name: bom.product_name || outputProduct?.name || outputSku,
     sku: outputSku,
@@ -2341,7 +2376,7 @@ app.post('/api/v2/assembly/debundle', (req, res) => {
 });
 
 // --- MODULE 4: OUTBOUND / SALES & FULFILLMENT ENDPOINTS ---
-app.get('/api/v2/outbound/sales-orders', (_req, res) => res.json(v2SalesOrders));
+app.get('/api/v2/outbound/sales-orders', (req, res) => res.json(scopeCompany(v2SalesOrders, req)));
 
 app.post('/api/v2/outbound/sales-orders', (req, res) => {
   const newSO = {
@@ -2362,11 +2397,12 @@ app.patch('/api/v2/outbound/sales-orders/:id/status', (req, res) => {
   res.json(so);
 });
 
-app.get('/api/v2/outbound/pick-tasks', (_req, res) => res.json(v2PickTasks));
+app.get('/api/v2/outbound/pick-tasks', (req, res) => res.json(scopeCompany(v2PickTasks, req)));
 
 app.post('/api/v2/outbound/pick-tasks', (req, res) => {
   const pickTask = {
     id: `pick-${Date.now()}`,
+    company_name: req.companyName,
     pick_number: `PICK-2026-${Math.floor(1000 + Math.random() * 9000)}`,
     status: 'IN_PROGRESS',
     order_id: req.body.order_id || '',
@@ -2383,6 +2419,7 @@ app.post('/api/v2/outbound/pick-tasks', (req, res) => {
 app.post('/api/v2/outbound/pick-tasks/wave', (req, res) => {
   const waveTask = {
     id: `wave-${Date.now()}`,
+    company_name: req.companyName,
     batch_number: `WAVE-BATCH-${Math.floor(10 + Math.random() * 90)}`,
     status: 'IN_PROGRESS',
     assigned_orders: req.body.order_ids || [],
@@ -2393,7 +2430,7 @@ app.post('/api/v2/outbound/pick-tasks/wave', (req, res) => {
   res.status(201).json({ success: true, wave_task: waveTask });
 });
 
-app.get('/api/v2/outbound/pack-tasks', (_req, res) => res.json(v2PackTasks));
+app.get('/api/v2/outbound/pack-tasks', (req, res) => res.json(scopeCompany(v2PackTasks, req)));
 
 app.post('/api/v2/outbound/pack-tasks', (req, res) => {
   const newPack = {
@@ -2410,7 +2447,7 @@ app.post('/api/v2/outbound/pack-tasks', (req, res) => {
   res.status(201).json(newPack);
 });
 
-app.get('/api/v2/outbound/delivery-notes', (_req, res) => res.json(v2DeliveryNotes));
+app.get('/api/v2/outbound/delivery-notes', (req, res) => res.json(scopeCompany(v2DeliveryNotes, req)));
 
 app.post('/api/v2/outbound/delivery-notes', (req, res) => {
   const { so_id, driver_name, vehicle_no, note } = req.body;
@@ -2418,6 +2455,7 @@ app.post('/api/v2/outbound/delivery-notes', (req, res) => {
 
   const sj = {
     id: `sj-${Date.now()}`,
+    company_name: req.companyName,
     sj_number: `SJ-2026-${Math.floor(1000 + Math.random() * 9000)}`,
     so_id: so_id,
     so_number: so ? so.so_number : 'SO-2026-0102',
@@ -2443,6 +2481,7 @@ app.post('/api/v2/outbound/delivery-notes', (req, res) => {
     const prod = v2Products.find(p => (ln.sku && p.sku === ln.sku) || (ln.name && p.name === ln.name));
     giMovements.push({
       id: `mov-${Date.now()}-${giMovements.length}`,
+      company_name: req.companyName,
       movement_type: 'GI',
       product_name: ln.name || prod?.name || 'Lenovo ThinkPad E14 Gen 5',
       sku: ln.sku || prod?.sku || undefined,
@@ -2473,8 +2512,8 @@ app.post('/api/v2/outbound/delivery-notes', (req, res) => {
 });
 
 // --- MODULE 2: FINANCE & COSTING ENDPOINTS ---
-app.get('/api/v2/finance/cogs', (_req, res) => {
-  res.json(v2Products.map(p => {
+app.get('/api/v2/finance/cogs', (req, res) => {
+  res.json(scopeCompany(v2Products, req).map(p => {
     const grossMargin = p.unit_price - p.cost_price;
     const marginPct = p.unit_price > 0 ? ((grossMargin / p.unit_price) * 100).toFixed(1) : 0;
     return {
@@ -2490,7 +2529,7 @@ app.get('/api/v2/finance/cogs', (_req, res) => {
   }));
 });
 
-app.get('/api/v2/finance/ap-bills', (_req, res) => res.json(v2ApBills));
+app.get('/api/v2/finance/ap-bills', (req, res) => res.json(scopeCompany(v2ApBills, req)));
 
 app.post('/api/v2/finance/ap-bills/:id/pay', (req, res) => {
   const bill = v2ApBills.find(b => b.id === req.params.id || b.bill_no === req.params.id);
@@ -2514,7 +2553,7 @@ app.post('/api/v2/finance/ap-bills/:id/pay', (req, res) => {
   res.json({ success: true, message: `Payment completed for ${bill.bill_no}`, bill, payment: payRecord });
 });
 
-app.get('/api/v2/finance/ar-invoices', (_req, res) => res.json(v2ArInvoices));
+app.get('/api/v2/finance/ar-invoices', (req, res) => res.json(scopeCompany(v2ArInvoices, req)));
 
 app.post('/api/v2/finance/ar-invoices/:id/pay', (req, res) => {
   const inv = v2ArInvoices.find(i => i.id === req.params.id || i.inv_no === req.params.id);
@@ -2525,22 +2564,22 @@ app.post('/api/v2/finance/ar-invoices/:id/pay', (req, res) => {
   res.json({ success: true, invoice: inv });
 });
 
-app.get('/api/v2/finance/payments', (_req, res) => res.json(v2Payments));
+app.get('/api/v2/finance/payments', (req, res) => res.json(scopeCompany(v2Payments, req)));
 app.post('/api/v2/finance/payments', (req, res) => {
   const pay = { id: `pay-${Date.now()}`, ...req.body, paid_at: new Date().toISOString() };
   v2Payments.unshift(pay);
   res.status(201).json(pay);
 });
 
-app.get('/api/v2/finance/warranty-tickets', (_req, res) => {
-  const shippedValue = v2SalesOrders
+app.get('/api/v2/finance/warranty-tickets', (req, res) => {
+  const shippedValue = scopeCompany(v2SalesOrders, req)
     .filter(s => s.status === 'SHIPPED')
     .reduce((sum, s) => sum + (Number(s.total) || 0), 0);
   const provision = Math.round(shippedValue * 0.02); // 2% warranty provision on shipped revenue
-  const open = v2WarrantyTickets.filter(t => t.status === 'OPEN');
+  const open = scopeCompany(v2WarrantyTickets, req).filter(t => t.status === 'OPEN');
   const totalEstimate = open.reduce((sum, t) => sum + (Number(t.cost_estimate) || 0), 0);
   res.json({
-    tickets: v2WarrantyTickets,
+    tickets: scopeCompany(v2WarrantyTickets, req),
     open_count: open.length,
     total_cost_estimate: totalEstimate,
     provision,
@@ -2550,6 +2589,7 @@ app.get('/api/v2/finance/warranty-tickets', (_req, res) => {
 app.post('/api/v2/finance/warranty-tickets', (req, res) => {
   const t = {
     id: `wt-${Date.now()}`,
+    company_name: req.companyName,
     ticket_no: `WAR-2026-${Math.floor(1000 + Math.random() * 9000)}`,
     serial_no: req.body.serial_no || '',
     sku: req.body.sku || '',
@@ -2593,28 +2633,28 @@ registerCollectionCrud({ route: '/api/v2/finance/ar-invoices', arr: v2ArInvoices
 registerCollectionCrud({ route: '/api/v2/finance/payments', arr: v2Payments, idKeys: ['id'] });
 registerCollectionCrud({ route: '/api/v2/finance/warranty-tickets', arr: v2WarrantyTickets, idKeys: ['id'] });
 
-app.get('/api/v2/managerial/executive-dashboard', (_req, res) => {
-  const totalValuation = calculateTotalValuation(v2Products);
-  const totalSales = v2SalesOrders.reduce((sum, s) => sum + (s.total || 0), 0);
+app.get('/api/v2/managerial/executive-dashboard', (req, res) => {
+  const totalValuation = calculateTotalValuation(scopeCompany(v2Products, req));
+  const totalSales = scopeCompany(v2SalesOrders, req).reduce((sum, s) => sum + (s.total || 0), 0);
   res.json({
     currency: 'IDR',
     total_warehouse_valuation: totalValuation,
     total_sales_revenue: totalSales,
     idle_capital: 0,
     gross_margin_pct: totalSales > 0 ? 15.0 : 0,
-    total_skus: v2Products.length,
-    active_sales_orders: v2SalesOrders.length,
-    active_purchase_orders: v2PurchaseOrders.length
+    total_skus: scopeCompany(v2Products, req).length,
+    active_sales_orders: scopeCompany(v2SalesOrders, req).length,
+    active_purchase_orders: scopeCompany(v2PurchaseOrders, req).length
   });
 });
 
-app.get('/api/v2/managerial/worker-performance', (_req, res) => res.json(v2WorkerActivities));
+app.get('/api/v2/managerial/worker-performance', (req, res) => res.json(scopeCompany(v2WorkerActivities, req)));
 
-app.get('/api/v2/managerial/pnl', (_req, res) => {
-  const totalSales = v2SalesOrders.reduce((sum, s) => sum + (s.total || 0), 0);
+app.get('/api/v2/managerial/pnl', (req, res) => {
+  const totalSales = scopeCompany(v2SalesOrders, req).reduce((sum, s) => sum + (s.total || 0), 0);
   // HPP diturunkan dari ledger: total barang keluar (GI) dikali biaya aktual,
   // bukan persentase tetap 80% (P4).
-  const totalCogs = v2Movements
+  const totalCogs = scopeCompany(v2Movements, req)
     .filter(m => m.movement_type === 'GI')
     .reduce((sum, m) => sum + (Math.abs(Number(m.qty) || 0) * (Number(m.unit_cost) || 0)), 0);
   const grossProfit = totalSales - totalCogs;
@@ -2633,7 +2673,7 @@ app.get('/api/v2/managerial/pnl', (_req, res) => {
 // --- MODULE 6b: ACTIVITY FEED (TopNav notification bell) ---
 // Derived from the durable v2 store so the bell reflects real operational
 // events. Replaces the legacy client-side Supabase realtime channel.
-app.get('/api/v2/notifications', (_req, res) => {
+app.get('/api/v2/notifications', (req, res) => {
   const iso = (value) => {
     if (!value) return new Date().toISOString();
     // Movements store "YYYY-MM-DD HH:mm" — normalise to ISO so browsers
@@ -2642,7 +2682,7 @@ app.get('/api/v2/notifications', (_req, res) => {
   };
   const feed = [];
 
-  for (const m of v2Movements) {
+  for (const m of scopeCompany(v2Movements, req)) {
     const inbound = /IN|RECEIPT|GRN|RETURN/i.test(m.movement_type || '');
     feed.push({
       id: `mv-${m.id}`,
