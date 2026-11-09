@@ -151,10 +151,18 @@ async function seedMissing(seen) {
   const defaults = seedProvider() || {};
   const seeded = [];
   for (const [name, value] of Object.entries(defaults)) {
-    if (initialized.has(name) || seen.has(name)) continue;
     if (value === undefined) continue;
     const empty = Array.isArray(value) ? value.length === 0 : false;
     if (empty) continue;
+    const already = initialized.has(name) || seen.has(name);
+    // A collection persisted as an EMPTY array/object (e.g. after a bad bulk
+    // import or partial seed) must be re-seeded — "seed-once" must not mean
+    // "seed-once-even-if-the-later persisted value is empty".
+    const existing = cache.get(name);
+    const existingEmpty = !existing || (Array.isArray(existing)
+      ? existing.length === 0
+      : Object.keys(existing).length === 0);
+    if (already && !existingEmpty) continue;
     applyValue(name, value);
     initialized.add(name);
     seeded.push(name);
