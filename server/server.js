@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
+import { scryptSync, randomBytes, timingSafeEqual } from 'node:crypto';
 import fs from 'fs';
 import path from 'path';
 import { calculateTotalValuation } from '../src/data/v2Data.js';
@@ -154,20 +155,30 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
-  if (supabase) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return res.status(400).json({ error: error.message });
+  // Hosted Supabase auth (when configured).
+  if (realSupabase) {
+    const { data, error } = await realSupabase.auth.signInWithPassword({ email, password });
+    if (error) return res.status(401).json({ error: error.message });
     return res.json({ session: data.session, user: data.user, error: null });
   }
 
-  // Local fallback if Supabase credentials are not set
-  return res.json({
-    session: {
-      user: { email, user_metadata: { company_name: 'DEFAULT', role: 'Admin' } },
-      token: `mock-token-${Date.now()}`
-    },
-    error: null
-  });
+  // Local durable auth (PostgreSQL) — verify against registered users.
+  const emailLower = String(email).trim().toLowerCase();
+  const user = v2AuthUsers.find(u => String(u.email || '').toLowerCase() === emailLower);
+  if (!user) return res.status(401).json({ error: 'Invalid email or password' });
+
+  const [salt, hashHex] = String(user.password_hash || '').split(':');
+  let valid = false;
+  if (salt && hashHex) {
+    try {
+      const test = scryptSync(String(password), salt, 64).toString('hex');
+      valid = timingSafeEqual(Buffer.from(hashHex, 'hex'), Buffer.from(test, 'hex'));
+    } catch { valid = false; }
+  }
+  if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
+
+  const sessionUser = { email: user.email, user_metadata: { company_name: user.company_name, role: user.role } };
+  return res.json({ session: { user: sessionUser, token: `moai_token_${Date.now()}` }, user: sessionUser, error: null });
 });
 
 // POST /api/auth/register
@@ -176,51 +187,56 @@ app.post('/api/auth/register', async (req, res) => {
   if (!email || !password || !company_name) {
     return res.status(400).json({ error: 'Email, password, and company name are required' });
   }
+  if (String(password).length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
 
-  const compUpper = company_name.trim().toUpperCase();
+  const emailLower = String(email).trim().toLowerCase();
+  const compUpper = String(company_name).trim().toUpperCase();
 
-  if (supabase) {
+  if (v2AuthUsers.some(u => String(u.email || '').toLowerCase() === emailLower)) {
+    return res.status(409).json({ error: 'Email already registered. Please sign in.' });
+  }
+
+  // Hosted Supabase auth (when configured).
+  if (realSupabase) {
     try {
-      // 1. Ensure company exists in public.companies
-      const { data: existingCompany } = await supabase
-        .from('companies')
-        .select('id, name')
-        .ilike('name', compUpper)
-        .maybeSingle();
-
-      if (!existingCompany) {
-        await supabase.from('companies').insert([{ name: compUpper }]);
-      }
-
-      // 2. Sign up user with metadata
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { company_name: compUpper, role }
-        }
-      });
+      const { data: existingCompany } = await realSupabase
+        .from('companies').select('id, name').ilike('name', compUpper).maybeSingle();
+      if (!existingCompany) await realSupabase.from('companies').insert([{ name: compUpper }]);
+      const { data, error } = await realSupabase.auth.signUp({ email, password, options: { data: { company_name: compUpper, role } } });
       if (error) return res.status(400).json({ error: error.message });
-
-      // 3. Register user in public.company_users table
-      await supabase.from('company_users').upsert(
-        [{ company_name: compUpper, user_email: email, role }],
-        { onConflict: 'company_name,user_email' }
-      );
-
+      await realSupabase.from('company_users').upsert([{ company_name: compUpper, user_email: email, role }], { onConflict: 'company_name,user_email' });
       return res.status(201).json({ session: data.session, user: data.user, error: null });
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }
   }
 
-  return res.status(201).json({
-    session: {
-      user: { email, user_metadata: { company_name: compUpper, role } },
-      token: `mock-token-${Date.now()}`
-    },
-    error: null
-  });
+  // Local durable registration (PostgreSQL). Passwords are hashed (scrypt) so
+  // credentials survive a restart and are never stored in plaintext.
+  const salt = randomBytes(16).toString('hex');
+  const hash = scryptSync(String(password), salt, 64).toString('hex');
+  const user = {
+    id: `usr-${Date.now()}`,
+    email: emailLower,
+    password_hash: `${salt}:${hash}`,
+    company_name: compUpper,
+    role: role || 'Admin',
+    created_at: new Date().toISOString()
+  };
+  v2AuthUsers.push(user);
+
+  // Ensure the company is known to the workspace (v2 store).
+  if (!v2Companies.some(c => String(c.name || '').toUpperCase() === compUpper)) {
+    v2Companies.push({ id: `comp-${Date.now()}`, name: compUpper, created_at: new Date().toISOString() });
+  }
+
+  // /api/auth/* runs before the v2 persistence middleware, so flush explicitly.
+  try { await persistAll(); } catch (err) { console.error('[auth] persist failed:', err?.message || err); }
+
+  const sessionUser = { email: user.email, user_metadata: { company_name: user.company_name, role: user.role } };
+  return res.status(201).json({ session: { user: sessionUser, token: `moai_token_${Date.now()}` }, user: sessionUser, error: null });
 });
 
 // POST /api/auth/logout
@@ -1048,6 +1064,8 @@ const v2DeliveryNotes = collection('delivery_notes');
 const v2RTVCases = collection('rtv_cases');
 const v2RMACases = collection('rma_cases');
 const v2WorkerActivities = collection('worker_activities');
+const v2Companies = collection('companies');
+const v2AuthUsers = collection('auth_users');
 
 // --- Authentication guard for the v2 API (QA-02 fix) -----------------------
 // Requires a valid Supabase session JWT for every /api/v2 request.

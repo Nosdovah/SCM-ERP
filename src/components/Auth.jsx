@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Activity } from 'lucide-react';
-import { supabase } from '../supabaseClient';
 import warehouseBg from '../assets/warehouse_bg.png';
 import { ERP_ROLES } from '../data/v2Data';
 
@@ -15,68 +14,59 @@ export default function Auth({ onGoToHelp, onDemoLogin }) {
   const [existingCompanies, setExistingCompanies] = useState([]);
 
   React.useEffect(() => {
-    if (authMode === 'signup' && supabase) {
-      // Fetch existing companies to populate datalist
-      supabase.from('companies').select('name').then(({ data }) => {
-        if (data) setExistingCompanies(data.map(c => c.name));
-      });
+    if (authMode === 'signup') {
+      // Fetch existing companies to populate the datalist (backend endpoint).
+      fetch('/api/companies')
+        .then(r => r.json())
+        .then(d => {
+          const list = Array.isArray(d) ? d : ((d && d.data) || []);
+          setExistingCompanies(list.map(c => c.name));
+        })
+        .catch(() => {});
     }
   }, [authMode]);
+
+  // POST helper to the backend auth API (source of truth). The optional
+  // client-side Supabase SDK is null when unconfigured, which previously made
+  // login/register silently fail with no network request.
+  const authApi = async (path, body) => {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, data };
+  };
 
   const handleAuth = async (e) => {
     e.preventDefault();
     setAuthLoading(true);
     setAuthError(null);
-    let error;
+    let error = null;
     if (authMode === 'login') {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      error = signInError;
+      const { ok, data } = await authApi('/api/auth/login', { email, password });
+      if (!ok) error = data.error || 'Login failed';
+      else if (onDemoLogin) onDemoLogin({ user: (data.user || data.session?.user) });
     } else if (authMode === 'signup') {
       if (!company.trim()) {
         setAuthError("Company name is required");
         setAuthLoading(false);
         return;
       }
-      
-      let companyNameStr = company.trim().toUpperCase();
-
-      if (supabase) {
-        // Ensure company exists in public.companies
-        const { data: existing } = await supabase.from('companies').select('id, name').ilike('name', companyNameStr).maybeSingle();
-        if (!existing) {
-          await supabase.from('companies').insert([{ name: companyNameStr }]);
-        }
-      }
-
-      // We store the company_name in the user's auth metadata so we can filter their ERP workspace
-      const { error: signUpError } = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: {
-          data: {
-            company_name: companyNameStr,
-            role: role
-          }
-        }
-      });
-      error = signUpError;
-      if (!error) {
-        alert('Success! Check your email for a confirmation link or sign in if no confirmation is required.');
-      } else {
-        // Offline fallback login for demo purposes if Supabase fails
-        localStorage.setItem('moai_mock_session_company', companyNameStr);
-      }
+      const companyNameStr = company.trim().toUpperCase();
+      const { ok, data } = await authApi('/api/auth/register', { email, password, company_name: companyNameStr, role });
+      if (!ok) error = data.error || 'Registration failed';
+      else if (onDemoLogin) onDemoLogin({ user: (data.user || data.session?.user) });
     } else if (authMode === 'forgot_password') {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin,
-      });
-      error = resetError;
-      if (!error) {
+      const { ok, data } = await authApi('/api/auth/forgot-password', { email, redirectTo: window.location.origin });
+      if (!ok) error = data.error || 'Reset failed';
+      else {
         alert('Password reset link sent! Check your email.');
         setAuthMode('login');
       }
     }
-    if (error) setAuthError(error.message);
+    if (error) setAuthError(error);
     setAuthLoading(false);
   };
 
